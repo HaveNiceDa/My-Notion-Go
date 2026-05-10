@@ -1,0 +1,22 @@
+{
+  "name": "my-notion-go",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.28.1",
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,green \"pnpm dev:web\" \"pnpm dev:api\"",
+    "dev:web": "pnpm --filter @my-notion-go/web dev",
+    "dev:api": "go run ./services/api/cmd/api",
+    "dev:worker": "go run ./services/api/cmd/worker",
+    "build": "pnpm build:web && pnpm build:api",
+    "build:web": "pnpm --filter @my-notion-go/web build",
+    "build:api": "go build -o ./services/api/bin/api ./services/api/cmd/api",
+    "typecheck": "pnpm --filter @my-notion-go/web typecheck",
+    "lint": "pnpm --filter @my-notion-go/web lint",
+    "format:go": "gofmt -w ./services/api",
+    "test:go": "go test ./services/api/..."
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

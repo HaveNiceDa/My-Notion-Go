@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: My-Notion Go API
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: API is healthy
+  /api/v1/ping:
+    get:
+      summary: Ping API
+      responses:
+        "200":
+          description: Pong response

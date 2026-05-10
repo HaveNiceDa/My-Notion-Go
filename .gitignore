@@ -1,0 +1,19 @@
+node_modules
+.DS_Store
+.env
+.env.local
+.env.*.local
+
+# Web
+apps/web/dist
+apps/web/.vite
+
+# Go
+services/api/bin
+services/api/tmp
+*.test
+coverage.out
+
+# IDE
+.vscode
+.idea

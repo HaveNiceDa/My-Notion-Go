@@ -38,21 +38,24 @@ flowchart TD
     Chat --> PG
     Search --> PG
     Search --> QD[(Qdrant Optional)]
+    API --> Redis[(Redis Optional)]
 
     API --> MQ[RabbitMQ Optional]
     MQ --> Worker[Go Worker]
     Worker --> QD
     Worker --> LLM[LLM API]
+    Worker --> Redis
 
     Realtime --> SSE[SSE]
     Realtime --> WS[WebSocket Optional]
+    Realtime --> Redis
 
     classDef frontend fill:#e3f2fd,color:#0d47a1
     classDef backend fill:#e8f5e9,color:#1b5e20
     classDef infra fill:#fff3e0,color:#e65100
     class Web frontend
     class API,Auth,Doc,Editor,Chat,Search,Realtime,Worker backend
-    class PG,QD,MQ,LLM,SSE,WS infra
+    class PG,QD,Redis,MQ,LLM,SSE,WS infra
 ```
 
 架构原则：
@@ -61,8 +64,9 @@ flowchart TD
 2. 后端只有 `api` 和 `worker` 两个进程，避免过早拆分。
 3. 数据库选 PostgreSQL，文档正文用 JSONB。
 4. AI 流式输出优先使用 SSE。
-5. RabbitMQ、Qdrant、WebSocket 作为第二阶段能力逐步引入。
-6. 前端通过 OpenAPI 生成的 TypeScript client 访问后端。
+5. Redis 不作为核心持久化存储，只用于缓存、限流、短期任务状态、实时事件广播和分布式锁。
+6. RabbitMQ、Redis、Qdrant、WebSocket 作为第二阶段能力逐步引入。
+7. 前端通过 OpenAPI 生成的 TypeScript client 访问后端。
 
 ## 3. 技术栈
 
@@ -81,6 +85,7 @@ flowchart TD
 | 迁移 | golang-migrate 或 goose | 数据库版本管理 |
 | 鉴权 | 自研 JWT + Refresh Token | 完整学习登录态设计 |
 | 实时 | SSE，后续 WebSocket | AI 流、任务状态、文档事件 |
+| 缓存 / 快状态 | Redis | 限流、缓存、短期任务状态、Pub/Sub、分布式锁 |
 | 队列 | RabbitMQ | 文档索引、AI 摘要、异步任务 |
 | AI | OpenAI Compatible API | 普通对话、标题生成、RAG |
 | 向量库 | Qdrant | 知识库问答和语义检索 |
@@ -108,7 +113,63 @@ flowchart TD
 3. JSONB 足够承载富文本编辑器内容。
 4. GORM 与 PostgreSQL 的组合更符合学习 Go 完整后端工程的目标。
 
-## 5. Monorepo 目录设计
+## 5. Redis 使用边界
+
+Redis 作为第二阶段引入的基础设施，主要用于学习缓存、限流、短期状态、实时广播和分布式锁。它不承载核心持久化数据，核心业务数据仍然以 PostgreSQL 为准。
+
+适合放入 Redis 的场景：
+
+| 场景 | Redis Key 示例 | TTL | 说明 |
+| --- | --- | ---: | --- |
+| 登录失败计数 | `auth:fail:{email}` | 15 分钟 | 防暴力破解 |
+| Token 黑名单 | `jwt:blacklist:{jti}` | token 剩余有效期 | 退出登录或强制失效 |
+| 用户文档树缓存 | `doc:tree:{userId}` | 30-120 秒 | 文档树高频读取 |
+| 文档详情缓存 | `doc:detail:{userId}:{docId}` | 30-60 秒 | 热点文档短缓存 |
+| AI 限流 | `rate:ai:{userId}` | 1 分钟 | 控制 LLM 调用成本 |
+| RAG 索引锁 | `lock:rag:index:{docId}` | 5-10 分钟 | 防止重复向量化 |
+| RAG 任务状态 | `job:rag:{jobId}` | 1 小时 | 前端展示索引进度 |
+| 实时事件广播 | `pubsub:user:{userId}` | 无 | 多实例 SSE / WebSocket 广播 |
+
+Redis 与其他组件的分工：
+
+| 组件 | 职责 |
+| --- | --- |
+| PostgreSQL | 核心业务持久化，用户、文档、内容、AI 会话、任务最终状态 |
+| Redis | 缓存、限流、短期任务状态、Pub/Sub、分布式锁 |
+| RabbitMQ | 可靠异步任务、重试、死信队列、批量任务削峰 |
+| Qdrant | 向量存储和语义检索 |
+
+推荐引入顺序：
+
+1. Auth 阶段：登录失败计数、token 黑名单。
+2. Document 阶段：文档树缓存、热点文档缓存。
+3. AI 阶段：AI 接口限流、流式任务短状态。
+4. RAG 阶段：索引锁、索引任务状态。
+5. Realtime 阶段：多实例 SSE / WebSocket Pub/Sub。
+
+示例事件链路：
+
+```mermaid
+sequenceDiagram
+    participant API as Go API
+    participant Redis as Redis
+    participant MQ as RabbitMQ
+    participant Worker as Go Worker
+    participant PG as PostgreSQL
+    participant QD as Qdrant
+
+    API->>Redis: SETNX lock:rag:index:docId
+    API->>MQ: Publish rag.index.requested
+    API->>Redis: SET job:rag:jobId pending
+    Worker->>MQ: Consume job
+    Worker->>Redis: SET job status running
+    Worker->>QD: Upsert vectors
+    Worker->>PG: Update rag_documents indexed
+    Worker->>Redis: SET job status completed
+    Worker->>Redis: DEL lock
+```
+
+## 6. Monorepo 目录设计
 
 ```txt
 my-notion-go/
@@ -197,12 +258,13 @@ my-notion-go/
     roadmap.md
 ```
 
-## 6. 后端模块分工
+## 7. 后端模块分工
 
 | 模块 | Go 包 | 职责 |
 | --- | --- | --- |
 | 配置 | `internal/config` | 读取 env、数据库、JWT、AI、MQ 配置 |
 | 数据库 | `internal/database` | GORM 初始化、事务封装、migration |
+| 缓存 | `internal/cache` | Redis client、缓存、限流、锁、Pub/Sub |
 | 日志 | `internal/logger` | 结构化日志 |
 | 中间件 | `internal/middleware` | CORS、鉴权、错误恢复、请求日志 |
 | 鉴权 | `internal/auth` | 注册、登录、密码 hash、JWT、refresh token |
@@ -218,7 +280,7 @@ my-notion-go/
 | 响应 | `internal/response` | 统一返回结构、分页、错误码 |
 | 错误 | `internal/errors` | 业务错误定义和 HTTP 映射 |
 
-## 7. 前端模块分工
+## 8. 前端模块分工
 
 | 模块 | 职责 |
 | --- | --- |
@@ -231,7 +293,7 @@ my-notion-go/
 | `packages/api-client` | OpenAPI 生成 client + React Query hooks |
 | `packages/shared` | 跨端类型、常量、校验规则 |
 
-## 8. 核心数据模型
+## 9. 核心数据模型
 
 | 表 | 说明 |
 | --- | --- |
@@ -278,7 +340,7 @@ CREATE TABLE document_contents (
 );
 ```
 
-## 9. API 设计
+## 10. API 设计
 
 | API | 方法 | 用途 |
 | --- | --- | --- |
@@ -305,7 +367,7 @@ CREATE TABLE document_contents (
 | `/api/v1/rag/chat/stream` | `POST` | RAG SSE 对话 |
 | `/api/v1/realtime/events` | `GET` | SSE 事件流 |
 
-## 10. 实时方案
+## 11. 实时方案
 
 第一阶段只做 SSE：
 
@@ -342,7 +404,7 @@ sequenceDiagram
     Worker->>PG: Update rag_documents status
 ```
 
-## 11. 功能范围
+## 12. 功能范围
 
 | 模块 | 第一版能力 | 进阶能力 |
 | --- | --- | --- |
@@ -356,7 +418,7 @@ sequenceDiagram
 | Files | 本地/对象存储上传图片 | S3/R2、图片压缩、权限控制 |
 | Admin | 健康检查、任务列表 | 监控、审计日志 |
 
-## 12. 学习路径
+## 13. 学习路径
 
 | 阶段 | 学习重点 | 目标 |
 | --- | --- | --- |
@@ -365,11 +427,11 @@ sequenceDiagram
 | Phase 2 | React Query、OpenAPI、前后端联调 | 前端完整使用 Go API |
 | Phase 3 | 富文本编辑器、JSONB、自动保存 | 完成 Notion 核心编辑体验 |
 | Phase 4 | SSE、AI 流式输出 | 完成 AI Chat |
-| Phase 5 | RabbitMQ、Worker、Qdrant | 完成 RAG 知识库 |
+| Phase 5 | Redis、RabbitMQ、Worker、Qdrant | 完成缓存、限流、异步索引和 RAG 知识库 |
 | Phase 6 | WebSocket/SSE 事件系统 | 替代基础实时能力 |
 | Phase 7 | 部署、日志、监控、测试 | 形成完整工程闭环 |
 
-## 13. 开发里程碑
+## 14. 开发里程碑
 
 | 里程碑 | 产出 | 预估时间 |
 | --- | --- | ---: |
@@ -378,7 +440,7 @@ sequenceDiagram
 | M2 | Document CRUD + 文档树 + React Query hooks | 5-7 天 |
 | M3 | Editor + JSONB 保存 + 自动保存 | 5-7 天 |
 | M4 | AI Chat + SSE + 会话历史 | 5-7 天 |
-| M5 | RabbitMQ Worker + RAG 索引 + Qdrant | 7-10 天 |
+| M5 | Redis + RabbitMQ Worker + RAG 索引 + Qdrant | 7-10 天 |
 | M6 | 搜索、回收站、收藏、发布页面 | 5-7 天 |
 | M7 | WebSocket/SSE 事件、部署、测试 | 7-10 天 |
 
@@ -386,9 +448,9 @@ sequenceDiagram
 
 1. 可运行 MVP：2-3 周。
 2. 覆盖主要 My-Notion Web 功能：5-8 周。
-3. 加上 AI/RAG/RabbitMQ/WebSocket/部署：8-12 周。
+3. 加上 AI/RAG/Redis/RabbitMQ/WebSocket/部署：8-12 周。
 
-## 14. 推荐最小闭环
+## 15. 推荐最小闭环
 
 第一版应优先完成：
 
@@ -404,13 +466,14 @@ sequenceDiagram
 第二版再引入：
 
 1. RabbitMQ 异步任务。
-2. Qdrant RAG。
-3. WebSocket 实时通知。
-4. OpenAPI 生成 TS client。
-5. CI/CD 与部署。
-6. 单元测试与集成测试。
+2. Redis 缓存、限流、任务状态和分布式锁。
+3. Qdrant RAG。
+4. WebSocket 实时通知。
+5. OpenAPI 生成 TS client。
+6. CI/CD 与部署。
+7. 单元测试与集成测试。
 
-## 15. 与现有项目的关系
+## 16. 与现有项目的关系
 
 现有 My-Notion 主工程继续作为当前产品实现。
 
@@ -428,5 +491,4 @@ sequenceDiagram
 2. 可以从零设计真正的 Go 后端。
 3. 项目边界清晰，适合作品集展示。
 4. 现有主项目不受实验性重构影响。
-5. 学习路径完整，覆盖前端、后端、数据库、队列、实时、AI、部署。
-
+5. 学习路径完整，覆盖前端、后端、数据库、缓存、队列、实时、AI、部署。

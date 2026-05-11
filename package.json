@@ -11,6 +11,7 @@
     "build": "pnpm build:web && pnpm build:api",
     "build:web": "pnpm --filter @my-notion-go/web build",
     "build:api": "go build -o ./services/api/bin/api ./services/api/cmd/api",
+    "migrate:api": "go run ./services/api/cmd/migrate",
     "typecheck": "pnpm --filter @my-notion-go/web typecheck",
     "lint": "pnpm --filter @my-notion-go/web lint",
     "format:go": "gofmt -w ./services/api",

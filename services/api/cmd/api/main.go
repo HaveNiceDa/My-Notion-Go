@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bytel/my-notion-go/services/api/internal/auth"
 	"github.com/bytel/my-notion-go/services/api/internal/config"
 	"github.com/bytel/my-notion-go/services/api/internal/database"
+	"github.com/bytel/my-notion-go/services/api/internal/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -63,6 +65,31 @@ func main() {
 	api.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
+
+	// Auth 模块依赖顺序：TokenManager -> Repository -> Service -> Handler。
+	// 这样 main.go 只负责装配依赖，具体业务规则仍然保留在 internal/auth 内部。
+	tokenManager := auth.NewTokenManager(
+		cfg.JWTAccessSecret,
+		time.Duration(cfg.AccessTokenMinutes)*time.Minute,
+	)
+	authRepo := auth.NewRepository(db)
+	authService := auth.NewService(
+		authRepo,
+		tokenManager,
+		cfg.JWTRefreshSecret,
+		time.Duration(cfg.RefreshTokenDays)*24*time.Hour,
+	)
+	authHandler := auth.NewHandler(authService)
+
+	// 公开 Auth 接口：注册、登录、刷新 token、退出登录。
+	authRoutes := api.Group("/auth")
+	authRoutes.POST("/register", authHandler.Register)
+	authRoutes.POST("/login", authHandler.Login)
+	authRoutes.POST("/refresh", authHandler.Refresh)
+	authRoutes.POST("/logout", authHandler.Logout)
+
+	// /me 是受保护接口，必须先通过 RequireAuth 解析 Bearer token。
+	api.GET("/me", middleware.RequireAuth(tokenManager), authHandler.Me)
 
 	if err := router.Run(cfg.HTTPAddr); err != nil {
 		panic(err)

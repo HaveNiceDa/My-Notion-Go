@@ -39,7 +39,7 @@ Use `docs/` only for long-term architecture, design, roadmap, or API planning do
 
 ## Comment Rule
 
-When adding or changing backend code, include succinct learning-oriented comments for important concepts.
+When adding or changing important code, include succinct learning-oriented comments for important concepts.
 
 Add comments for:
 
@@ -47,7 +47,16 @@ Add comments for:
 2. Cross-layer boundaries such as handler, service, repository, middleware, model, DTO, and config.
 3. Security-sensitive logic such as password hashing, token signing, refresh token storage, authentication, authorization, and user context.
 4. Database decisions such as JSONB storage, soft delete, indexes, transactions, and migrations.
-5. Non-obvious control flow or trade-offs.
+5. Frontend global state such as Zustand stores, route guards, token storage, request hooks, and form schemas.
+6. Non-obvious control flow or trade-offs.
+
+For frontend global state, comment the overall responsibility of the state object or store, not just individual fields:
+
+```ts
+// AuthState is the single source of truth for the Web auth session.
+// It keeps user identity, token state, session recovery, and logout in one place.
+type AuthState = {}
+```
 
 Avoid comments that merely restate a single obvious line.
 

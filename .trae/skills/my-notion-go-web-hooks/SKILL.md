@@ -1,0 +1,101 @@
+---
+name: "my-notion-go-web-hooks"
+description: "Guides My-Notion Go Web hook usage. Invoke when editing React Web code, requests, callbacks, timers, forms, routes, or global state."
+---
+
+# My-Notion Go Web Hooks
+
+Use this skill when working on `my-notion-go/apps/web`.
+
+## Core Rule
+
+Prefer mature third-party hooks and framework primitives over hand-written hook logic.
+
+Default choices:
+
+1. Route state and navigation: `react-router-dom`.
+2. Global client state: `zustand`.
+3. Server state and cache: `@tanstack/react-query`.
+4. Form state and validation: `react-hook-form` + `zod`.
+5. Request lifecycle and common React hooks: `ahooks`.
+
+## ahooks Rule
+
+Use `ahooks` before writing custom hook logic for common UI behavior.
+
+Preferred mappings:
+
+1. Request loading/error/lifecycle: `useRequest`.
+2. Stable event callbacks: `useMemoizedFn`.
+3. Mount-only effects: `useMount`.
+4. Unmount cleanup: `useUnmount`.
+5. Debounce: `useDebounce`, `useDebounceFn`.
+6. Throttle: `useThrottle`, `useThrottleFn`.
+7. Timers and intervals: `useInterval`, `useTimeout`.
+8. Previous value tracking: `usePrevious`.
+9. Local storage state: `useLocalStorageState`, unless security boundaries require an explicit storage wrapper.
+10. Boolean toggles: `useBoolean`.
+
+Do not hand-write `useEffect` + `useState` request loading flags when `useRequest` fits.
+
+Do not use React `useCallback` for event callback stability unless `useMemoizedFn` is unsuitable.
+
+Do not hand-write debounce, throttle, interval, timeout, previous-value, or mount-only hooks.
+
+## Auth Guidance
+
+For Auth UI:
+
+1. Keep token storage behind `features/auth/authStorage.ts`.
+2. Keep global auth state in `features/auth/authStore.ts` with Zustand.
+3. Use React Router route guards for public-only and protected pages.
+4. Use `ahooks/useRequest` for login, register, logout, refresh, and other request lifecycle needs.
+5. Use `ahooks/useMount` for initial session restoration from persisted tokens.
+6. Use `ahooks/useMemoizedFn` for stable submit and click handlers.
+
+## Comments
+
+Add succinct learning-oriented comments for important Web state, routing, and hook choices.
+
+Required comment targets:
+
+1. Zustand store types and exported stores: explain the store's overall responsibility and why the state is global.
+2. Important store fields/actions: explain what owns the state and which components should consume it.
+3. Route guard components: explain what access rule they enforce.
+4. Request hooks: explain which request lifecycle `useRequest` owns.
+5. Non-obvious hook choices: explain why a third-party hook is used instead of hand-written logic.
+
+For global state, prefer a block comment above the state type or store:
+
+```ts
+// AuthState is the single source of truth for the Web auth session.
+// It centralizes current user, access token, refresh token, and session recovery,
+// so pages do not each maintain their own inconsistent login state.
+type AuthState = {}
+```
+
+For route guards, comment the rule rather than the JSX:
+
+```tsx
+// ProtectedRoute blocks unauthenticated users from private pages and redirects them to login.
+function ProtectedRoute() {}
+```
+
+For important hook choices, document:
+
+1. Why a third-party hook is used.
+2. Which lifecycle or state concern it owns.
+3. What should not be duplicated manually in the component.
+
+Avoid comments that restate a prop assignment, obvious variable name, or a single obvious line.
+
+## Verification
+
+After changing Web hook, routing, form, or state code, run:
+
+```bash
+pnpm typecheck
+pnpm build:web
+```
+
+Also check IDE diagnostics for recently edited files.

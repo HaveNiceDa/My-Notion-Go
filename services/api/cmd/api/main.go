@@ -40,6 +40,10 @@ func main() {
 	cancel()
 
 	router := gin.New()
+	// 本地开发不经过反向代理，显式禁用可信代理列表，避免 Gin 默认信任所有代理。
+	if err := router.SetTrustedProxies(nil); err != nil {
+		log.Fatalf("set trusted proxies failed: %v", err)
+	}
 	router.Use(gin.Logger(), gin.Recovery())
 
 	router.GET("/health", func(c *gin.Context) {

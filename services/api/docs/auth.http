@@ -1,0 +1,95 @@
+### Auth API 调试文件
+### 使用方式：
+### 1. 先启动 API：DATABASE_URL=postgres://postgres:postgres@localhost:5432/my_notion_go?sslmode=disable pnpm dev:api
+### 2. 在支持 .http 的 IDE 插件中依次执行下面的请求；如果没有按钮，可以把请求体复制成 curl 测试。
+### 3. 如果 Register 提示邮箱已存在，改一下 @email，或者直接执行 Login。
+### 4. Refresh 会撤销 Login 返回的旧 refreshToken，所以执行 Refresh 后，Logout 要使用 refresh 响应里的新 refreshToken。
+###
+### 最近一次补测数据：2026-05-14 22:11
+### 测试邮箱：auth-refresh-logout-1778767866@example.com
+### 验证结果：
+### - GET /health -> 200
+### - POST /api/v1/auth/register -> 201
+### - POST /api/v1/auth/login -> 200
+### - GET /api/v1/me with login accessToken -> 200
+### - POST /api/v1/auth/refresh with login refreshToken -> 200
+### - GET /api/v1/me with refreshed accessToken -> 200
+### - POST /api/v1/auth/refresh with old login refreshToken -> 401
+### - POST /api/v1/auth/logout with refreshed refreshToken -> 200
+### - POST /api/v1/auth/refresh after logout -> 401
+
+@baseUrl = http://localhost:8080
+@email = demo@example.com
+@password = password123
+@name = Demo User
+@deviceName = Local HTTP Client
+
+### Health Check
+GET {{baseUrl}}/health
+
+### Register
+# @name register
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "name": "{{name}}",
+  "password": "{{password}}"
+}
+
+### Login
+# @name login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "deviceName": "{{deviceName}}"
+}
+
+### Me - 使用 Login 返回的 Access Token
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+
+### Refresh - 使用 Login 返回的 Refresh Token 换一组新 token
+# @name refresh
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{login.response.body.$.data.tokens.refreshToken}}"
+}
+
+### Me - 使用 Refresh 返回的新 Access Token
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer {{refresh.response.body.$.data.tokens.accessToken}}
+
+### Refresh Again With Old Login Refresh Token - 预期 401
+### 说明：Refresh 成功后会撤销旧 refreshToken，所以 login 返回的 refreshToken 不能再用。
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{login.response.body.$.data.tokens.refreshToken}}"
+}
+
+### Logout - 撤销 Refresh 返回的新 Refresh Token
+### 说明：如果前面已经执行过 Refresh，这里必须使用 refresh.response 里的新 refreshToken。
+# @name logout
+POST {{baseUrl}}/api/v1/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refresh.response.body.$.data.tokens.refreshToken}}"
+}
+
+### Refresh After Logout - 预期 401
+### 说明：Logout 已经撤销 refreshToken，所以再次刷新应返回 INVALID_TOKEN。
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refresh.response.body.$.data.tokens.refreshToken}}"
+}

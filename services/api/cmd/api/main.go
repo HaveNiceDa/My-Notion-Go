@@ -10,6 +10,7 @@ import (
 	"github.com/bytel/my-notion-go/services/api/internal/config"
 	"github.com/bytel/my-notion-go/services/api/internal/database"
 	"github.com/bytel/my-notion-go/services/api/internal/middleware"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -44,6 +45,28 @@ func main() {
 	if err := router.SetTrustedProxies(nil); err != nil {
 		log.Fatalf("set trusted proxies failed: %v", err)
 	}
+	// CORS 必须在业务路由前注册，让浏览器的 OPTIONS 预检请求能先拿到跨域响应头。
+	// 默认只允许本地 Web 开发端口 5273，后续部署环境通过 CORS_ALLOWED_ORIGINS 显式扩展白名单。
+	router.Use(cors.New(cors.Config{
+		AllowOrigins: cfg.CORSAllowedOrigins,
+		AllowMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+			http.MethodOptions,
+		},
+		AllowHeaders: []string{
+			"Authorization",
+			"Content-Type",
+			"Origin",
+		},
+		ExposeHeaders: []string{
+			"Content-Length",
+		},
+		MaxAge: 12 * time.Hour,
+	}))
 	router.Use(gin.Logger(), gin.Recovery())
 
 	router.GET("/health", func(c *gin.Context) {

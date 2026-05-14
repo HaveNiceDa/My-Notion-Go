@@ -1,6 +1,9 @@
 package config
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 // Config 是 API 服务启动所需的运行时配置。
 // 当前从环境变量读取，后续如果配置项变多，可以再引入更完整的配置库。
@@ -8,6 +11,7 @@ type Config struct {
 	Env                string
 	HTTPAddr           string
 	DatabaseURL        string
+	CORSAllowedOrigins []string
 	JWTAccessSecret    string
 	JWTRefreshSecret   string
 	AccessTokenMinutes int
@@ -21,6 +25,7 @@ func Load() Config {
 		Env:                getEnv("APP_ENV", "development"),
 		HTTPAddr:           getEnv("HTTP_ADDR", ":8080"),
 		DatabaseURL:        os.Getenv("DATABASE_URL"),
+		CORSAllowedOrigins: getCSVEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5273"),
 		JWTAccessSecret:    getEnv("JWT_ACCESS_SECRET", "change-me-access-secret"),
 		JWTRefreshSecret:   getEnv("JWT_REFRESH_SECRET", "change-me-refresh-secret"),
 		AccessTokenMinutes: 15,
@@ -35,4 +40,18 @@ func getEnv(key string, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+// getCSVEnv 读取逗号分隔配置，适合 CORS origins 这类需要显式白名单的列表型配置。
+func getCSVEnv(key string, fallback string) []string {
+	rawValue := getEnv(key, fallback)
+	parts := strings.Split(rawValue, ",")
+	values := make([]string, 0, len(parts))
+	for _, part := range parts {
+		value := strings.TrimSpace(part)
+		if value != "" {
+			values = append(values, value)
+		}
+	}
+	return values
 }

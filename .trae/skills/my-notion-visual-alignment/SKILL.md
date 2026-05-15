@@ -84,6 +84,7 @@ The new project uses Vite + React, not Next.js. Adapt patterns, do not copy fram
 8. Do not introduce a new design language such as blue SaaS dashboard cards for the document workspace.
 9. Keep visual components split by responsibility so style alignment stays reviewable: sidebar, tree row, navbar, modal, empty state, and detail surface should not all live in one file.
 10. Add concise Chinese comments to business UI components explaining which original My-Notion pattern they mirror.
+11. Any user-facing UI copy added for visual alignment must still go through `apps/web/src/i18n/resources.ts` and `useTranslation()`; do not hard-code Chinese or English copy in JSX.
 
 ## Document MVP Checklist
 

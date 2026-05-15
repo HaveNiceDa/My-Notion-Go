@@ -88,6 +88,15 @@ Frontend rules:
 4. Use `types.ts`, `constants.ts`, `queryKeys.ts`, or `utils.ts` for shared types, constants, query keys, and pure helpers.
 5. Avoid files that contain an entire feature screen plus all child components unless it is a temporary spike.
 
+Frontend i18n rules:
+
+1. All user-facing Web copy must go through `i18next` / `react-i18next`.
+2. Put translation resources in `apps/web/src/i18n/resources.ts`.
+3. Components should use `useTranslation()` and `t(...)` instead of hard-coded Chinese or English UI strings.
+4. Add or update both `zh` and `en` translations whenever adding copy.
+5. Include accessibility copy such as `aria-label`, `title`, `alt`, placeholders, empty states, loading text, and validation errors.
+6. Keep user-generated backend data untranslated, but localize client-generated fallback copy.
+
 Backend rules:
 
 1. Keep model, repository, service, handler, middleware, and DTO responsibilities in separate files.

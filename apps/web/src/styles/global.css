@@ -635,6 +635,43 @@ img {
   margin: 0;
 }
 
+.document-editor {
+  margin-top: 16px;
+}
+
+.document-editor .bn-container {
+  background: transparent;
+  color: var(--foreground);
+  font-family: inherit;
+}
+
+.document-editor .bn-editor {
+  padding-inline: 0;
+}
+
+.autosave-indicator {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 20px;
+  margin-bottom: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.autosave-indicator.error {
+  color: var(--danger);
+}
+
+.editor-status-text {
+  margin: 20px 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+
+.editor-status-text.error {
+  color: var(--danger);
+}
+
 .empty-documents {
   display: flex;
   flex: 1;

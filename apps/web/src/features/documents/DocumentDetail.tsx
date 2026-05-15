@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useMemoizedFn } from "ahooks";
-import { Monitor } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Document } from "@my-notion-go/api-client";
+import { useAuthStore } from "../auth/authStore";
+import { DocumentEditor } from "./DocumentEditor";
 import { EmptyDocuments } from "./EmptyDocuments";
 
 type DocumentDetailProps = {
@@ -15,6 +16,7 @@ type DocumentDetailProps = {
 // DocumentDetail 是文档详情 MVP：只负责 metadata 层的标题编辑，正文编辑器留给下一阶段。
 export function DocumentDetail({ document, loading, onRename, renaming }: DocumentDetailProps) {
   const { i18n, t } = useTranslation();
+	const accessToken = useAuthStore((state) => state.accessToken);
   const [title, setTitle] = useState(document?.title || "");
 
   useEffect(() => {
@@ -63,10 +65,7 @@ export function DocumentDetail({ document, loading, onRename, renaming }: Docume
         value={title}
       />
       <p className="document-meta">{t("documents.lastEdited", { time: updatedAt })}</p>
-      <div className="editor-placeholder">
-        <Monitor size={18} />
-        <p>{t("documents.editorNext")}</p>
-      </div>
+			<DocumentEditor accessToken={accessToken} documentId={document.id} />
     </article>
   );
 }

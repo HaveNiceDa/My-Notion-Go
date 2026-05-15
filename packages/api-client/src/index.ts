@@ -80,6 +80,18 @@ export type UpdateDocumentRequest = {
 	isStarred?: boolean;
 };
 
+export type DocumentContent = {
+	documentId: string;
+	content: unknown[];
+	contentHash: string;
+	version: number;
+	updatedAt: string;
+};
+
+export type UpdateDocumentContentRequest = {
+	content: unknown[];
+};
+
 // ApiError 保留 HTTP 状态码和业务错误码，方便页面做提示，也方便后续按 code 做分支处理。
 export class ApiError extends Error {
   readonly status: number;
@@ -203,6 +215,21 @@ export const documentApi = {
 		return request<{ message: string }>(`/api/v1/documents/${documentId}/archive`, {
 			method: "POST",
 			accessToken,
+		});
+	},
+
+	content(documentId: string, accessToken: string) {
+		return request<DocumentContent>(`/api/v1/documents/${documentId}/content`, {
+			method: "GET",
+			accessToken,
+		});
+	},
+
+	updateContent(documentId: string, input: UpdateDocumentContentRequest, accessToken: string) {
+		return request<DocumentContent>(`/api/v1/documents/${documentId}/content`, {
+			method: "PUT",
+			accessToken,
+			body: JSON.stringify(input),
 		});
 	},
 };

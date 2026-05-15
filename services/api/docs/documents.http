@@ -50,6 +50,37 @@ Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
 GET {{baseUrl}}/api/v1/documents/{{createRoot.response.body.$.data.id}}
 Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
 
+### Get Document Content
+GET {{baseUrl}}/api/v1/documents/{{createRoot.response.body.$.data.id}}/content
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+
+### Update Document Content
+PUT {{baseUrl}}/api/v1/documents/{{createRoot.response.body.$.data.id}}/content
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+Content-Type: application/json
+
+{
+  "content": [
+    {
+      "id": "manual-test-block",
+      "type": "paragraph",
+      "props": {
+        "textColor": "default",
+        "backgroundColor": "default",
+        "textAlignment": "left"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Hello from BlockNote content API",
+          "styles": {}
+        }
+      ],
+      "children": []
+    }
+  ]
+}
+
 ### Update Document Metadata
 PATCH {{baseUrl}}/api/v1/documents/{{createRoot.response.body.$.data.id}}
 Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}

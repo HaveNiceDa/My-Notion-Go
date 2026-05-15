@@ -127,6 +127,8 @@ func main() {
 	documentRoutes.POST("", documentHandler.Create)
 	documentRoutes.GET("/tree", documentHandler.Tree)
 	documentRoutes.GET("/trash", documentHandler.Trash)
+	documentRoutes.GET("/:id/content", documentHandler.GetContent)
+	documentRoutes.PUT("/:id/content", documentHandler.UpdateContent)
 	documentRoutes.GET("/:id", documentHandler.Get)
 	documentRoutes.PATCH("/:id", documentHandler.Update)
 	documentRoutes.POST("/:id/archive", documentHandler.Archive)

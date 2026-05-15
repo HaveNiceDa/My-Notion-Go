@@ -4,3 +4,7 @@ export const documentsQueryKey = ["documents", "tree"] as const;
 export function documentQueryKey(documentId?: string) {
   return ["documents", documentId] as const;
 }
+
+export function documentContentQueryKey(documentId?: string) {
+  return ["documents", documentId, "content"] as const;
+}

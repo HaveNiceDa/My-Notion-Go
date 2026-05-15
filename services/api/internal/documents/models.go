@@ -1,6 +1,9 @@
 package documents
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Document 是数据库模型，对应 documents 表。
 // 它只保存文档元信息和树结构，正文 JSON 独立放在 document_contents 表，避免侧边栏树查询加载大字段。
@@ -47,6 +50,16 @@ func (DocumentContent) TableName() string {
 	return "document_contents"
 }
 
+// DocumentContentDTO 是编辑器正文接口的响应模型。
+// Content 保持原始 JSON 字节，Handler 返回时会作为 JSON 对象/数组写出，而不是变成字符串。
+type DocumentContentDTO struct {
+	DocumentID  string          `json:"documentId"`
+	Content     json.RawMessage `json:"content"`
+	ContentHash string          `json:"contentHash"`
+	Version     int64           `json:"version"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+}
+
 // DocumentDTO 是返回给前端的文档元信息视图。
 // DTO 的作用是隔离数据库模型：API 只暴露前端需要的字段，不直接把 GORM model 原样返回。
 type DocumentDTO struct {
@@ -89,5 +102,17 @@ func NewDocumentDTO(document Document) DocumentDTO {
 		Path:              document.Path,
 		CreatedAt:         document.CreatedAt,
 		UpdatedAt:         document.UpdatedAt,
+	}
+}
+
+// NewDocumentContentDTO 把数据库正文模型转成 API 响应模型。
+// 这里不解析具体 block 结构，让后端只负责 JSONB 存取，BlockNote schema 由前端控制。
+func NewDocumentContentDTO(content DocumentContent) DocumentContentDTO {
+	return DocumentContentDTO{
+		DocumentID:  content.DocumentID,
+		Content:     json.RawMessage(content.Content),
+		ContentHash: content.ContentHash,
+		Version:     content.Version,
+		UpdatedAt:   content.UpdatedAt,
 	}
 }

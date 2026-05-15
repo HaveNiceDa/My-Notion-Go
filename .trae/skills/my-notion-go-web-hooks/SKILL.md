@@ -55,7 +55,7 @@ For Auth UI:
 
 ## Comments
 
-Add succinct learning-oriented comments for important Web state, routing, and hook choices.
+Add succinct Chinese learning-oriented comments for important Web state, routing, and hook choices.
 
 Required comment targets:
 
@@ -64,6 +64,8 @@ Required comment targets:
 3. Route guard components: explain what access rule they enforce.
 4. Request hooks: explain which request lifecycle `useRequest` owns.
 5. Non-obvious hook choices: explain why a third-party hook is used instead of hand-written logic.
+6. Business React components: explain what the component owns and what it delegates to child components.
+7. Feature containers: explain which API/query/mutation lifecycle the container coordinates.
 
 For global state, prefer a block comment above the state type or store:
 
@@ -88,6 +90,25 @@ For important hook choices, document:
 3. What should not be duplicated manually in the component.
 
 Avoid comments that restate a prop assignment, obvious variable name, or a single obvious line.
+
+## Component File Responsibility
+
+Prefer single-responsibility component files in `apps/web`.
+
+Rules:
+
+1. Keep routing shells, auth dialogs, marketing home, workspace layout, sidebar, tree item, detail page, and empty states in separate files.
+2. A file should usually export one primary component.
+3. If a component owns server state or mutations, keep it as a container and move presentational children into separate files.
+4. Move shared feature types into `types.ts`.
+5. Move query keys and API cache keys into `queryKeys.ts`.
+6. Keep utility functions such as error-message mapping in focused helper files.
+
+Avoid:
+
+1. A single file containing route definitions, modal forms, landing page, protected workspace, and loading screen at the same time.
+2. A single document workspace file containing sidebar, document tree recursion, navbar, detail editor, empty state, and skeleton UI.
+3. Adding new child components at the bottom of an already large file just because it is convenient.
 
 ## Verification
 

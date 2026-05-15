@@ -46,6 +46,40 @@ export type LoginRequest = {
   deviceName?: string;
 };
 
+export type Document = {
+	id: string;
+	parentId: string | null;
+	title: string;
+	icon: string;
+	coverImage: string;
+	isArchived: boolean;
+	isStarred: boolean;
+	isPublished: boolean;
+	isInKnowledgeBase: boolean;
+	position: number;
+	path: string;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type DocumentTreeNode = Document & {
+	children: DocumentTreeNode[];
+};
+
+export type CreateDocumentRequest = {
+	parentId?: string;
+	title?: string;
+	icon?: string;
+	coverImage?: string;
+};
+
+export type UpdateDocumentRequest = {
+	title?: string;
+	icon?: string;
+	coverImage?: string;
+	isStarred?: boolean;
+};
+
 // ApiError 保留 HTTP 状态码和业务错误码，方便页面做提示，也方便后续按 code 做分支处理。
 export class ApiError extends Error {
   readonly status: number;
@@ -134,8 +168,48 @@ export const authApi = {
   },
 };
 
+export const documentApi = {
+	create(input: CreateDocumentRequest, accessToken: string) {
+		return request<Document>("/api/v1/documents", {
+			method: "POST",
+			accessToken,
+			body: JSON.stringify(input),
+		});
+	},
+
+	tree(accessToken: string) {
+		return request<DocumentTreeNode[]>("/api/v1/documents/tree", {
+			method: "GET",
+			accessToken,
+		});
+	},
+
+	get(documentId: string, accessToken: string) {
+		return request<Document>(`/api/v1/documents/${documentId}`, {
+			method: "GET",
+			accessToken,
+		});
+	},
+
+	update(documentId: string, input: UpdateDocumentRequest, accessToken: string) {
+		return request<Document>(`/api/v1/documents/${documentId}`, {
+			method: "PATCH",
+			accessToken,
+			body: JSON.stringify(input),
+		});
+	},
+
+	archive(documentId: string, accessToken: string) {
+		return request<{ message: string }>(`/api/v1/documents/${documentId}/archive`, {
+			method: "POST",
+			accessToken,
+		});
+	},
+};
+
 export const apiClient = {
   baseUrl,
   request,
   auth: authApi,
+	documents: documentApi,
 };

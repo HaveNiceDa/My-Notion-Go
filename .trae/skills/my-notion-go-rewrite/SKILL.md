@@ -41,6 +41,8 @@ Use `docs/` only for long-term architecture, design, roadmap, or API planning do
 
 When adding or changing important code, include succinct learning-oriented comments for important concepts.
 
+For this project, prefer Chinese comments in newly written business code so the implementation is easier to learn and review locally.
+
 Add comments for:
 
 1. Public structs and functions.
@@ -73,6 +75,25 @@ Bad comment:
 // Assigns user.ID to ID.
 ID: user.ID,
 ```
+
+## File Responsibility Rule
+
+Keep files focused on one main responsibility.
+
+Frontend rules:
+
+1. Prefer one exported React component per file for page-level or business components.
+2. Split large components into nearby files when they mix routing, modal, list item, sidebar, detail view, form, and loading state responsibilities.
+3. Keep small pure helpers in the same file only when they are tightly coupled and not reusable.
+4. Use `types.ts`, `constants.ts`, `queryKeys.ts`, or `utils.ts` for shared types, constants, query keys, and pure helpers.
+5. Avoid files that contain an entire feature screen plus all child components unless it is a temporary spike.
+
+Backend rules:
+
+1. Keep model, repository, service, handler, middleware, and DTO responsibilities in separate files.
+2. Split a backend file when it grows multiple unrelated concerns such as request binding, database queries, business rules, and response mapping.
+3. Keep `cmd/*/main.go` focused on dependency wiring and route registration.
+4. Prefer small cohesive files over large files with many unrelated structs and functions.
 
 ## Backend Iteration Rule
 

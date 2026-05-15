@@ -1,0 +1,68 @@
+apps/web/src/features/theme/themeStore.ts
+  5b14b67bb10a681c 7 gitai:{"mixed_line_ranges":[{"Single":7}],"operations":[]}
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "25d5988404857a6704c0f3484f192ab369c31288",
+  "prompts": {
+    "468a307dbbae1ec5": {
+      "agent_id": {
+        "tool": "trae-cue",
+        "id": "ai_tab-icr-f3c55801-28e1-4c38-8e4f-9ea9cd3284cf",
+        "model": "default"
+      },
+      "human_author": "lishijie.36 <lishijie.36@bytedance.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 0,
+      "overriden_lines": 0
+    },
+    "5b14b67bb10a681c": {
+      "agent_id": {
+        "tool": "trae-cue",
+        "id": "ai_tab-icr-7d2ae7c3-2095-44bd-a47e-80d259055da8",
+        "model": "default"
+      },
+      "human_author": "lishijie.36 <lishijie.36@bytedance.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 0,
+      "overriden_lines": 1
+    },
+    "8f8b17e5f005407e": {
+      "agent_id": {
+        "tool": "trae-cue",
+        "id": "ai_tab-icr-df1761f1-74ff-4c0b-834e-426f04842379",
+        "model": "default"
+      },
+      "human_author": "lishijie.36 <lishijie.36@bytedance.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 0,
+      "overriden_lines": 0
+    }
+  },
+  "attestation_metadata": {
+    "apps/web/src/features/theme/themeStore.ts": [
+      {
+        "hash": "5b14b67bb10a681c",
+        "line_ranges": [
+          {
+            "Single": 7
+          }
+        ],
+        "mixed_line_ranges": [
+          {
+            "Single": 7
+          }
+        ],
+        "operations": []
+      }
+    ]
+  },
+  "remote_transcripts": {}
+}

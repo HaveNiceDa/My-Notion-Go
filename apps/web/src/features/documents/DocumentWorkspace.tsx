@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemoizedFn } from "ahooks";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { documentApi } from "@my-notion-go/api-client";
 import { useAuthStore } from "../auth/authStore";
 import { useThemeStore } from "../theme/themeStore";
@@ -18,6 +19,7 @@ type DocumentWorkspaceProps = {
 
 // DocumentWorkspace 是 Document MVP 的容器层：集中编排 React Query、mutation 和路由跳转，展示细节交给子组件。
 export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspaceProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { documentId } = useParams();
   const queryClient = useQueryClient();
@@ -42,7 +44,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
       documentApi.create(
         {
           parentId,
-          title: "Untitled",
+          title: t("documents.untitled"),
         },
         accessToken,
       ),

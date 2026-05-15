@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, FileIcon, Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import type { DocumentTreeNode } from "@my-notion-go/api-client";
 
@@ -12,6 +13,7 @@ type DocumentTreeItemProps = {
 
 // DocumentTreeItem 对齐原 Item.tsx：负责单行缩进、展开折叠、当前态和 hover 新建子页按钮。
 export function DocumentTreeItem({ activeDocumentId, level, node, onCreateChild }: DocumentTreeItemProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
   const hasChildren = node.children.length > 0;
   const ChevronIcon = expanded ? ChevronDown : ChevronRight;
@@ -23,7 +25,7 @@ export function DocumentTreeItem({ activeDocumentId, level, node, onCreateChild 
         style={{ paddingLeft: `${level * 12 + 12}px` }}
       >
         <button
-          aria-label={expanded ? "Collapse page" : "Expand page"}
+          aria-label={expanded ? t("documents.collapsePage") : t("documents.expandPage")}
           className="tree-chevron"
           disabled={!hasChildren}
           onClick={() => setExpanded((value) => !value)}
@@ -35,7 +37,7 @@ export function DocumentTreeItem({ activeDocumentId, level, node, onCreateChild 
           {node.icon ? <span className="document-emoji">{node.icon}</span> : <FileIcon size={18} />}
           <span>{node.title}</span>
         </Link>
-        <button aria-label="New sub page" className="icon-button row-action" onClick={() => onCreateChild(node.id)} type="button">
+        <button aria-label={t("documents.newSubPage")} className="icon-button row-action" onClick={() => onCreateChild(node.id)} type="button">
           <Plus size={14} />
         </button>
       </div>

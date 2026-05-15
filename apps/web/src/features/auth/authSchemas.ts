@@ -1,14 +1,19 @@
 import { z } from "zod";
+import type { TFunction } from "i18next";
 
-// 登录和注册共用同一个表单组件，但两种模式的密码校验规则不同，所以 schema 单独集中维护。
-export const loginSchema = z.object({
-  name: z.string(),
-  email: z.email("请输入有效邮箱。"),
-  password: z.string().min(1, "请输入密码。"),
-});
+// 登录和注册共用同一个表单组件，但两种模式的密码校验规则不同，所以 schema 通过工厂函数按当前语言生成。
+export function createLoginSchema(t: TFunction) {
+  return z.object({
+    name: z.string(),
+    email: z.email(t("auth.invalidEmail")),
+    password: z.string().min(1, t("auth.requiredPassword")),
+  });
+}
 
-export const registerSchema = z.object({
-  name: z.string(),
-  email: z.email("请输入有效邮箱。"),
-  password: z.string().min(8, "密码至少需要 8 位。"),
-});
+export function createRegisterSchema(t: TFunction) {
+  return z.object({
+    name: z.string(),
+    email: z.email(t("auth.invalidEmail")),
+    password: z.string().min(8, t("auth.minPassword")),
+  });
+}

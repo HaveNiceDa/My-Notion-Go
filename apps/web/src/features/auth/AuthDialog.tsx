@@ -1,10 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemoizedFn, useRequest } from "ahooks";
 import { Loader2, X } from "lucide-react";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "@my-notion-go/api-client";
-import { loginSchema, registerSchema } from "./authSchemas";
+import { createLoginSchema, createRegisterSchema } from "./authSchemas";
 import { toErrorMessage } from "./authErrors";
 import { useAuthStore } from "./authStore";
 import type { AuthFormValues, AuthMode } from "./types";
@@ -17,16 +19,18 @@ type AuthDialogProps = {
 
 // AuthDialog 对齐原项目 Clerk 弹窗体验，但内部仍然调用 Go Auth API 完成登录/注册。
 export function AuthDialog({ mode, onClose, onSwitchMode }: AuthDialogProps) {
+  const { t } = useTranslation();
   const isLogin = mode === "login";
   const navigate = useNavigate();
   const applyAuthResult = useAuthStore((state) => state.applyAuthResult);
+  const schema = useMemo(() => (isLogin ? createLoginSchema(t) : createRegisterSchema(t)), [isLogin, t]);
   const {
     formState: { errors, isSubmitting },
     handleSubmit,
     register,
     setError,
   } = useForm<AuthFormValues>({
-    resolver: zodResolver(isLogin ? loginSchema : registerSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       name: "",
       email: "",
@@ -53,7 +57,7 @@ export function AuthDialog({ mode, onClose, onSwitchMode }: AuthDialogProps) {
         navigate("/app", { replace: true });
       },
       onError(error) {
-        setError("root", { message: toErrorMessage(error) });
+        setError("root", { message: toErrorMessage(error, t) });
       },
     },
   );
@@ -70,35 +74,35 @@ export function AuthDialog({ mode, onClose, onSwitchMode }: AuthDialogProps) {
   return (
     <div className="auth-modal-backdrop" role="presentation">
       <section aria-modal="true" className="auth-modal" role="dialog">
-        <button aria-label="关闭登录弹窗" className="icon-button close-button" onClick={onClose} type="button">
+        <button aria-label={t("auth.close")} className="icon-button close-button" onClick={onClose} type="button">
           <X size={18} />
         </button>
         <div className="auth-modal-header">
-          <img alt="My-Notion" className="auth-modal-logo light-logo" src="/logo.svg" />
-          <img alt="My-Notion" className="auth-modal-logo dark-logo" src="/logo-dark.svg" />
-          <h2>{isLogin ? "Sign in to My-Notion" : "Create your account"}</h2>
-          <p>{isLogin ? "Welcome back. Continue to your workspace." : "Start writing, planning, and organizing."}</p>
+          <img alt={t("common.brand")} className="auth-modal-logo light-logo" src="/logo.svg" />
+          <img alt={t("common.brand")} className="auth-modal-logo dark-logo" src="/logo-dark.svg" />
+          <h2>{isLogin ? t("auth.loginTitle") : t("auth.registerTitle")}</h2>
+          <p>{isLogin ? t("auth.loginSubtitle") : t("auth.registerSubtitle")}</p>
         </div>
 
         <form className="auth-form modal-form" onSubmit={handleSubmit(submitForm)}>
           {!isLogin ? (
             <label>
-              Name
-              <input autoComplete="name" placeholder="Ada Lovelace" type="text" {...register("name")} />
+              {t("auth.name")}
+              <input autoComplete="name" placeholder={t("auth.namePlaceholder")} type="text" {...register("name")} />
             </label>
           ) : null}
 
           <label>
-            Email
-            <input autoComplete="email" placeholder="you@example.com" type="email" {...register("email")} />
+            {t("auth.email")}
+            <input autoComplete="email" placeholder={t("auth.emailPlaceholder")} type="email" {...register("email")} />
             {errors.email?.message ? <span className="field-error">{errors.email.message}</span> : null}
           </label>
 
           <label>
-            Password
+            {t("auth.password")}
             <input
               autoComplete={isLogin ? "current-password" : "new-password"}
-              placeholder={isLogin ? "Your password" : "At least 8 characters"}
+              placeholder={isLogin ? t("auth.loginPasswordPlaceholder") : t("auth.registerPasswordPlaceholder")}
               type="password"
               {...register("password")}
             />
@@ -109,14 +113,14 @@ export function AuthDialog({ mode, onClose, onSwitchMode }: AuthDialogProps) {
 
           <button className="primary-button full-width" disabled={isSubmitting || authRequest.loading} type="submit">
             {isSubmitting || authRequest.loading ? <Loader2 className="spin" size={16} /> : null}
-            {isSubmitting || authRequest.loading ? "处理中..." : isLogin ? "Continue" : "Create account"}
+            {isSubmitting || authRequest.loading ? t("auth.processing") : isLogin ? t("auth.loginSubmit") : t("auth.registerSubmit")}
           </button>
         </form>
 
         <p className="auth-switch-text">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}
+          {isLogin ? t("auth.noAccount") : t("auth.hasAccount")}
           <button className="link-button" onClick={() => switchMode(isLogin ? "register" : "login")} type="button">
-            {isLogin ? "Sign up" : "Sign in"}
+            {isLogin ? t("auth.signUp") : t("auth.signIn")}
           </button>
         </p>
       </section>

@@ -9,6 +9,7 @@ import (
 	"github.com/bytel/my-notion-go/services/api/internal/auth"
 	"github.com/bytel/my-notion-go/services/api/internal/config"
 	"github.com/bytel/my-notion-go/services/api/internal/database"
+	"github.com/bytel/my-notion-go/services/api/internal/documents"
 	"github.com/bytel/my-notion-go/services/api/internal/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -107,6 +108,9 @@ func main() {
 		time.Duration(cfg.RefreshTokenDays)*24*time.Hour,
 	)
 	authHandler := auth.NewHandler(authService)
+	documentRepo := documents.NewRepository(db)
+	documentService := documents.NewService(documentRepo)
+	documentHandler := documents.NewHandler(documentService)
 
 	// 公开 Auth 接口：注册、登录、刷新 token、退出登录。
 	authRoutes := api.Group("/auth")
@@ -117,6 +121,17 @@ func main() {
 
 	// /me 是受保护接口，必须先通过 RequireAuth 解析 Bearer token。
 	api.GET("/me", middleware.RequireAuth(tokenManager), authHandler.Me)
+
+	// Document 接口全部要求登录，Service 层会继续按 user_id 做数据归属隔离。
+	documentRoutes := api.Group("/documents", middleware.RequireAuth(tokenManager))
+	documentRoutes.POST("", documentHandler.Create)
+	documentRoutes.GET("/tree", documentHandler.Tree)
+	documentRoutes.GET("/trash", documentHandler.Trash)
+	documentRoutes.GET("/:id", documentHandler.Get)
+	documentRoutes.PATCH("/:id", documentHandler.Update)
+	documentRoutes.POST("/:id/archive", documentHandler.Archive)
+	documentRoutes.POST("/:id/restore", documentHandler.Restore)
+	documentRoutes.DELETE("/:id", documentHandler.Delete)
 
 	if err := router.Run(cfg.HTTPAddr); err != nil {
 		panic(err)

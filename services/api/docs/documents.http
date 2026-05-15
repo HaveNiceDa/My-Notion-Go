@@ -1,0 +1,77 @@
+### Documents API 调试文件
+### 使用方式：
+### 1. 先启动数据库并执行迁移：pnpm migrate:api
+### 2. 启动 API：pnpm dev:api
+### 3. 先执行 Login，后续请求会复用 login 返回的 accessToken。
+
+@baseUrl = http://localhost:8080
+@email = demo@example.com
+@password = password123
+@deviceName = Local HTTP Client
+
+### Login
+# @name login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "deviceName": "{{deviceName}}"
+}
+
+### Create Root Document
+# @name createRoot
+POST {{baseUrl}}/api/v1/documents
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+Content-Type: application/json
+
+{
+  "title": "My First Document",
+  "icon": "📄"
+}
+
+### Create Child Document
+# @name createChild
+POST {{baseUrl}}/api/v1/documents
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+Content-Type: application/json
+
+{
+  "parentId": "{{createRoot.response.body.$.data.id}}",
+  "title": "Child Document"
+}
+
+### Get Document Tree
+GET {{baseUrl}}/api/v1/documents/tree
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+
+### Get Document Detail
+GET {{baseUrl}}/api/v1/documents/{{createRoot.response.body.$.data.id}}
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+
+### Update Document Metadata
+PATCH {{baseUrl}}/api/v1/documents/{{createRoot.response.body.$.data.id}}
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Updated Document Title",
+  "isStarred": true
+}
+
+### Archive Document
+POST {{baseUrl}}/api/v1/documents/{{createRoot.response.body.$.data.id}}/archive
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+
+### Get Trash
+GET {{baseUrl}}/api/v1/documents/trash
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+
+### Restore Document
+POST {{baseUrl}}/api/v1/documents/{{createRoot.response.body.$.data.id}}/restore
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+
+### Delete Document Permanently
+DELETE {{baseUrl}}/api/v1/documents/{{createRoot.response.body.$.data.id}}
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}

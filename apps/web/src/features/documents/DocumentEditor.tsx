@@ -60,7 +60,6 @@ function BlockNoteEditorSurface({ accessToken, documentId, initialContent }: Blo
         editor={editor}
         onChange={() => autosave.scheduleSave(editor.document)}
         theme={themeMode}
-        formattingToolbar={false}
       />
     </section>
   );

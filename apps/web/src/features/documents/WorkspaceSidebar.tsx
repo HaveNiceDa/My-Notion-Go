@@ -7,6 +7,7 @@ import { TreeSkeleton } from "./TreeSkeleton";
 
 type WorkspaceSidebarProps = {
   activeDocumentId?: string;
+  actionLoading: boolean;
   collapsed: boolean;
   createLoading: boolean;
   logoutLoading: boolean;
@@ -18,12 +19,14 @@ type WorkspaceSidebarProps = {
   onCreateRoot: () => void;
   onCreateChild: (parentId: string) => void;
   onLogout: () => void;
+  onRename: (documentId: string, title: string) => void;
   onToggleTheme: () => void;
 };
 
 // WorkspaceSidebar 对齐原 Navigation：集中负责用户区、基础入口、文档树和底部操作。
 export function WorkspaceSidebar({
   activeDocumentId,
+  actionLoading,
   collapsed,
   createLoading,
   logoutLoading,
@@ -35,6 +38,7 @@ export function WorkspaceSidebar({
   onCreateRoot,
   onCreateChild,
   onLogout,
+  onRename,
   onToggleTheme,
 }: WorkspaceSidebarProps) {
   const { t } = useTranslation();
@@ -74,7 +78,15 @@ export function WorkspaceSidebar({
         </div>
 
         {treeLoading ? <TreeSkeleton /> : null}
-        {tree?.length ? <DocumentTree activeDocumentId={activeDocumentId} nodes={tree} onCreateChild={onCreateChild} /> : null}
+        {tree?.length ? (
+          <DocumentTree
+            activeDocumentId={activeDocumentId}
+            actionLoading={actionLoading}
+            nodes={tree}
+            onCreateChild={onCreateChild}
+            onRename={onRename}
+          />
+        ) : null}
         {tree && tree.length === 0 ? <p className="empty-sidebar-text">{t("workspace.noPages")}</p> : null}
       </section>
 

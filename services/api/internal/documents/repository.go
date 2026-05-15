@@ -112,8 +112,12 @@ func (r *Repository) ListArchived(ctx context.Context, userID string) ([]Documen
 // NextPosition 计算同一父节点下新文档的排序值。
 // 第一版用 max(position)+1，足够支撑“追加到末尾”；后续做拖拽排序时再引入更精细的 position 生成策略。
 func (r *Repository) NextPosition(ctx context.Context, userID string, parentID *string) (float64, error) {
+	return r.nextPosition(ctx, r.db.WithContext(ctx), userID, parentID)
+}
+
+func (r *Repository) nextPosition(ctx context.Context, db *gorm.DB, userID string, parentID *string) (float64, error) {
 	var maxPosition sql.NullFloat64
-	query := r.db.WithContext(ctx).
+	query := db.WithContext(ctx).
 		Model(&Document{}).
 		Where("user_id = ? AND deleted_at IS NULL", userID)
 	if parentID == nil {
@@ -148,6 +152,79 @@ func (r *Repository) UpdateMetadata(ctx context.Context, userID string, document
 	}
 
 	return r.FindByID(ctx, userID, documentID)
+}
+
+// Move 把文档移动到新的父文档下，并同步更新整棵子树的 path。
+// parentID=nil 表示移动到根层级；updates 用于和标题/图标等元信息更新合并成一次 PATCH。
+func (r *Repository) Move(ctx context.Context, userID string, documentID string, parentID *string, updates map[string]any) (Document, error) {
+	var moved Document
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		document, err := r.findByID(ctx, tx, userID, documentID)
+		if err != nil {
+			return err
+		}
+
+		newPath := document.ID
+		if parentID != nil {
+			parent, err := r.findByID(ctx, tx, userID, *parentID)
+			if err != nil {
+				return err
+			}
+			// 不能把文档移动到自己的后代里，否则会形成循环树。
+			if parent.ID == document.ID || strings.HasPrefix(parent.Path+"/", document.Path+"/") {
+				return ErrInvalidInput
+			}
+			newPath = joinPath(parent.Path, document.ID)
+		}
+
+		position, err := r.nextPosition(ctx, tx, userID, parentID)
+		if err != nil {
+			return err
+		}
+
+		oldPath := document.Path
+		var parentValue any
+		if parentID != nil {
+			parentValue = *parentID
+		}
+		moveUpdates := map[string]any{
+			"parent_id": parentValue,
+			"position":  position,
+			"path":      newPath,
+		}
+		for key, value := range updates {
+			moveUpdates[key] = value
+		}
+
+		if err := tx.Model(&Document{}).
+			Where("id = ? AND user_id = ? AND deleted_at IS NULL", document.ID, userID).
+			Updates(moveUpdates).
+			Error; err != nil {
+			return err
+		}
+
+		var descendants []Document
+		if err := tx.
+			Where("user_id = ? AND deleted_at IS NULL AND path LIKE ?", userID, oldPath+"/%").
+			Find(&descendants).
+			Error; err != nil {
+			return err
+		}
+
+		for _, descendant := range descendants {
+			descendantPath := newPath + strings.TrimPrefix(descendant.Path, oldPath)
+			if err := tx.Model(&Document{}).
+				Where("id = ? AND user_id = ?", descendant.ID, userID).
+				Update("path", descendantPath).
+				Error; err != nil {
+				return err
+			}
+		}
+
+		moved, err = r.findByID(ctx, tx, userID, documentID)
+		return err
+	})
+	return moved, err
 }
 
 // SetArchivedByPath 归档或恢复一整棵文档子树。

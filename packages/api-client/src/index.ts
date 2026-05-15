@@ -78,6 +78,7 @@ export type UpdateDocumentRequest = {
 	icon?: string;
 	coverImage?: string;
 	isStarred?: boolean;
+	parentId?: string;
 };
 
 export type DocumentContent = {

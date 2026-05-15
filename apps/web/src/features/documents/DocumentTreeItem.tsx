@@ -1,18 +1,28 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, FileIcon, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, FileIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import type { DocumentTreeNode } from "@my-notion-go/api-client";
+import { DocumentTreeActions } from "./DocumentTreeActions";
 
 type DocumentTreeItemProps = {
   activeDocumentId?: string;
+  actionLoading: boolean;
   level: number;
   node: DocumentTreeNode;
   onCreateChild: (parentId: string) => void;
+  onRename: (documentId: string, title: string) => void;
 };
 
 // DocumentTreeItem 对齐原 Item.tsx：负责单行缩进、展开折叠、当前态和 hover 新建子页按钮。
-export function DocumentTreeItem({ activeDocumentId, level, node, onCreateChild }: DocumentTreeItemProps) {
+export function DocumentTreeItem({
+  activeDocumentId,
+  actionLoading,
+  level,
+  node,
+  onCreateChild,
+  onRename,
+}: DocumentTreeItemProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
   const hasChildren = node.children.length > 0;
@@ -33,23 +43,28 @@ export function DocumentTreeItem({ activeDocumentId, level, node, onCreateChild 
         >
           {hasChildren ? <ChevronIcon size={14} /> : <span />}
         </button>
-        <Link className="document-row-link" to={`/documents/${node.id}`}>
+        <Link className="document-row-link" draggable={false} to={`/documents/${node.id}`}>
           {node.icon ? <span className="document-emoji">{node.icon}</span> : <FileIcon size={18} />}
           <span>{node.title}</span>
         </Link>
-        <button aria-label={t("documents.newSubPage")} className="icon-button row-action" onClick={() => onCreateChild(node.id)} type="button">
-          <Plus size={14} />
-        </button>
+        <DocumentTreeActions
+          disabled={actionLoading}
+          node={node}
+          onCreateChild={onCreateChild}
+          onRename={onRename}
+        />
       </div>
       {expanded && hasChildren ? (
         <div>
           {node.children.map((child) => (
             <DocumentTreeItem
               activeDocumentId={activeDocumentId}
+              actionLoading={actionLoading}
               key={child.id}
               level={level + 1}
               node={child}
               onCreateChild={onCreateChild}
+              onRename={onRename}
             />
           ))}
         </div>

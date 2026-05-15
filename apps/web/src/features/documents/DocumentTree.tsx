@@ -3,16 +3,26 @@ import { DocumentTreeItem } from "./DocumentTreeItem";
 
 type DocumentTreeProps = {
   activeDocumentId?: string;
+  actionLoading: boolean;
   nodes: DocumentTreeNode[];
   onCreateChild: (parentId: string) => void;
+  onRename: (documentId: string, title: string) => void;
 };
 
 // DocumentTree 只负责渲染根文档列表；递归行逻辑交给 DocumentTreeItem，避免树容器过重。
-export function DocumentTree({ activeDocumentId, nodes, onCreateChild }: DocumentTreeProps) {
+export function DocumentTree({ activeDocumentId, actionLoading, nodes, onCreateChild, onRename }: DocumentTreeProps) {
   return (
     <div className="document-tree">
       {nodes.map((node) => (
-        <DocumentTreeItem activeDocumentId={activeDocumentId} key={node.id} level={0} node={node} onCreateChild={onCreateChild} />
+        <DocumentTreeItem
+          activeDocumentId={activeDocumentId}
+          actionLoading={actionLoading}
+          key={node.id}
+          level={0}
+          node={node}
+          onCreateChild={onCreateChild}
+          onRename={onRename}
+        />
       ))}
     </div>
   );

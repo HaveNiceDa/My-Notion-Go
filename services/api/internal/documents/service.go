@@ -42,6 +42,7 @@ type UpdateDocumentInput struct {
 	Icon       *string
 	CoverImage *string
 	IsStarred  *bool
+	ParentID   *string
 }
 
 // NewService 注入 Repository。
@@ -154,6 +155,21 @@ func (s *Service) UpdateDocument(ctx context.Context, input UpdateDocumentInput)
 	}
 	if input.IsStarred != nil {
 		updates["is_starred"] = *input.IsStarred
+	}
+	if input.ParentID != nil {
+		parentID := normalizeOptionalID(input.ParentID)
+		if parentID != nil {
+			if !isValidUUID(*parentID) || *parentID == input.DocumentID {
+				return DocumentDTO{}, ErrInvalidInput
+			}
+		}
+
+		document, err := s.repo.Move(ctx, input.UserID, input.DocumentID, parentID, updates)
+		if err != nil {
+			return DocumentDTO{}, err
+		}
+
+		return NewDocumentDTO(document), nil
 	}
 	if len(updates) == 0 {
 		// PATCH 空对象时不报错，直接返回当前文档，方便前端复用同一个更新接口。

@@ -36,6 +36,7 @@ type updateDocumentRequest struct {
 	Icon       *string `json:"icon"`
 	CoverImage *string `json:"coverImage"`
 	IsStarred  *bool   `json:"isStarred"`
+	ParentID   *string `json:"parentId"`
 }
 
 // NewHandler 注入 Service。
@@ -154,6 +155,7 @@ func (h *Handler) Update(c *gin.Context) {
 		Icon:       req.Icon,
 		CoverImage: req.CoverImage,
 		IsStarred:  req.IsStarred,
+		ParentID:   req.ParentID,
 	})
 	if err != nil {
 		writeDocumentError(c, err)

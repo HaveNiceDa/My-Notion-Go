@@ -91,6 +91,24 @@ Content-Type: application/json
   "isStarred": true
 }
 
+### Move Child Document To Root
+PATCH {{baseUrl}}/api/v1/documents/{{createChild.response.body.$.data.id}}
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+Content-Type: application/json
+
+{
+  "parentId": ""
+}
+
+### Move Child Document Back Under Root
+PATCH {{baseUrl}}/api/v1/documents/{{createChild.response.body.$.data.id}}
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+Content-Type: application/json
+
+{
+  "parentId": "{{createRoot.response.body.$.data.id}}"
+}
+
 ### Archive Document
 POST {{baseUrl}}/api/v1/documents/{{createRoot.response.body.$.data.id}}/archive
 Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}

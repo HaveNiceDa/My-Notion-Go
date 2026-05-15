@@ -142,6 +142,18 @@ Avoid:
 3. Creating separate translation objects inside feature components.
 4. Adding only one language and leaving the other language missing.
 
+## Dialog And Menu Rule
+
+Do not use native browser prompts for product UI in `apps/web`.
+
+Rules:
+
+1. Do not use `window.prompt`, `window.alert`, or `window.confirm` for rename, delete, move, settings, or other product workflows.
+2. Use shadcn/Radix-style components for dialogs and menus, such as local `components/ui/dialog` and `components/ui/dropdown-menu`.
+3. Keep modal form state inside a focused component, for example `RenameDocumentDialog.tsx`.
+4. All dialog titles, descriptions, placeholders, button labels, and aria labels must go through i18n resources.
+5. For Notion-like document tree actions, prefer hover-visible `MoreHorizontal` menus and inline `Plus` actions over always-visible noisy buttons.
+
 ## Verification
 
 After changing Web hook, routing, form, or state code, run:

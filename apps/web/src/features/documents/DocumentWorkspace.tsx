@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemoizedFn } from "ahooks";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { documentApi } from "@my-notion-go/api-client";
+import { documentApi, type UpdateDocumentRequest } from "@my-notion-go/api-client";
 import { useAuthStore } from "../auth/authStore";
 import { useThemeStore } from "../theme/themeStore";
 import { DocumentDetail } from "./DocumentDetail";
@@ -54,7 +54,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
     },
   });
   const updateDocument = useMutation({
-    mutationFn: ({ id, title }: { id: string; title: string }) => documentApi.update(id, { title }, accessToken),
+    mutationFn: ({ id, input }: { id: string; input: UpdateDocumentRequest }) => documentApi.update(id, input, accessToken),
     onSuccess(document) {
       queryClient.setQueryData(documentQueryKey(document.id), document);
       void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
@@ -82,6 +82,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
     <main className="workspace-shell">
       <WorkspaceSidebar
         activeDocumentId={documentId}
+        actionLoading={createDocument.isPending || updateDocument.isPending}
         collapsed={sidebarCollapsed}
         createLoading={createDocument.isPending}
         logoutLoading={logoutLoading}
@@ -89,6 +90,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
         onCreateChild={(parentId) => createDocument.mutate(parentId)}
         onCreateRoot={createRootDocument}
         onLogout={onLogout}
+        onRename={(id, title) => updateDocument.mutate({ id, input: { title } })}
         onToggleTheme={toggleTheme}
         themeMode={themeMode}
         tree={treeQuery.data}
@@ -113,7 +115,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
           <DocumentDetail
             document={currentDocumentQuery.data}
             loading={currentDocumentQuery.isLoading}
-            onRename={(title) => updateDocument.mutate({ id: documentId, title })}
+            onRename={(title) => updateDocument.mutate({ id: documentId, input: { title } })}
             renaming={updateDocument.isPending}
           />
         ) : (

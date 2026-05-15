@@ -93,13 +93,14 @@ When implementing frontend Document MVP, match these original concepts:
 1. Dashboard should become a workspace shell, not a centered profile card.
 2. Left sidebar should include current user area, search/settings placeholders if needed, and a Document section.
 3. Document tree rows should visually follow original `Item.tsx`: compact height, muted text, hover row, chevron for expandable documents, plus action for child creation when supported.
-4. New root document button should follow original sidebar create action style, not a large primary CTA.
-5. Clicking a document should navigate to `/documents/:id`.
-6. Document detail page should start with a simple title surface and metadata/actions, not a generic admin detail card.
-7. Title editing should feel inline and low-friction, similar to the original document title behavior.
-8. Archive action should be accessible but visually secondary, usually under a subtle action area or row menu.
-9. Empty document page should use original `documents.png` or `empty.png` style if no document is selected.
-10. Preserve responsive behavior: on narrow screens, sidebar may collapse or stack, but desktop style is the primary target.
+4. Document tree item operations should follow original `Item.tsx`: hover-visible `MoreHorizontal` menu for secondary actions, inline `Plus` for child creation, and drag-and-drop onto another item for moving under that parent.
+5. New root document button should follow original sidebar create action style, not a large primary CTA.
+6. Clicking a document should navigate to `/documents/:id`.
+7. Document detail page should start with a simple title surface and metadata/actions, not a generic admin detail card.
+8. Title editing should feel inline and low-friction, similar to the original document title behavior.
+9. Archive action should be accessible but visually secondary, usually under a subtle action area or row menu.
+10. Empty document page should use original `documents.png` or `empty.png` style if no document is selected.
+11. Preserve responsive behavior: on narrow screens, sidebar may collapse or stack, but desktop style is the primary target.
 
 ## Visual Verification Workflow
 

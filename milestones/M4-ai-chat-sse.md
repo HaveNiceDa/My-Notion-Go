@@ -20,7 +20,8 @@
   - `POST /api/v1/ai/conversations`
   - `GET /api/v1/ai/conversations/:id/messages`
   - `POST /api/v1/ai/chat/stream`
-- `POST /api/v1/ai/chat/stream` 当前返回 mock assistant 流式响应，不调用真实 LLM。
+- `POST /api/v1/ai/chat/stream` 支持 OpenAI Compatible 真实流式响应。
+- 未配置 `LLM_API_KEY` 时自动保留 mock fallback，方便本地开发和 smoke 测试。
 - 用户消息和 assistant 完整消息会落库。
 
 ## SSE 事件协议
@@ -87,14 +88,35 @@
 - `pnpm --filter @my-notion-go/web build` 通过。
 - AI Chat feature 中已无 raw `<button>`、`<textarea>` 和 `.ai-chat-*` 残留。
 
+## M4.1 真实 LLM 接入
+
+- 新增 `services/api/internal/ai`，使用 Go 标准库调用 OpenAI Compatible `/chat/completions`。
+- 支持 `stream: true`、`text/event-stream`、`data: [DONE]` 和 `choices[].delta.content` 解析。
+- 配置项：
+  - `LLM_API_KEY`
+  - `LLM_BASE_URL`
+- 兼容环境变量别名：
+  - `OPENAI_API_KEY`
+  - `OPENAI_BASE_URL`
+  - `DASHSCOPE_API_KEY`
+- 模型不再通过环境变量配置，改为代码内白名单和前端 AI 面板选择。
+- 前端 AI 面板使用 shadcn `DropdownMenu` 切换模型，并将用户选择持久化到 `localStorage`。
+- 可选模型：
+  - `deepseek-v4-pro`
+  - `qwen3.6-27b`
+  - `kimi-k2.6`
+  - `glm-5.1`
+- assistant 消息 metadata 会记录 `provider` 和 `model`。
+
 ## 后续
 
 - 浏览器真实验证 AI 面板交互、SSE 流式显示和刷新后历史消息恢复。
-- 接入真实 OpenAI Compatible API streaming client。
 - 增加会话标题生成、滚动到底、错误提示体验、Thinking Steps 和模型配置。
+- 进入 M5 前，再手动配置真实 `LLM_API_KEY` 做一次浏览器端模型联调。
 
 ## 来源日志
 
 - `progress/20260516-104317.md`
 - `progress/20260516-110221.md`
 - `progress/20260516-111742.md`
+- `progress/20260516-123227.md`

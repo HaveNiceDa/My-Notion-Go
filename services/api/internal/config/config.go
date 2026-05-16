@@ -16,6 +16,8 @@ type Config struct {
 	JWTRefreshSecret   string
 	AccessTokenMinutes int
 	RefreshTokenDays   int
+	LLMAPIKey          string
+	LLMBaseURL         string
 }
 
 // Load 读取环境变量并填充默认值。
@@ -30,6 +32,8 @@ func Load() Config {
 		JWTRefreshSecret:   getEnv("JWT_REFRESH_SECRET", "change-me-refresh-secret"),
 		AccessTokenMinutes: 15,
 		RefreshTokenDays:   30,
+		LLMAPIKey:          firstNonEmptyEnv("LLM_API_KEY", "OPENAI_API_KEY", "DASHSCOPE_API_KEY"),
+		LLMBaseURL:         firstNonEmptyEnvWithFallback("https://dashscope.aliyuncs.com/compatible-mode/v1", "LLM_BASE_URL", "OPENAI_BASE_URL"),
 	}
 }
 
@@ -54,4 +58,20 @@ func getCSVEnv(key string, fallback string) []string {
 		}
 	}
 	return values
+}
+
+func firstNonEmptyEnv(keys ...string) string {
+	for _, key := range keys {
+		if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func firstNonEmptyEnvWithFallback(fallback string, keys ...string) string {
+	if value := firstNonEmptyEnv(keys...); value != "" {
+		return value
+	}
+	return fallback
 }

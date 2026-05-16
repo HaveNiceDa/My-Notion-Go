@@ -18,7 +18,7 @@
 ## 当前总状态
 
 - M0、M1、M2、M3 已形成可运行闭环。
-- M4 已完成 mock SSE 的后端和前端最小闭环，尚未接真实 LLM。
+- M4 已完成 AI Chat SSE 的后端和前端最小闭环，并已接入 OpenAI Compatible streaming client；未配置 API key 时保留 mock fallback。
 - 规则与工程约束已迁移到项目内 `.trae/rules/`，后续应优先读取项目 rules，而不是依赖全局 memory。
 
 ## 关键验证命令

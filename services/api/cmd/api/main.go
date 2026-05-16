@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bytel/my-notion-go/services/api/internal/ai"
 	"github.com/bytel/my-notion-go/services/api/internal/auth"
 	"github.com/bytel/my-notion-go/services/api/internal/chat"
 	"github.com/bytel/my-notion-go/services/api/internal/config"
@@ -113,7 +114,11 @@ func main() {
 	documentService := documents.NewService(documentRepo)
 	documentHandler := documents.NewHandler(documentService)
 	chatRepo := chat.NewRepository(db)
-	chatService := chat.NewService(chatRepo)
+	aiClient := ai.NewClient(ai.Config{
+		APIKey:  cfg.LLMAPIKey,
+		BaseURL: cfg.LLMBaseURL,
+	})
+	chatService := chat.NewService(chatRepo, aiClient)
 	chatHandler := chat.NewHandler(chatService)
 
 	// 公开 Auth 接口：注册、登录、刷新 token、退出登录。
@@ -139,7 +144,7 @@ func main() {
 	documentRoutes.POST("/:id/restore", documentHandler.Restore)
 	documentRoutes.DELETE("/:id", documentHandler.Delete)
 
-	// AI Chat 接口要求登录；当前先提供 mock SSE，后续再替换为真实 LLM provider。
+	// AI Chat 接口要求登录；配置 LLM_API_KEY 后走真实 OpenAI Compatible SSE，否则保留 mock fallback。
 	aiRoutes := api.Group("/ai", middleware.RequireAuth(tokenManager))
 	aiRoutes.GET("/conversations", chatHandler.ListConversations)
 	aiRoutes.POST("/conversations", chatHandler.CreateConversation)

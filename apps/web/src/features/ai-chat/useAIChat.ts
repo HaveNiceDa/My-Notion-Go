@@ -8,9 +8,10 @@ import type { AIChatStreamEvent, ChatMessage } from "./types";
 
 type UseAIChatOptions = {
   accessToken: string;
+  model: string;
 };
 
-export function useAIChat({ accessToken }: UseAIChatOptions) {
+export function useAIChat({ accessToken, model }: UseAIChatOptions) {
   const queryClient = useQueryClient();
   // AbortController 放在 ref 里，避免每个 SSE chunk 触发重新渲染；UI 的发送态由 sending state 单独驱动。
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -88,6 +89,7 @@ export function useAIChat({ accessToken }: UseAIChatOptions) {
         input: {
           conversationId: activeConversationId,
           message: content,
+          model,
         },
         onEvent: (event) => {
           handleStreamEvent(event, {

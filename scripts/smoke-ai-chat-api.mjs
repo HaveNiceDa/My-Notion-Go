@@ -127,7 +127,7 @@ assert(
 );
 console.log(`conversation list ok, size=${conversations.length}`);
 
-const prompt = "用一句话验证 mock SSE 自动化脚本。";
+const prompt = "用一句话验证 AI Chat SSE 自动化脚本。";
 const events = await streamChat(token, {
   conversationId: conversation.id,
   message: prompt,
@@ -143,14 +143,15 @@ assert(conversationEvent?.data?.id === conversation.id, "conversation event shou
 assert(userMessageEvent?.data?.role === "user", "user_message event should include user role");
 assert(deltas.length > 0, "SSE should include message delta events");
 assert(assistantMessageEvent?.data?.role === "assistant", "assistant_message event should include assistant role");
+assert(assistantMessageEvent?.data?.content?.length > 0, "assistant_message event should include content");
 assert(doneEvent?.data?.conversationId === conversation.id, "done event should include conversation id");
 console.log(`stream ok, delta count=${deltas.length}`);
 
 const messages = await request(`/api/v1/ai/conversations/${conversation.id}/messages`, { token });
 assert(messages.some((message) => message.role === "user" && message.content === prompt), "messages should include user prompt");
 assert(
-  messages.some((message) => message.role === "assistant" && message.content.includes("Mock AI response")),
-  "messages should include persisted assistant response",
+  messages.some((message) => message.role === "assistant" && message.content.length > 0),
+  "messages should include persisted assistant response content",
 );
 console.log(`messages persisted ok, size=${messages.length}`);
 

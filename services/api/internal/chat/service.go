@@ -6,7 +6,10 @@ import (
 	"errors"
 	"regexp"
 	"strings"
+	"time"
 	"unicode/utf8"
+
+	"github.com/bytel/my-notion-go/services/api/internal/ai"
 )
 
 var ErrInvalidInput = errors.New("invalid chat input")
@@ -18,9 +21,10 @@ const (
 
 var uuidPattern = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
-// Service 承载 AI Chat 业务规则：会话归属、消息校验和 mock 流式响应生成。
+// Service 承载 AI Chat 业务规则：会话归属、消息校验和 LLM/mock 流式响应生成。
 type Service struct {
-	repo *Repository
+	repo     *Repository
+	aiClient *ai.Client
 }
 
 type CreateConversationInput struct {
@@ -32,19 +36,23 @@ type SendMessageInput struct {
 	UserID         string
 	ConversationID string
 	Message        string
+	Model          string
 }
 
 // PreparedChat 是开始 SSE 前准备好的上下文。
-// Handler 用它先把 conversation 事件发给前端，再逐段发送 mock delta。
+// Handler 用它先把 conversation 事件发给前端，再逐段发送 LLM 或 mock delta。
 type PreparedChat struct {
 	Conversation ConversationDTO
 	UserMessage  MessageDTO
-	Deltas       []string
-	FullResponse string
+	Messages     []ai.Message
+	Model        string
 }
 
-func NewService(repo *Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo *Repository, aiClient *ai.Client) *Service {
+	return &Service{
+		repo:     repo,
+		aiClient: aiClient,
+	}
 }
 
 func (s *Service) CreateConversation(ctx context.Context, input CreateConversationInput) (ConversationDTO, error) {
@@ -93,13 +101,17 @@ func (s *Service) ListMessages(ctx context.Context, userID string, conversationI
 	return mapMessages(messages), nil
 }
 
-// PrepareMockChat 保存用户消息并生成 mock assistant 响应。
-// 真实 LLM 接入后，这里可以替换成 ai.Client.Stream(ctx, messages)。
-func (s *Service) PrepareMockChat(ctx context.Context, input SendMessageInput) (PreparedChat, error) {
+// PrepareChat 保存用户消息，并整理发给 LLM 的上下文消息。
+// 消息先落库再发起流式请求，能保证即使客户端中途断开，用户输入也不会丢失。
+func (s *Service) PrepareChat(ctx context.Context, input SendMessageInput) (PreparedChat, error) {
 	userID := strings.TrimSpace(input.UserID)
 	conversationID := strings.TrimSpace(input.ConversationID)
 	messageContent := strings.TrimSpace(input.Message)
+	modelID, ok := ai.NormalizeModelID(strings.TrimSpace(input.Model))
 	if userID == "" || messageContent == "" || utf8.RuneCountInString(messageContent) > maxMessageLength {
+		return PreparedChat{}, ErrInvalidInput
+	}
+	if !ok {
 		return PreparedChat{}, ErrInvalidInput
 	}
 
@@ -136,16 +148,62 @@ func (s *Service) PrepareMockChat(ctx context.Context, input SendMessageInput) (
 		return PreparedChat{}, err
 	}
 
-	fullResponse := mockAssistantResponse(messageContent)
+	messages, err := s.repo.ListMessages(ctx, userID, conversationID)
+	if err != nil {
+		return PreparedChat{}, err
+	}
+
 	return PreparedChat{
 		Conversation: conversation,
 		UserMessage:  NewMessageDTO(userMessage),
-		Deltas:       splitDeltas(fullResponse),
-		FullResponse: fullResponse,
+		Messages:     toAIMessages(messages),
+		Model:        modelID,
 	}, nil
 }
 
-func (s *Service) SaveAssistantMessage(ctx context.Context, userID string, conversationID string, content string) (MessageDTO, error) {
+// StreamAssistant 统一封装真实 LLM 和本地 mock fallback。
+// 没有配置 API key 时保持 mock，避免本地开发和 smoke 测试强依赖外部模型服务。
+func (s *Service) StreamAssistant(ctx context.Context, prepared PreparedChat, onDelta func(string) error) (string, json.RawMessage, error) {
+	if s.aiClient != nil && s.aiClient.Enabled() {
+		var fullResponse strings.Builder
+		metadata, err := s.aiClient.StreamChat(ctx, prepared.Model, prepared.Messages, func(delta string) error {
+			fullResponse.WriteString(delta)
+			return onDelta(delta)
+		})
+		if err != nil {
+			return "", nil, err
+		}
+
+		rawMetadata, err := json.Marshal(metadata)
+		if err != nil {
+			return "", nil, err
+		}
+		return fullResponse.String(), json.RawMessage(rawMetadata), nil
+	}
+
+	fullResponse := mockAssistantResponse(lastUserMessage(prepared.Messages))
+	for _, delta := range splitDeltas(fullResponse) {
+		select {
+		case <-ctx.Done():
+			return "", nil, ctx.Err()
+		default:
+			if err := onDelta(delta); err != nil {
+				return "", nil, err
+			}
+			time.Sleep(60 * time.Millisecond)
+		}
+	}
+	rawMetadata, err := json.Marshal(ai.CompletionMetadata{
+		Provider: "mock",
+		Model:    prepared.Model,
+	})
+	if err != nil {
+		return "", nil, err
+	}
+	return fullResponse, json.RawMessage(rawMetadata), nil
+}
+
+func (s *Service) SaveAssistantMessage(ctx context.Context, userID string, conversationID string, content string, metadata json.RawMessage) (MessageDTO, error) {
 	userID = strings.TrimSpace(userID)
 	conversationID = strings.TrimSpace(conversationID)
 	content = strings.TrimSpace(content)
@@ -158,7 +216,7 @@ func (s *Service) SaveAssistantMessage(ctx context.Context, userID string, conve
 		UserID:         userID,
 		Role:           RoleAssistant,
 		Content:        content,
-		Metadata:       json.RawMessage(`{"provider":"mock"}`),
+		Metadata:       normalizeMetadata(metadata),
 	}
 	if err := s.repo.CreateMessage(ctx, &message); err != nil {
 		return MessageDTO{}, err
@@ -199,6 +257,39 @@ func splitDeltas(content string) []string {
 	}
 
 	return deltas
+}
+
+func toAIMessages(messages []Message) []ai.Message {
+	result := make([]ai.Message, 0, len(messages))
+	for _, message := range messages {
+		if message.Role != RoleUser && message.Role != RoleAssistant && message.Role != RoleSystem {
+			continue
+		}
+		if strings.TrimSpace(message.Content) == "" {
+			continue
+		}
+		result = append(result, ai.Message{
+			Role:    message.Role,
+			Content: message.Content,
+		})
+	}
+	return result
+}
+
+func lastUserMessage(messages []ai.Message) string {
+	for index := len(messages) - 1; index >= 0; index-- {
+		if messages[index].Role == RoleUser {
+			return messages[index].Content
+		}
+	}
+	return ""
+}
+
+func normalizeMetadata(metadata json.RawMessage) json.RawMessage {
+	if len(metadata) == 0 {
+		return json.RawMessage("{}")
+	}
+	return metadata
 }
 
 func mapConversations(conversations []Conversation) []ConversationDTO {

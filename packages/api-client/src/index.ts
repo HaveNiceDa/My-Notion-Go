@@ -119,6 +119,7 @@ export type CreateAIConversationRequest = {
 export type StreamAIChatRequest = {
   conversationId?: string;
   message: string;
+  model?: string;
 };
 
 // ApiError 保留 HTTP 状态码和业务错误码，方便页面做提示，也方便后续按 code 做分支处理。

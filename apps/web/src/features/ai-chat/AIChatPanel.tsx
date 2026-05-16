@@ -1,9 +1,11 @@
-import { Bot, Loader2, MessageCircle, Plus, Send, X } from "lucide-react";
+import { Bot, Check, ChevronDown, Loader2, MessageCircle, Plus, Send, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { aiModels, aiModelStorageKey, getInitialAIModelId, type AIModelId } from "./models";
 import { useAIChat } from "./useAIChat";
 
 type AIChatPanelProps = {
@@ -15,7 +17,9 @@ type AIChatPanelProps = {
 export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState("");
-  const chat = useAIChat({ accessToken });
+  const [selectedModelId, setSelectedModelId] = useState<AIModelId>(() => getInitialAIModelId());
+  const selectedModel = aiModels.find((model) => model.id === selectedModelId) ?? aiModels[0];
+  const chat = useAIChat({ accessToken, model: selectedModelId });
 
   // 面板关闭时直接卸载，避免隐藏状态下继续订阅消息流或占用右侧布局宽度。
   if (!open) {
@@ -32,6 +36,11 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
     // 先清空输入框再发起流式请求，让用户立即感知提交已生效；失败提示由 Hook 的 streamError 承接。
     setDraft("");
     await chat.sendMessage(message);
+  };
+
+  const selectModel = (modelId: AIModelId) => {
+    setSelectedModelId(modelId);
+    window.localStorage.setItem(aiModelStorageKey, modelId);
   };
 
   return (
@@ -55,6 +64,32 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
       </header>
 
       <section aria-label={t("aiChat.conversations")} className="grid gap-2 border-b border-border p-3">
+        <div className="grid gap-1.5">
+          <p className="m-0 text-xs font-medium text-muted-foreground">{t("aiChat.model")}</p>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="h-auto min-h-9 justify-between gap-2 px-3 py-2 text-left" disabled={chat.sending} type="button" variant="outline">
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium">{selectedModel.displayName}</span>
+                  <span className="block truncate text-xs font-normal text-muted-foreground">{t(selectedModel.descriptionKey)}</span>
+                </span>
+                <ChevronDown className="size-4 flex-none text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-80">
+              {aiModels.map((model) => (
+                <DropdownMenuItem className="items-start gap-2" key={model.id} onSelect={() => selectModel(model.id)}>
+                  <Check className={cn("mt-0.5 size-4", model.id === selectedModelId ? "opacity-100" : "opacity-0")} />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-foreground">{model.displayName}</span>
+                    <span className="block text-xs leading-5 text-muted-foreground">{t(model.descriptionKey)}</span>
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         <Button
           disabled={chat.creatingConversation || chat.sending}
           onClick={() => chat.createConversation(t("aiChat.newConversationTitle"))}

@@ -1,11 +1,11 @@
 package chat
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/bytel/my-notion-go/services/api/internal/auth"
 	"github.com/bytel/my-notion-go/services/api/internal/response"
@@ -28,6 +28,7 @@ type createConversationRequest struct {
 type streamChatRequest struct {
 	ConversationID string `json:"conversationId"`
 	Message        string `json:"message" binding:"required"`
+	Model          string `json:"model"`
 }
 
 func NewHandler(service *Service) *Handler {
@@ -97,7 +98,7 @@ func (h *Handler) ListMessages(c *gin.Context) {
 }
 
 // StreamChat 处理 POST /api/v1/ai/chat/stream。
-// 当前先返回 mock SSE，后续接入真实 LLM 时保持事件协议不变。
+// 无论底层是真实 LLM 还是 mock fallback，都保持同一套 SSE 事件协议。
 func (h *Handler) StreamChat(c *gin.Context) {
 	userID, ok := currentUserID(c)
 	if !ok {
@@ -110,10 +111,11 @@ func (h *Handler) StreamChat(c *gin.Context) {
 		return
 	}
 
-	prepared, err := h.service.PrepareMockChat(c.Request.Context(), SendMessageInput{
+	prepared, err := h.service.PrepareChat(c.Request.Context(), SendMessageInput{
 		UserID:         userID,
 		ConversationID: req.ConversationID,
 		Message:        req.Message,
+		Model:          req.Model,
 	})
 	if err != nil {
 		writeChatError(c, err)
@@ -127,21 +129,25 @@ func (h *Handler) StreamChat(c *gin.Context) {
 
 	writeSSEEvent(c, "conversation", prepared.Conversation)
 	writeSSEEvent(c, "user_message", prepared.UserMessage)
-	for _, delta := range prepared.Deltas {
-		select {
-		case <-c.Request.Context().Done():
+
+	assistantContent, metadata, err := h.service.StreamAssistant(c.Request.Context(), prepared, func(delta string) error {
+		writeSSEEvent(c, "message", gin.H{"delta": delta})
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, context.Canceled) {
 			return
-		default:
-			writeSSEEvent(c, "message", gin.H{"delta": delta})
-			time.Sleep(60 * time.Millisecond)
 		}
+		writeSSEEvent(c, "error", gin.H{"code": "LLM_STREAM_ERROR", "message": "Failed to stream assistant response."})
+		return
 	}
 
 	assistantMessage, err := h.service.SaveAssistantMessage(
 		c.Request.Context(),
 		userID,
 		prepared.Conversation.ID,
-		prepared.FullResponse,
+		assistantContent,
+		metadata,
 	)
 	if err != nil {
 		writeSSEEvent(c, "error", gin.H{"code": "INTERNAL_ERROR", "message": "Failed to save assistant message."})

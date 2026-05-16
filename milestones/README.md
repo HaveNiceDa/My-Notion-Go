@@ -20,7 +20,7 @@
 
 - M0、M1、M2、M3 已形成可运行闭环。
 - M4 已完成 AI Chat SSE 的后端和前端闭环，并已接入 OpenAI Compatible streaming client；模型选择、会话标题生成、错误提示和自动滚动体验已收尾。
-- M5 已正式开启，当前重点是 RAG 最小闭环规划：文档加入知识库、切块、embedding、Qdrant 检索和 RAG SSE 问答。
+- M5 已完成 RAG 最小闭环和前端体验收口：文档默认进入知识库、切块、embedding、Qdrant 检索、RAG SSE 问答、引用展示、相似度阈值和 AI 面板入口均已落地。
 - 规则与工程约束已迁移到项目内 `.trae/rules/`，后续应优先读取项目 rules，而不是依赖全局 memory。
 
 ## 关键验证命令

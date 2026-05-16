@@ -1,5 +1,15 @@
 import type { AIConversation, AIMessage, StreamAIChatRequest } from "@my-notion-go/api-client";
 
+export type AIChatMode = "chat" | "rag";
+
+export type RAGCitation = {
+  chunkId: string;
+  documentId: string;
+  position: number;
+  score: number;
+  preview: string;
+};
+
 export type ChatConversation = AIConversation;
 export type ChatMessage = AIMessage & {
   streaming?: boolean;
@@ -20,6 +30,12 @@ export type AIChatStreamEvent =
       event: "message";
       data: {
         delta: string;
+      };
+    }
+  | {
+      event: "citations";
+      data: {
+        items: RAGCitation[];
       };
     }
   | {

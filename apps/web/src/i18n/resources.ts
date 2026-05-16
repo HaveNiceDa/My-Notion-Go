@@ -116,6 +116,16 @@ export const resources = {
           task: "创建任务清单",
         },
         model: "模型",
+        mode: "模式",
+        modes: {
+          chat: "普通对话",
+          rag: "知识库",
+        },
+        modeDescriptions: {
+          chat: "直接与模型对话，不检索知识库。",
+          rag: "先检索已索引文档，再基于知识库回答。",
+        },
+        citationsTitle: "引用 {{count}} 条知识库片段",
         models: {
           "deepseek-v4-pro": "默认推理模型，适合日常对话和复杂问题。",
           "qwen3.6-27b": "通义千问模型，适合中文内容处理。",
@@ -254,6 +264,16 @@ export const resources = {
           task: "Create a task tracker",
         },
         model: "Model",
+        mode: "Mode",
+        modes: {
+          chat: "Chat",
+          rag: "Knowledge",
+        },
+        modeDescriptions: {
+          chat: "Talk directly to the model without retrieving the knowledge base.",
+          rag: "Retrieve indexed documents first, then answer with knowledge context.",
+        },
+        citationsTitle: "{{count}} knowledge citations",
         models: {
           "deepseek-v4-pro": "Default reasoning model for daily chat and complex questions.",
           "qwen3.6-27b": "Qwen model for Chinese content tasks.",

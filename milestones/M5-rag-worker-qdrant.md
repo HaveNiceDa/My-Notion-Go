@@ -270,6 +270,10 @@ RAG Chat 请求体草案：
   - `POST /api/v1/rag/chat/stream` 已注册，SSE 协议复用 AI Chat 的 `conversation`、`user_message`、`message`、`assistant_message`、`done`，并额外发送 `citations`。
   - `scripts/smoke-rag-api.mjs` 已覆盖索引后发起 RAG SSE、校验 citations、assistant metadata 和消息落库。
   - `services/api/docs/rag.http` 已补充 RAG Chat Stream 手动调试请求。
+- M5.4 前端集成已开始：
+  - AI 面板已增加普通对话 / 知识库模式开关，并持久化用户选择。
+  - RAG 模式已调用 `/api/v1/rag/chat/stream`，普通模式仍调用 `/api/v1/ai/chat/stream`。
+  - 前端 SSE parser 已兼容 `citations` 事件，RAG 回复下方已最小化展示引用摘要。
 - 已运行验证：
   - `node --check ./scripts/smoke-rag-api.mjs`
   - `pnpm build:api`
@@ -278,5 +282,7 @@ RAG Chat 请求体草案：
   - `pnpm smoke:api:documents`
   - `pnpm smoke:api:ai-chat`
   - `pnpm smoke:api:embedding`
+  - `pnpm typecheck`
+  - `pnpm build:web`
 - 尚未实现真实异步 job/worker 和前端 RAG 入口。
-- 下一步建议进入 M5.4：前端增加 RAG 模式开关、知识库状态入口和引用展示。
+- 下一步建议继续 M5.4：文档页增加知识库状态入口、开启/关闭/重建索引操作和更完整的引用跳转体验。

@@ -1,5 +1,10 @@
 export const defaultAIModelId = "deepseek-v4-pro";
 export const aiModelStorageKey = "my-notion-go.ai-chat.model";
+export const aiChatModeStorageKey = "my-notion-go.ai-chat.mode";
+
+export const aiChatModes = ["chat", "rag"] as const;
+
+export type AIChatMode = (typeof aiChatModes)[number];
 
 export const aiModels = [
   {
@@ -33,4 +38,13 @@ export function isAIModelId(value: string): value is AIModelId {
 export function getInitialAIModelId(): AIModelId {
   const stored = window.localStorage.getItem(aiModelStorageKey);
   return stored && isAIModelId(stored) ? stored : defaultAIModelId;
+}
+
+export function isAIChatMode(value: string): value is AIChatMode {
+  return aiChatModes.some((mode) => mode === value);
+}
+
+export function getInitialAIChatMode(): AIChatMode {
+  const stored = window.localStorage.getItem(aiChatModeStorageKey);
+  return stored && isAIChatMode(stored) ? stored : "chat";
 }

@@ -1,10 +1,11 @@
 import { ApiError, apiClient, type AIConversation, type AIMessage, type StreamAIChatRequest } from "@my-notion-go/api-client";
 import { createSSEParser } from "./sse";
-import type { AIChatStreamEvent } from "./types";
+import type { AIChatMode, AIChatStreamEvent, RAGCitation } from "./types";
 
 type StreamAIChatOptions = {
   accessToken: string;
   input: StreamAIChatRequest;
+  mode: AIChatMode;
   signal?: AbortSignal;
   onEvent: (event: AIChatStreamEvent) => void;
 };
@@ -13,9 +14,10 @@ export const webAIChatApi = {
   streamChat,
 };
 
-async function streamChat({ accessToken, input, signal, onEvent }: StreamAIChatOptions) {
+async function streamChat({ accessToken, input, mode, signal, onEvent }: StreamAIChatOptions) {
   // SSE 不能走 api-client 的 JSON envelope 拆包逻辑；这里单独用 fetch 保留 ReadableStream。
-  const response = await fetch(`${apiClient.baseUrl}/api/v1/ai/chat/stream`, {
+  const endpoint = mode === "rag" ? "/api/v1/rag/chat/stream" : "/api/v1/ai/chat/stream";
+  const response = await fetch(`${apiClient.baseUrl}${endpoint}`, {
     method: "POST",
     signal,
     headers: {
@@ -76,6 +78,8 @@ function normalizeStreamEvent(event: string, data: unknown): AIChatStreamEvent {
       return { event, data: data as AIMessage };
     case "message":
       return { event, data: data as { delta: string } };
+    case "citations":
+      return { event, data: data as { items: RAGCitation[] } };
     case "assistant_message":
       return { event, data: data as AIMessage };
     case "done":

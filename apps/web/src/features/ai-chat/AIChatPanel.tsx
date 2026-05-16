@@ -1,4 +1,4 @@
-import { AlertCircle, Bot, Check, ChevronDown, Loader2, MessageCircle, Plus, Send, X } from "lucide-react";
+import { AlertCircle, Bot, Check, ChevronDown, Database, Loader2, MessageCircle, Plus, Send, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Textarea } from "@/components/ui/textarea";
 import { useResizableWidth } from "@/hooks/useResizableWidth";
 import { cn } from "@/lib/utils";
-import { aiModels, aiModelStorageKey, getInitialAIModelId, type AIModelId } from "./models";
+import { aiChatModeStorageKey, aiModels, aiModelStorageKey, getInitialAIChatMode, getInitialAIModelId, type AIChatMode, type AIModelId } from "./models";
+import type { ChatMessage, RAGCitation } from "./types";
 import { useAIChat } from "./useAIChat";
 
 type AIChatPanelProps = {
@@ -18,10 +19,11 @@ type AIChatPanelProps = {
 export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState("");
+  const [selectedMode, setSelectedMode] = useState<AIChatMode>(() => getInitialAIChatMode());
   const [selectedModelId, setSelectedModelId] = useState<AIModelId>(() => getInitialAIModelId());
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const selectedModel = aiModels.find((model) => model.id === selectedModelId) ?? aiModels[0];
-  const chat = useAIChat({ accessToken, model: selectedModelId });
+  const chat = useAIChat({ accessToken, mode: selectedMode, model: selectedModelId });
   // AI 面板可以拉伸，但需要上限保护，避免在小屏或编辑区较窄时抢占太多正文空间。
   const panelResize = useResizableWidth({
     defaultWidth: 380,
@@ -56,6 +58,11 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
   const selectModel = (modelId: AIModelId) => {
     setSelectedModelId(modelId);
     window.localStorage.setItem(aiModelStorageKey, modelId);
+  };
+
+  const selectMode = (mode: AIChatMode) => {
+    setSelectedMode(mode);
+    window.localStorage.setItem(aiChatModeStorageKey, mode);
   };
 
   return (
@@ -111,6 +118,27 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
           </DropdownMenu>
         </div>
 
+        <div className="grid gap-1.5">
+          <p className="m-0 text-xs font-medium text-muted-foreground">{t("aiChat.mode")}</p>
+          <div className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/40 p-1">
+            {(["chat", "rag"] as const).map((mode) => (
+              <Button
+                className={cn("h-8 justify-center rounded-md text-xs", selectedMode === mode && "bg-background shadow-sm")}
+                disabled={chat.sending}
+                key={mode}
+                onClick={() => selectMode(mode)}
+                size="sm"
+                type="button"
+                variant={selectedMode === mode ? "outline" : "ghost"}
+              >
+                {mode === "rag" ? <Database size={14} /> : <Bot size={14} />}
+                {t(`aiChat.modes.${mode}`)}
+              </Button>
+            ))}
+          </div>
+          <p className="m-0 text-xs leading-5 text-muted-foreground">{t(`aiChat.modeDescriptions.${selectedMode}`)}</p>
+        </div>
+
         <Button
           className="h-8 justify-center rounded-md text-xs"
           disabled={chat.creatingConversation || chat.sending}
@@ -161,21 +189,37 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
             </div>
           </div>
         ) : null}
-        {chat.messages.map((message) => (
-          <article className={cn("flex flex-col items-start gap-1.5", message.role === "user" && "items-end")} key={message.id}>
-            <div className="px-1 text-[11px] font-medium text-muted-foreground">{t(`aiChat.roles.${message.role}`)}</div>
-            <div
-              className={cn(
-                "max-w-[92%] whitespace-pre-wrap rounded-2xl bg-secondary px-3 py-2.5 text-sm leading-[1.6] text-foreground",
-                message.role === "user" && "rounded-br-md bg-primary px-3.5 text-primary-foreground",
-                message.role !== "user" && "rounded-bl-md",
-              )}
-            >
-              {message.content}
-              {message.streaming ? <span className="ml-0.5 inline-block h-[1em] w-1.5 animate-[blink_1s_steps(2,start)_infinite] bg-current align-[-2px]" /> : null}
-            </div>
-          </article>
-        ))}
+        {chat.messages.map((message) => {
+          const citations = getRAGCitations(message);
+          return (
+            <article className={cn("flex flex-col items-start gap-1.5", message.role === "user" && "items-end")} key={message.id}>
+              <div className="px-1 text-[11px] font-medium text-muted-foreground">{t(`aiChat.roles.${message.role}`)}</div>
+              <div
+                className={cn(
+                  "max-w-[92%] whitespace-pre-wrap rounded-2xl bg-secondary px-3 py-2.5 text-sm leading-[1.6] text-foreground",
+                  message.role === "user" && "rounded-br-md bg-primary px-3.5 text-primary-foreground",
+                  message.role !== "user" && "rounded-bl-md",
+                )}
+              >
+                {message.content}
+                {message.streaming ? <span className="ml-0.5 inline-block h-[1em] w-1.5 animate-[blink_1s_steps(2,start)_infinite] bg-current align-[-2px]" /> : null}
+              </div>
+              {citations.length > 0 ? (
+                <div className="grid max-w-[92%] gap-1 rounded-xl border border-border bg-background/80 px-2.5 py-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5 font-medium text-foreground">
+                    <Database size={13} />
+                    {t("aiChat.citationsTitle", { count: citations.length })}
+                  </div>
+                  {citations.slice(0, 3).map((citation) => (
+                    <p className="m-0 line-clamp-2 leading-5" key={citation.chunkId}>
+                      {citation.preview}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
         <div ref={messagesEndRef} />
       </section>
 
@@ -207,7 +251,9 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
             value={draft}
           />
           <div className="flex items-center justify-between gap-2 pt-1">
-            <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">{selectedModel.displayName}</span>
+            <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+              {selectedModel.displayName} · {t(`aiChat.modes.${selectedMode}`)}
+            </span>
             {chat.sending ? (
               <Button onClick={chat.cancelStreaming} size="sm" type="button" variant="outline">
                 {t("aiChat.stop")}
@@ -222,4 +268,20 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
       </form>
     </aside>
   );
+}
+
+function getRAGCitations(message: ChatMessage): RAGCitation[] {
+  const rag = message.metadata.rag;
+  if (!isRAGMetadata(rag)) {
+    return [];
+  }
+  return rag.citations;
+}
+
+function isRAGMetadata(value: unknown): value is { citations: RAGCitation[] } {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const citations = (value as { citations?: unknown }).citations;
+  return Array.isArray(citations);
 }

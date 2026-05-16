@@ -1,20 +1,22 @@
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { useMemoizedFn, useUnmount } from "ahooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { aiChatApi, type AIConversation, type AIMessage } from "@my-notion-go/api-client";
 import { webAIChatApi } from "./api";
 import { aiConversationsQueryKey, aiMessagesQueryKey } from "./queryKeys";
-import type { AIChatStreamEvent, ChatMessage } from "./types";
+import type { AIChatMode, AIChatStreamEvent, ChatMessage, RAGCitation } from "./types";
 
 type UseAIChatOptions = {
-accessToken: string;
+  accessToken: string;
+  mode: AIChatMode;
   model: string;
 };
 
-export function useAIChat({ accessToken, model }: UseAIChatOptions) {
+export function useAIChat({ accessToken, mode, model }: UseAIChatOptions) {
   const queryClient = useQueryClient();
   // AbortController 放在 ref 里，避免每个 SSE chunk 触发重新渲染；UI 的发送态由 sending state 单独驱动。
   const abortControllerRef = useRef<AbortController | null>(null);
+  const currentCitationsRef = useRef<RAGCitation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState(false);
@@ -78,6 +80,7 @@ export function useAIChat({ accessToken, model }: UseAIChatOptions) {
 
     setStreamError(null);
     setStreamingMessage("");
+    currentCitationsRef.current = [];
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setSending(true);
@@ -85,6 +88,7 @@ export function useAIChat({ accessToken, model }: UseAIChatOptions) {
     try {
       await webAIChatApi.streamChat({
         accessToken,
+        mode,
         signal: controller.signal,
         input: {
           conversationId: activeConversationId,
@@ -95,6 +99,7 @@ export function useAIChat({ accessToken, model }: UseAIChatOptions) {
           handleStreamEvent(event, {
             queryClient,
             setActiveConversationId,
+            currentCitationsRef,
             setMessages,
             setStreamingMessage,
             setStreamError,
@@ -114,6 +119,7 @@ export function useAIChat({ accessToken, model }: UseAIChatOptions) {
       abortControllerRef.current = null;
       setSending(false);
       setStreamingMessage("");
+      currentCitationsRef.current = [];
       void queryClient.invalidateQueries({ queryKey: aiConversationsQueryKey });
     }
   });
@@ -123,6 +129,7 @@ export function useAIChat({ accessToken, model }: UseAIChatOptions) {
     abortControllerRef.current = null;
     setSending(false);
     setStreamingMessage("");
+    currentCitationsRef.current = [];
   });
 
   return {
@@ -146,6 +153,7 @@ export function useAIChat({ accessToken, model }: UseAIChatOptions) {
 type StreamEventHandlers = {
   queryClient: ReturnType<typeof useQueryClient>;
   setActiveConversationId: (id: string) => void;
+  currentCitationsRef: MutableRefObject<RAGCitation[]>;
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
   setStreamingMessage: Dispatch<SetStateAction<string>>;
   setStreamError: Dispatch<SetStateAction<string | null>>;
@@ -162,11 +170,16 @@ function handleStreamEvent(event: AIChatStreamEvent, handlers: StreamEventHandle
       break;
     case "message":
       handlers.setStreamingMessage((content) => content + event.data.delta);
-      handlers.setMessages((messages) => upsertStreamingAssistantMessage(messages, event.data.delta));
+      handlers.setMessages((messages) => upsertStreamingAssistantMessage(messages, event.data.delta, handlers.currentCitationsRef.current));
+      break;
+    case "citations":
+      handlers.currentCitationsRef.current = event.data.items;
+      handlers.setMessages((messages) => updateStreamingAssistantCitations(messages, event.data.items));
       break;
     case "assistant_message":
       handlers.setMessages((messages) => replaceStreamingAssistantMessage(messages, event.data));
       handlers.setStreamingMessage("");
+      handlers.currentCitationsRef.current = [];
       break;
     case "error":
       handlers.setMessages((messages) => removeStreamingAssistantMessage(messages));
@@ -195,7 +208,7 @@ function appendMessage(messages: ChatMessage[], message: AIMessage): ChatMessage
   return [...messages, message];
 }
 
-function upsertStreamingAssistantMessage(messages: ChatMessage[], delta: string): ChatMessage[] {
+function upsertStreamingAssistantMessage(messages: ChatMessage[], delta: string, citations: RAGCitation[]): ChatMessage[] {
   const streaming = messages.find((message) => message.streaming);
   if (!streaming) {
     // 后端最终会返回 assistant_message 的真实 id；流式过程中先用本地临时消息承接 delta。
@@ -206,7 +219,7 @@ function upsertStreamingAssistantMessage(messages: ChatMessage[], delta: string)
         conversationId: messages.at(-1)?.conversationId ?? "",
         role: "assistant",
         content: delta,
-        metadata: {},
+        metadata: citations.length > 0 ? { rag: { enabled: true, citations } } : {},
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         streaming: true,
@@ -215,6 +228,27 @@ function upsertStreamingAssistantMessage(messages: ChatMessage[], delta: string)
   }
 
   return messages.map((message) => (message.streaming ? { ...message, content: message.content + delta } : message));
+}
+
+function updateStreamingAssistantCitations(messages: ChatMessage[], citations: RAGCitation[]): ChatMessage[] {
+  if (citations.length === 0) {
+    return messages;
+  }
+
+  return messages.map((message) =>
+    message.streaming
+      ? {
+          ...message,
+          metadata: {
+            ...message.metadata,
+            rag: {
+              enabled: true,
+              citations,
+            },
+          },
+        }
+      : message,
+  );
 }
 
 function replaceStreamingAssistantMessage(messages: ChatMessage[], message: AIMessage): ChatMessage[] {

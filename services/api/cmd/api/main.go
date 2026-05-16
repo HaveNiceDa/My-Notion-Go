@@ -138,7 +138,7 @@ func main() {
 	// 本地没有启动 Qdrant 时仅记录 warning，后续真正调用 RAG API 时再返回明确业务错误。
 	initializeQdrant(qdrantClient, cfg.QdrantCollection, ai.DefaultEmbeddingDimension)
 	ragRepo := rag.NewRepository(db)
-	ragService := rag.NewService(ragRepo, documentRepo, qdrantClient)
+	ragService := rag.NewService(ragRepo, documentRepo, embeddingClient, qdrantClient, cfg.QdrantCollection)
 	ragHandler := rag.NewHandler(ragService)
 	chatService := chat.NewService(chatRepo, aiClient)
 	chatHandler := chat.NewHandler(chatService)

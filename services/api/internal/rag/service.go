@@ -2,40 +2,52 @@ package rag
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/bytel/my-notion-go/services/api/internal/ai"
 	"github.com/bytel/my-notion-go/services/api/internal/documents"
 )
 
 var (
-	ErrInvalidInput      = errors.New("invalid rag input")
-	ErrDocumentNotFound  = errors.New("rag document not found")
-	ErrRepositoryFailure = errors.New("rag repository failure")
+	ErrInvalidInput            = errors.New("invalid rag input")
+	ErrDocumentNotFound        = errors.New("rag document not found")
+	ErrRepositoryFailure       = errors.New("rag repository failure")
+	ErrInvalidBlockNoteContent = errors.New("invalid blocknote content")
+	ErrNoIndexableContent      = errors.New("document has no indexable content")
 )
 
 var ragUUIDPattern = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 type Service struct {
-	repo    *Repository
-	docRepo *documents.Repository
-	qdrant  *QdrantClient
+	repo       *Repository
+	docRepo    *documents.Repository
+	embedding  *ai.EmbeddingClient
+	qdrant     *QdrantClient
+	collection string
 }
 
-func NewService(repo *Repository, docRepo *documents.Repository, qdrant *QdrantClient) *Service {
+func NewService(repo *Repository, docRepo *documents.Repository, embedding *ai.EmbeddingClient, qdrant *QdrantClient, collection string) *Service {
 	return &Service{
-		repo:    repo,
-		docRepo: docRepo,
-		qdrant:  qdrant,
+		repo:       repo,
+		docRepo:    docRepo,
+		embedding:  embedding,
+		qdrant:     qdrant,
+		collection: strings.TrimSpace(collection),
 	}
 }
 
 // EnableDocumentIndex 是“把文档重新纳入知识库”的入口。
-// 这里先只写产品开关和 pending 状态，真正的切块/embedding/Qdrant upsert 留给后续索引流程。
+// M5.2 先同步执行索引，便于 smoke 验证完整闭环；后续可以把 indexDocument 搬到 worker。
 func (s *Service) EnableDocumentIndex(ctx context.Context, userID string, documentID string) (DocumentStatusDTO, error) {
-	document, err := s.findDocument(ctx, userID, documentID)
-	if err != nil {
+	if _, err := s.findDocument(ctx, userID, documentID); err != nil {
 		return DocumentStatusDTO{}, err
 	}
 
@@ -46,8 +58,7 @@ func (s *Service) EnableDocumentIndex(ctx context.Context, userID string, docume
 		return DocumentStatusDTO{}, err
 	}
 
-	// M5.1 只落状态骨架，不在请求内执行切块和向量化。后续 worker 会消费 pending 状态。
-	status, err := s.repo.UpsertDocumentStatus(ctx, userID, document.ID, StatusPending)
+	status, err := s.indexDocument(ctx, userID, updated)
 	if err != nil {
 		return DocumentStatusDTO{}, err
 	}
@@ -56,7 +67,7 @@ func (s *Service) EnableDocumentIndex(ctx context.Context, userID string, docume
 }
 
 // DisableDocumentIndex 表示用户显式把文档移出知识库。
-// 当前阶段只更新状态；M5.2 接入 Qdrant 后，这里还需要删除对应 point 或标记失效。
+// 关闭时同步删除当前文档已写入的 Qdrant points，避免后续检索命中用户已排除的文档。
 func (s *Service) DisableDocumentIndex(ctx context.Context, userID string, documentID string) (DocumentStatusDTO, error) {
 	document, err := s.findDocument(ctx, userID, documentID)
 	if err != nil {
@@ -67,6 +78,19 @@ func (s *Service) DisableDocumentIndex(ctx context.Context, userID string, docum
 		"is_in_knowledge_base": false,
 	})
 	if err != nil {
+		return DocumentStatusDTO{}, err
+	}
+
+	pointIDs, err := s.repo.ListPointIDsByDocumentID(ctx, userID, document.ID)
+	if err != nil {
+		return DocumentStatusDTO{}, err
+	}
+	if len(pointIDs) > 0 && s.qdrant != nil && s.qdrant.Enabled() && s.collection != "" {
+		if err := s.qdrant.DeletePoints(ctx, s.collection, pointIDs); err != nil {
+			return DocumentStatusDTO{}, err
+		}
+	}
+	if err := s.repo.DeleteChunksByDocumentID(ctx, userID, document.ID); err != nil {
 		return DocumentStatusDTO{}, err
 	}
 
@@ -119,4 +143,152 @@ func (s *Service) findDocument(ctx context.Context, userID string, documentID st
 		return documents.Document{}, ErrDocumentNotFound
 	}
 	return document, err
+}
+
+func (s *Service) indexDocument(ctx context.Context, userID string, document documents.Document) (Document, error) {
+	if s.embedding == nil || !s.embedding.Enabled() {
+		return Document{}, ai.ErrClientNotConfigured
+	}
+	if s.qdrant == nil || !s.qdrant.Enabled() || s.collection == "" {
+		return Document{}, errors.New("qdrant client is not configured")
+	}
+
+	status, err := s.repo.UpsertDocumentStatus(ctx, userID, document.ID, StatusIndexing)
+	if err != nil {
+		return Document{}, err
+	}
+
+	content, err := s.docRepo.FindContentByDocumentID(ctx, userID, document.ID)
+	if err != nil {
+		_, _ = s.repo.MarkFailed(ctx, userID, document.ID, err.Error())
+		return Document{}, err
+	}
+
+	drafts, err := BuildChunks(content.Content, document.Title)
+	if err != nil {
+		_, _ = s.repo.MarkFailed(ctx, userID, document.ID, err.Error())
+		return Document{}, err
+	}
+
+	texts := make([]string, 0, len(drafts))
+	for _, draft := range drafts {
+		texts = append(texts, draft.Content)
+	}
+
+	vectors, err := s.embedding.EmbedTexts(ctx, ai.DefaultEmbeddingModelID, texts)
+	if err != nil {
+		_, _ = s.repo.MarkFailed(ctx, userID, document.ID, err.Error())
+		return Document{}, err
+	}
+
+	chunks, points, err := buildIndexedChunks(userID, document.ID, status.ID, drafts, vectors)
+	if err != nil {
+		_, _ = s.repo.MarkFailed(ctx, userID, document.ID, err.Error())
+		return Document{}, err
+	}
+
+	oldPointIDs, err := s.repo.ListPointIDsByDocumentID(ctx, userID, document.ID)
+	if err != nil {
+		_, _ = s.repo.MarkFailed(ctx, userID, document.ID, err.Error())
+		return Document{}, err
+	}
+	if len(oldPointIDs) > 0 {
+		if err := s.qdrant.DeletePoints(ctx, s.collection, oldPointIDs); err != nil {
+			_, _ = s.repo.MarkFailed(ctx, userID, document.ID, err.Error())
+			return Document{}, err
+		}
+	}
+	if err := s.repo.DeleteChunksByDocumentID(ctx, userID, document.ID); err != nil {
+		_, _ = s.repo.MarkFailed(ctx, userID, document.ID, err.Error())
+		return Document{}, err
+	}
+	if err := s.repo.CreateChunks(ctx, chunks); err != nil {
+		_, _ = s.repo.MarkFailed(ctx, userID, document.ID, err.Error())
+		return Document{}, err
+	}
+	if err := s.qdrant.UpsertPoints(ctx, s.collection, points); err != nil {
+		_, _ = s.repo.MarkFailed(ctx, userID, document.ID, err.Error())
+		return Document{}, err
+	}
+
+	indexed, err := s.repo.MarkIndexed(ctx, userID, document.ID, len(chunks), hashBytes(content.Content), time.Now())
+	if err != nil {
+		return Document{}, err
+	}
+	return indexed, nil
+}
+
+func buildIndexedChunks(userID string, documentID string, ragDocumentID string, drafts []ChunkDraft, vectors [][]float32) ([]Chunk, []QdrantPoint, error) {
+	if len(drafts) != len(vectors) {
+		return nil, nil, fmt.Errorf("chunk/vector count mismatch: chunks=%d vectors=%d", len(drafts), len(vectors))
+	}
+
+	chunks := make([]Chunk, 0, len(drafts))
+	points := make([]QdrantPoint, 0, len(drafts))
+	for index, draft := range drafts {
+		pointID, err := newUUID()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		blockIDs, err := json.Marshal(draft.BlockIDs)
+		if err != nil {
+			return nil, nil, err
+		}
+		metadata, err := json.Marshal(map[string]any{
+			"source":     "document",
+			"documentId": documentID,
+			"position":   draft.Position,
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+
+		chunk := Chunk{
+			ID:            pointID,
+			UserID:        userID,
+			DocumentID:    documentID,
+			RAGDocumentID: ragDocumentID,
+			QdrantPointID: pointID,
+			Content:       draft.Content,
+			BlockIDs:      blockIDs,
+			Position:      draft.Position,
+			TokenCount:    draft.TokenCount,
+			Metadata:      metadata,
+		}
+		chunks = append(chunks, chunk)
+		points = append(points, QdrantPoint{
+			ID:     pointID,
+			Vector: vectors[index],
+			Payload: map[string]any{
+				"userId":     userID,
+				"documentId": documentID,
+				"chunkId":    pointID,
+				"position":   draft.Position,
+				"text":       draft.Content,
+			},
+		})
+	}
+	return chunks, points, nil
+}
+
+func hashBytes(content []byte) string {
+	sum := sha256.Sum256(content)
+	return hex.EncodeToString(sum[:])
+}
+
+func newUUID() (string, error) {
+	var bytes [16]byte
+	if _, err := rand.Read(bytes[:]); err != nil {
+		return "", err
+	}
+	bytes[6] = (bytes[6] & 0x0f) | 0x40
+	bytes[8] = (bytes[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%s-%s-%s-%s-%s",
+		hex.EncodeToString(bytes[0:4]),
+		hex.EncodeToString(bytes[4:6]),
+		hex.EncodeToString(bytes[6:8]),
+		hex.EncodeToString(bytes[8:10]),
+		hex.EncodeToString(bytes[10:16]),
+	), nil
 }

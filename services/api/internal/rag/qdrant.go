@@ -39,6 +39,26 @@ type qdrantVectorParams struct {
 	Distance string `json:"distance"`
 }
 
+type QdrantPoint struct {
+	ID      string
+	Vector  []float32
+	Payload map[string]any
+}
+
+type upsertPointsRequest struct {
+	Points []upsertPoint `json:"points"`
+}
+
+type upsertPoint struct {
+	ID      string         `json:"id"`
+	Vector  []float32      `json:"vector"`
+	Payload map[string]any `json:"payload,omitempty"`
+}
+
+type deletePointsRequest struct {
+	Points []string `json:"points"`
+}
+
 func NewQdrantClient(cfg QdrantConfig) *QdrantClient {
 	timeout := cfg.Timeout
 	if timeout <= 0 {
@@ -126,6 +146,82 @@ func (c *QdrantClient) EnsureCollection(ctx context.Context, collection string, 
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		return qdrantStatusError("create qdrant collection failed", resp)
+	}
+	return nil
+}
+
+// UpsertPoints 写入或覆盖 Qdrant points。
+// point id 由 rag_chunks.qdrant_point_id 持久化，后续重建索引和关闭知识库时可以精准删除。
+func (c *QdrantClient) UpsertPoints(ctx context.Context, collection string, points []QdrantPoint) error {
+	if !c.Enabled() {
+		return fmt.Errorf("qdrant client is not configured")
+	}
+	if strings.TrimSpace(collection) == "" || len(points) == 0 {
+		return fmt.Errorf("invalid qdrant upsert input")
+	}
+
+	payload := upsertPointsRequest{Points: make([]upsertPoint, 0, len(points))}
+	for _, point := range points {
+		if point.ID == "" || len(point.Vector) == 0 {
+			return fmt.Errorf("invalid qdrant point")
+		}
+		payload.Points = append(payload.Points, upsertPoint{
+			ID:      point.ID,
+			Vector:  point.Vector,
+			Payload: point.Payload,
+		})
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.collectionURL(collection)+"/points?wait=true", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	c.setHeaders(req)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return qdrantStatusError("upsert qdrant points failed", resp)
+	}
+	return nil
+}
+
+// DeletePoints 删除指定 point id 列表。
+// 关闭知识库和重建索引都会先清理旧 point，避免 Qdrant 中残留过期 chunk。
+func (c *QdrantClient) DeletePoints(ctx context.Context, collection string, pointIDs []string) error {
+	if !c.Enabled() {
+		return fmt.Errorf("qdrant client is not configured")
+	}
+	if strings.TrimSpace(collection) == "" || len(pointIDs) == 0 {
+		return nil
+	}
+
+	body, err := json.Marshal(deletePointsRequest{Points: pointIDs})
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.collectionURL(collection)+"/points/delete?wait=true", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	c.setHeaders(req)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return qdrantStatusError("delete qdrant points failed", resp)
 	}
 	return nil
 }

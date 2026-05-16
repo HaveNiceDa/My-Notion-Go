@@ -37,12 +37,15 @@ func (r *Repository) FindByDocumentID(ctx context.Context, userID string, docume
 func (r *Repository) UpsertDocumentStatus(ctx context.Context, userID string, documentID string, status string) (Document, error) {
 	var document Document
 	err := r.db.WithContext(ctx).Raw(`
-INSERT INTO rag_documents (user_id, document_id, status, last_error, updated_at)
-VALUES (?, ?, ?, '', NOW())
+INSERT INTO rag_documents (user_id, document_id, status, content_hash, chunk_count, last_error, indexed_at, updated_at)
+VALUES (?, ?, ?, '', 0, '', NULL, NOW())
 ON CONFLICT (user_id, document_id)
 DO UPDATE SET
   status = EXCLUDED.status,
+  content_hash = '',
+  chunk_count = 0,
   last_error = '',
+  indexed_at = NULL,
   updated_at = NOW()
 RETURNING id, user_id, document_id, status, content_hash, chunk_count, last_error, indexed_at, created_at, updated_at;
 `, userID, documentID, status).Scan(&document).Error
@@ -67,4 +70,43 @@ DO UPDATE SET
 RETURNING id, user_id, document_id, status, content_hash, chunk_count, last_error, indexed_at, created_at, updated_at;
 `, userID, documentID, StatusIndexed, contentHash, chunkCount, indexedAt).Scan(&document).Error
 	return document, err
+}
+
+func (r *Repository) MarkFailed(ctx context.Context, userID string, documentID string, message string) (Document, error) {
+	var document Document
+	err := r.db.WithContext(ctx).Raw(`
+INSERT INTO rag_documents (user_id, document_id, status, last_error, updated_at)
+VALUES (?, ?, ?, ?, NOW())
+ON CONFLICT (user_id, document_id)
+DO UPDATE SET
+  status = EXCLUDED.status,
+  last_error = EXCLUDED.last_error,
+  updated_at = NOW()
+RETURNING id, user_id, document_id, status, content_hash, chunk_count, last_error, indexed_at, created_at, updated_at;
+`, userID, documentID, StatusFailed, message).Scan(&document).Error
+	return document, err
+}
+
+func (r *Repository) CreateChunks(ctx context.Context, chunks []Chunk) error {
+	if len(chunks) == 0 {
+		return nil
+	}
+	return r.db.WithContext(ctx).Create(&chunks).Error
+}
+
+func (r *Repository) DeleteChunksByDocumentID(ctx context.Context, userID string, documentID string) error {
+	return r.db.WithContext(ctx).
+		Where("user_id = ? AND document_id = ?", userID, documentID).
+		Delete(&Chunk{}).
+		Error
+}
+
+func (r *Repository) ListPointIDsByDocumentID(ctx context.Context, userID string, documentID string) ([]string, error) {
+	var pointIDs []string
+	err := r.db.WithContext(ctx).
+		Model(&Chunk{}).
+		Where("user_id = ? AND document_id = ? AND qdrant_point_id <> ''", userID, documentID).
+		Pluck("qdrant_point_id", &pointIDs).
+		Error
+	return pointIDs, err
 }

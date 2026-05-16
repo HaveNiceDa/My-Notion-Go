@@ -30,14 +30,41 @@ Content-Type: application/json
   "title": "RAG Manual Test"
 }
 
+### Update Content
+PUT {{baseUrl}}/api/v1/documents/{{createDocument.response.body.$.data.id}}/content
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+Content-Type: application/json
+
+{
+  "content": [
+    {
+      "id": "manual-rag-block-1",
+      "type": "paragraph",
+      "props": {
+        "textColor": "default",
+        "backgroundColor": "default",
+        "textAlignment": "left"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "这是一段用于手动验证 RAG 索引的 BlockNote 文本。",
+          "styles": {}
+        }
+      ],
+      "children": []
+    }
+  ]
+}
+
 ### Get RAG Status
 GET {{baseUrl}}/api/v1/rag/documents/{{createDocument.response.body.$.data.id}}/status
 Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
 
-### Disable Knowledge Base
-DELETE {{baseUrl}}/api/v1/rag/documents/{{createDocument.response.body.$.data.id}}/index
+### Build RAG Index
+POST {{baseUrl}}/api/v1/rag/documents/{{createDocument.response.body.$.data.id}}/index
 Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
 
-### Enable Knowledge Base
-POST {{baseUrl}}/api/v1/rag/documents/{{createDocument.response.body.$.data.id}}/index
+### Disable Knowledge Base
+DELETE {{baseUrl}}/api/v1/rag/documents/{{createDocument.response.body.$.data.id}}/index
 Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}

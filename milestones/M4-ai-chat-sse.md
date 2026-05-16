@@ -101,12 +101,17 @@
   - `DASHSCOPE_API_KEY`
 - 模型不再通过环境变量配置，改为代码内白名单和前端 AI 面板选择。
 - 前端 AI 面板使用 shadcn `DropdownMenu` 切换模型，并将用户选择持久化到 `localStorage`。
+- AI 面板支持右侧宽度拖拽，限制在 `320px` 到 `520px`，避免覆盖过多编辑区。
+- Workspace 左侧 sidebar 支持宽度拖拽，限制在 `220px` 到 `420px`。
+- AI 面板样式已参考 Notion AI 做轻量化整理，包括紧凑模型选择、空态建议和圆角输入框。
 - 可选模型：
   - `deepseek-v4-pro`
   - `qwen3.6-27b`
   - `kimi-k2.6`
   - `glm-5.1`
 - assistant 消息 metadata 会记录 `provider` 和 `model`。
+- 已新增后端 AI 包单测和 Playwright E2E 测试。
+- Playwright E2E 已覆盖首页注册/登录、工作区布局拉伸、AI 面板模型切换和 SSE 请求模型透传。
 
 ## 后续
 

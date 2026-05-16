@@ -1,4 +1,5 @@
 import { LogOut, Moon, PanelLeftClose, Plus, Search, Settings, Sun } from "lucide-react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { User, DocumentTreeNode } from "@my-notion-go/api-client";
 import { Button } from "@/components/ui/button";
@@ -16,12 +17,14 @@ type WorkspaceSidebarProps = {
   tree: DocumentTreeNode[] | undefined;
   treeLoading: boolean;
   user: User | null;
+  width: number;
   onCollapse: () => void;
   onCreateRoot: () => void;
   onCreateChild: (parentId: string) => void;
   onLogout: () => void;
   onMove: (documentId: string, parentId: string) => void;
   onRename: (documentId: string, title: string) => void;
+  onResizeStart: (event: ReactPointerEvent<HTMLElement>) => void;
   onToggleTheme: () => void;
 };
 
@@ -36,12 +39,14 @@ export function WorkspaceSidebar({
   tree,
   treeLoading,
   user,
+  width,
   onCollapse,
   onCreateRoot,
   onCreateChild,
   onLogout,
   onMove,
   onRename,
+  onResizeStart,
   onToggleTheme,
 }: WorkspaceSidebarProps) {
   const { t } = useTranslation();
@@ -49,9 +54,10 @@ export function WorkspaceSidebar({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-30 flex h-full flex-col overflow-auto bg-secondary px-1 py-2 shadow-[var(--shadow)] transition-[width,min-width,flex-basis,padding] duration-200 md:static md:z-auto md:w-60 md:min-w-60 md:flex-[0_0_240px] md:shadow-none ${
-        collapsed ? "w-0 min-w-0 flex-[0_0_0] border-0 p-0" : "w-60 min-w-60 flex-[0_0_240px]"
+      className={`group/sidebar fixed inset-y-0 left-0 z-30 flex h-full flex-col overflow-auto bg-secondary px-1 py-2 shadow-[var(--shadow)] transition-[min-width,flex-basis,padding] duration-200 md:static md:relative md:z-auto md:shadow-none ${
+        collapsed ? "w-0 min-w-0 flex-[0_0_0] border-0 p-0" : "min-w-[220px]"
       }`}
+      style={collapsed ? undefined : { flexBasis: width, width }}
     >
       <div className="flex items-center justify-between gap-2 px-1.5 pb-2 pt-1">
         <div className="flex min-w-0 items-center gap-2 overflow-hidden" title={user?.email}>
@@ -110,6 +116,16 @@ export function WorkspaceSidebar({
           <span>{logoutLoading ? t("workspace.loggingOut") : t("workspace.logout")}</span>
         </Button>
       </div>
+      {!collapsed ? (
+        // resize handle 独立于滚动内容，拖拽时不会触发文档树 hover/action 状态。
+        <div
+          aria-label={t("workspace.resizeSidebar")}
+          aria-orientation="vertical"
+          className="absolute inset-y-0 right-0 hidden w-1 cursor-col-resize bg-transparent transition hover:bg-primary/10 group-hover/sidebar:bg-primary/5 md:block"
+          onPointerDown={onResizeStart}
+          role="separator"
+        />
+      ) : null}
     </aside>
   );
 }

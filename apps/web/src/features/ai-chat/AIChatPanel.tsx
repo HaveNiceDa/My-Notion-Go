@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
+import { useResizableWidth } from "@/hooks/useResizableWidth";
 import { cn } from "@/lib/utils";
 import { aiModels, aiModelStorageKey, getInitialAIModelId, type AIModelId } from "./models";
 import { useAIChat } from "./useAIChat";
@@ -20,6 +21,14 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
   const [selectedModelId, setSelectedModelId] = useState<AIModelId>(() => getInitialAIModelId());
   const selectedModel = aiModels.find((model) => model.id === selectedModelId) ?? aiModels[0];
   const chat = useAIChat({ accessToken, model: selectedModelId });
+  // AI 面板可以拉伸，但需要上限保护，避免在小屏或编辑区较窄时抢占太多正文空间。
+  const panelResize = useResizableWidth({
+    defaultWidth: 380,
+    edge: "right",
+    maxWidth: 520,
+    minWidth: 320,
+    storageKey: "my-notion-go.ai-chat.width",
+  });
 
   // 面板关闭时直接卸载，避免隐藏状态下继续订阅消息流或占用右侧布局宽度。
   if (!open) {
@@ -46,16 +55,25 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
   return (
     <aside
       aria-label={t("aiChat.panelLabel")}
-      className="fixed inset-y-0 right-0 z-40 flex h-full w-[min(100vw,360px)] flex-col border-l border-border bg-background shadow-[var(--shadow)] md:static md:z-auto md:w-[360px] md:flex-[0_0_360px] md:shadow-[-16px_0_40px_rgba(15,23,42,0.06)]"
+      className="group/ai-panel fixed inset-y-0 right-0 z-40 flex h-full w-[min(100vw,380px)] flex-col border-l border-border bg-background shadow-[var(--shadow)] md:relative md:static md:z-auto md:shadow-[-16px_0_40px_rgba(15,23,42,0.05)]"
+      style={{ flexBasis: panelResize.width, width: `min(100vw, ${panelResize.width}px)` }}
     >
-      <header className="flex min-h-[58px] items-center justify-between gap-3 border-b border-border py-2.5 pl-4 pr-3">
+      <div
+        aria-label={t("aiChat.resizePanel")}
+        aria-orientation="vertical"
+        className="absolute inset-y-0 left-0 hidden w-1 cursor-col-resize bg-transparent transition hover:bg-primary/10 group-hover/ai-panel:bg-primary/5 md:block"
+        onPointerDown={panelResize.startResize}
+        role="separator"
+      />
+
+      <header className="flex min-h-14 items-center justify-between gap-3 border-b border-border px-4">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="grid size-[30px] flex-none place-items-center rounded-lg bg-secondary">
+          <span className="grid size-8 flex-none place-items-center rounded-full border border-border bg-background shadow-sm">
             <Bot size={18} />
           </span>
           <div>
-            <h2 className="text-sm font-bold">{t("aiChat.title")}</h2>
-            <p className="max-w-60 truncate text-xs text-muted-foreground">{chat.activeConversation?.title || t("aiChat.subtitle")}</p>
+            <h2 className="text-sm font-semibold leading-tight">{chat.activeConversation?.title || t("aiChat.newConversationTitle")}</h2>
+            <p className="max-w-60 truncate text-xs text-muted-foreground">{t("aiChat.subtitle")}</p>
           </div>
         </div>
         <Button className="size-8" onClick={onClose} size="icon" title={t("aiChat.close")} type="button" variant="ghost">
@@ -63,16 +81,13 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
         </Button>
       </header>
 
-      <section aria-label={t("aiChat.conversations")} className="grid gap-2 border-b border-border p-3">
-        <div className="grid gap-1.5">
+      <section aria-label={t("aiChat.conversations")} className="grid gap-2 border-b border-border px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2">
           <p className="m-0 text-xs font-medium text-muted-foreground">{t("aiChat.model")}</p>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="h-auto min-h-9 justify-between gap-2 px-3 py-2 text-left" disabled={chat.sending} type="button" variant="outline">
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium">{selectedModel.displayName}</span>
-                  <span className="block truncate text-xs font-normal text-muted-foreground">{t(selectedModel.descriptionKey)}</span>
-                </span>
+              <Button className="h-8 max-w-[230px] justify-between gap-2 rounded-full px-3 text-left text-xs" disabled={chat.sending} type="button" variant="outline">
+                <span className="truncate font-medium">{selectedModel.displayName}</span>
                 <ChevronDown className="size-4 flex-none text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
@@ -91,6 +106,7 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
         </div>
 
         <Button
+          className="h-8 justify-center rounded-md text-xs"
           disabled={chat.creatingConversation || chat.sending}
           onClick={() => chat.createConversation(t("aiChat.newConversationTitle"))}
           size="sm"
@@ -100,12 +116,12 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
           {chat.creatingConversation ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />}
           {t("aiChat.newConversation")}
         </Button>
-        <div className="grid max-h-[132px] gap-0.5 overflow-auto">
+        <div className="grid max-h-[112px] gap-0.5 overflow-auto">
           {chat.conversationsLoading ? <p className="m-0 text-xs text-muted-foreground">{t("aiChat.loadingConversations")}</p> : null}
           {chat.conversations.map((conversation) => (
             <Button
               className={cn(
-                "h-[30px] w-full justify-start gap-2 rounded-md px-2 text-left text-muted-foreground hover:bg-secondary hover:text-foreground",
+                "h-8 w-full justify-start gap-2 rounded-md px-2 text-left text-xs text-muted-foreground hover:bg-secondary hover:text-foreground",
                 conversation.id === chat.activeConversationId && "bg-secondary text-foreground",
               )}
               key={conversation.id}
@@ -121,21 +137,32 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
         </div>
       </section>
 
-      <section aria-live="polite" className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-3 py-4">
+      <section aria-live="polite" className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-4 py-5">
         {chat.messagesLoading ? <p className="m-0 text-xs text-muted-foreground">{t("aiChat.loadingMessages")}</p> : null}
         {!chat.messagesLoading && chat.messages.length === 0 ? (
-          <div className="grid flex-1 place-items-center gap-2.5 text-center text-[13px] text-muted-foreground">
-            <Bot size={24} />
-            <p className="m-0">{t("aiChat.empty")}</p>
+          <div className="flex flex-1 flex-col justify-end pb-8 text-left">
+            <span className="mb-4 grid size-12 place-items-center rounded-full border border-border bg-background shadow-sm">
+              <Bot size={24} />
+            </span>
+            <h3 className="mb-3 text-xl font-semibold text-foreground">{t("aiChat.emptyTitle")}</h3>
+            <div className="grid gap-2 text-sm text-muted-foreground">
+              {/* 当前阶段先展示 Notion AI 风格的能力提示，后续接上下文工具后再升级成可点击快捷操作。 */}
+              {["summarize", "translate", "analyze", "task"].map((key) => (
+                <p className="m-0" key={key}>
+                  {t(`aiChat.suggestions.${key}`)}
+                </p>
+              ))}
+            </div>
           </div>
         ) : null}
         {chat.messages.map((message) => (
-          <article className={cn("flex flex-col items-start gap-1", message.role === "user" && "items-end")} key={message.id}>
-            <div className="text-xs text-muted-foreground">{t(`aiChat.roles.${message.role}`)}</div>
+          <article className={cn("flex flex-col items-start gap-1.5", message.role === "user" && "items-end")} key={message.id}>
+            <div className="px-1 text-[11px] font-medium text-muted-foreground">{t(`aiChat.roles.${message.role}`)}</div>
             <div
               className={cn(
-                "max-w-[88%] whitespace-pre-wrap rounded-xl bg-secondary px-[11px] py-[9px] text-sm leading-[1.55] text-foreground",
-                message.role === "user" && "bg-primary text-primary-foreground",
+                "max-w-[92%] whitespace-pre-wrap rounded-2xl bg-secondary px-3 py-2.5 text-sm leading-[1.6] text-foreground",
+                message.role === "user" && "rounded-br-md bg-primary px-3.5 text-primary-foreground",
+                message.role !== "user" && "rounded-bl-md",
               )}
             >
               {message.content}
@@ -151,32 +178,35 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
         </p>
       ) : null}
 
-      <form className="grid gap-2 border-t border-border p-3" onSubmit={submit}>
-        <Textarea
-          aria-label={t("aiChat.inputLabel")}
-          className="resize-none rounded-[10px] border-border px-[11px] py-2.5 text-sm leading-normal focus-visible:border-foreground"
-          disabled={chat.sending}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              event.currentTarget.form?.requestSubmit();
-            }
-          }}
-          placeholder={t("aiChat.placeholder")}
-          rows={3}
-          value={draft}
-        />
-        <div className="flex items-center justify-end gap-2">
-          {chat.sending ? (
-            <Button onClick={chat.cancelStreaming} size="sm" type="button" variant="outline">
-              {t("aiChat.stop")}
+      <form className="border-t border-border p-3" onSubmit={submit}>
+        <div className="rounded-2xl border border-input bg-background p-2 shadow-sm focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-ring">
+          <Textarea
+            aria-label={t("aiChat.inputLabel")}
+            className="min-h-[76px] resize-none border-0 px-1 py-1 text-sm leading-normal shadow-none focus-visible:ring-0"
+            disabled={chat.sending}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                event.currentTarget.form?.requestSubmit();
+              }
+            }}
+            placeholder={t("aiChat.placeholder")}
+            rows={3}
+            value={draft}
+          />
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">{selectedModel.displayName}</span>
+            {chat.sending ? (
+              <Button onClick={chat.cancelStreaming} size="sm" type="button" variant="outline">
+                {t("aiChat.stop")}
+              </Button>
+            ) : null}
+            <Button disabled={!draft.trim() || chat.sending} size="sm" type="submit">
+              {chat.sending ? <Loader2 className="animate-spin" size={14} /> : <Send size={14} />}
+              {t("aiChat.send")}
             </Button>
-          ) : null}
-          <Button disabled={!draft.trim() || chat.sending} size="sm" type="submit">
-            {chat.sending ? <Loader2 className="animate-spin" size={14} /> : <Send size={14} />}
-            {t("aiChat.send")}
-          </Button>
+          </div>
         </div>
       </form>
     </aside>

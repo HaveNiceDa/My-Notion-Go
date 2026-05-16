@@ -57,6 +57,7 @@ export const resources = {
         loggingOut: "退出中...",
         collapseSidebar: "收起侧边栏",
         expandSidebar: "展开侧边栏",
+        resizeSidebar: "调整侧边栏宽度",
       },
       documents: {
         untitled: "Untitled",
@@ -96,6 +97,7 @@ export const resources = {
       aiChat: {
         open: "AI 助手",
         close: "关闭 AI 助手",
+        resizePanel: "调整 AI 面板宽度",
         panelLabel: "AI 助手面板",
         title: "AI 助手",
         subtitle: "询问、总结或改写你的内容。",
@@ -105,7 +107,14 @@ export const resources = {
         untitledConversation: "未命名会话",
         loadingConversations: "正在加载会话...",
         loadingMessages: "正在加载消息...",
-        empty: "发送第一条消息，测试 mock SSE 流式响应。",
+        empty: "发送第一条消息，测试真实模型流式响应。",
+        emptyTitle: "我能帮你做什么？",
+        suggestions: {
+          summarize: "总结当前页面",
+          translate: "翻译这篇内容",
+          analyze: "分析并提炼洞察",
+          task: "创建任务清单",
+        },
         model: "模型",
         models: {
           "deepseek-v4-pro": "默认推理模型，适合日常对话和复杂问题。",
@@ -184,6 +193,7 @@ export const resources = {
         loggingOut: "Logging out...",
         collapseSidebar: "Collapse sidebar",
         expandSidebar: "Expand sidebar",
+        resizeSidebar: "Resize sidebar",
       },
       documents: {
         untitled: "Untitled",
@@ -223,6 +233,7 @@ export const resources = {
       aiChat: {
         open: "AI Assistant",
         close: "Close AI assistant",
+        resizePanel: "Resize AI panel",
         panelLabel: "AI assistant panel",
         title: "AI Assistant",
         subtitle: "Ask, summarize, or rewrite your content.",
@@ -232,7 +243,14 @@ export const resources = {
         untitledConversation: "Untitled chat",
         loadingConversations: "Loading conversations...",
         loadingMessages: "Loading messages...",
-        empty: "Send the first message to test mock SSE streaming.",
+        empty: "Send the first message to test real model streaming.",
+        emptyTitle: "How can I help you today?",
+        suggestions: {
+          summarize: "Summarize this page",
+          translate: "Translate this page",
+          analyze: "Analyze for insights",
+          task: "Create a task tracker",
+        },
         model: "Model",
         models: {
           "deepseek-v4-pro": "Default reasoning model for daily chat and complex questions.",

@@ -14,12 +14,14 @@
     "migrate:api": "go run ./services/api/cmd/migrate",
     "typecheck": "pnpm --filter @my-notion-go/web typecheck",
     "lint": "pnpm --filter @my-notion-go/web lint",
+    "e2e:web": "playwright test",
     "format:go": "gofmt -w ./services/api",
     "test:go": "go test ./services/api/...",
     "smoke:api:documents": "node ./scripts/smoke-documents-api.mjs",
     "smoke:api:ai-chat": "node ./scripts/smoke-ai-chat-api.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "concurrently": "^9.2.1"
   },
   "pnpm": {

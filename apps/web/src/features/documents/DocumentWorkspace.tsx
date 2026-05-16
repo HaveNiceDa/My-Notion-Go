@@ -4,6 +4,7 @@ import { useMemoizedFn } from "ahooks";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { documentApi, type UpdateDocumentRequest } from "@my-notion-go/api-client";
+import { useResizableWidth } from "@/hooks/useResizableWidth";
 import { AIChatPanel } from "../ai-chat/AIChatPanel";
 import { useAuthStore } from "../auth/authStore";
 import { useThemeStore } from "../theme/themeStore";
@@ -30,6 +31,14 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
   const toggleTheme = useThemeStore((state) => state.toggle);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [aiChatOpen, setAIChatOpen] = useState(false);
+  // sidebar 宽度属于整体工作区布局状态，放在容器层可避免侧边栏内部重渲染时丢失宽度。
+  const sidebarResize = useResizableWidth({
+    defaultWidth: 240,
+    edge: "left",
+    maxWidth: 420,
+    minWidth: 220,
+    storageKey: "my-notion-go.sidebar.width",
+  });
 
   const treeQuery = useQuery({
     queryKey: documentsQueryKey,
@@ -99,6 +108,8 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
         tree={treeQuery.data}
         treeLoading={treeQuery.isLoading}
         user={user}
+        width={sidebarResize.width}
+        onResizeStart={sidebarResize.startResize}
       />
 
       <section className="flex h-full min-w-0 flex-1 flex-col bg-background">

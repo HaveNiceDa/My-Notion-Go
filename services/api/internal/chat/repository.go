@@ -50,6 +50,35 @@ func (r *Repository) FindConversationByID(ctx context.Context, userID string, co
 	return conversation, err
 }
 
+// UpdateConversationTitle 只允许更新当前用户自己的会话标题，避免跨用户改名。
+func (r *Repository) UpdateConversationTitle(ctx context.Context, userID string, conversationID string, title string) (Conversation, error) {
+	var conversation Conversation
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		existing, err := r.findConversationByID(ctx, tx, userID, conversationID)
+		if err != nil {
+			return err
+		}
+
+		if err := tx.Model(&Conversation{}).
+			Where("id = ? AND user_id = ?", conversationID, userID).
+			Updates(map[string]any{
+				"title":      title,
+				"updated_at": gorm.Expr("NOW()"),
+			}).
+			Error; err != nil {
+			return err
+		}
+
+		updated, err := r.findConversationByID(ctx, tx, existing.UserID, existing.ID)
+		if err != nil {
+			return err
+		}
+		conversation = updated
+		return nil
+	})
+	return conversation, err
+}
+
 // ListMessages 返回会话下的消息，先校验会话归属再读取消息，避免越权访问。
 func (r *Repository) ListMessages(ctx context.Context, userID string, conversationID string) ([]Message, error) {
 	if _, err := r.FindConversationByID(ctx, userID, conversationID); err != nil {

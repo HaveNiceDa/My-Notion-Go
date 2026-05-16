@@ -1,5 +1,5 @@
-import { Bot, Check, ChevronDown, Loader2, MessageCircle, Plus, Send, X } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { AlertCircle, Bot, Check, ChevronDown, Loader2, MessageCircle, Plus, Send, X } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -19,6 +19,7 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState("");
   const [selectedModelId, setSelectedModelId] = useState<AIModelId>(() => getInitialAIModelId());
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const selectedModel = aiModels.find((model) => model.id === selectedModelId) ?? aiModels[0];
   const chat = useAIChat({ accessToken, model: selectedModelId });
   // AI 面板可以拉伸，但需要上限保护，避免在小屏或编辑区较窄时抢占太多正文空间。
@@ -29,6 +30,11 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
     minWidth: 320,
     storageKey: "my-notion-go.ai-chat.width",
   });
+
+  useEffect(() => {
+    // 流式输出会高频追加 delta；滚到底部锚点比手动计算 scrollTop 更不容易受消息高度变化影响。
+    messagesEndRef.current?.scrollIntoView({ block: "end", behavior: chat.sending ? "smooth" : "auto" });
+  }, [chat.messages, chat.sending, chat.streamError]);
 
   // 面板关闭时直接卸载，避免隐藏状态下继续订阅消息流或占用右侧布局宽度。
   if (!open) {
@@ -170,12 +176,17 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
             </div>
           </article>
         ))}
+        <div ref={messagesEndRef} />
       </section>
 
-      {chat.streamError ? (
-        <p className="mx-3 mb-2 mt-0 rounded-lg border border-[color-mix(in_srgb,var(--danger)_30%,transparent)] bg-[var(--danger-muted)] px-2.5 py-2 text-[13px] text-[var(--danger)]">
-          {chat.streamError}
-        </p>
+      {chat.streamError !== null ? (
+        <div className="mx-3 mb-2 mt-0 flex gap-2 rounded-lg border border-[color-mix(in_srgb,var(--danger)_30%,transparent)] bg-[var(--danger-muted)] px-2.5 py-2 text-[13px] text-[var(--danger)]" role="alert">
+          <AlertCircle className="mt-0.5 size-4 flex-none" />
+          <div className="grid gap-0.5">
+            <p className="m-0 font-medium">{t("aiChat.errorTitle")}</p>
+            <p className="m-0 leading-5">{chat.streamError || t("aiChat.errorFallback")}</p>
+          </div>
+        </div>
       ) : null}
 
       <form className="border-t border-border p-3" onSubmit={submit}>

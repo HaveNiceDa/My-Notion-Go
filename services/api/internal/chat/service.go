@@ -20,6 +20,12 @@ const (
 )
 
 var uuidPattern = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+var generatedTitlePlaceholders = map[string]struct{}{
+	"":                       {},
+	defaultConversationTitle: {},
+	"New AI chat":            {},
+	"新 AI 会话":                {},
+}
 
 // Service 承载 AI Chat 业务规则：会话归属、消息校验和 LLM/mock 流式响应生成。
 type Service struct {
@@ -152,6 +158,14 @@ func (s *Service) PrepareChat(ctx context.Context, input SendMessageInput) (Prep
 	if err != nil {
 		return PreparedChat{}, err
 	}
+	if shouldGenerateTitle(conversation.Title, messages) {
+		// 手动新建的空会话会先使用占位标题；首条用户消息落库后再生成标题，保证刷新后会话列表稳定。
+		updated, err := s.repo.UpdateConversationTitle(ctx, userID, conversationID, titleFromMessage(messageContent))
+		if err != nil {
+			return PreparedChat{}, err
+		}
+		conversation = NewConversationDTO(updated)
+	}
 
 	return PreparedChat{
 		Conversation: conversation,
@@ -235,6 +249,14 @@ func normalizeConversationTitle(title string) string {
 
 func titleFromMessage(message string) string {
 	return normalizeConversationTitle(message)
+}
+
+func shouldGenerateTitle(currentTitle string, messages []Message) bool {
+	if len(messages) != 1 || messages[0].Role != RoleUser {
+		return false
+	}
+	_, ok := generatedTitlePlaceholders[strings.TrimSpace(currentTitle)]
+	return ok
 }
 
 func mockAssistantResponse(message string) string {

@@ -126,6 +126,8 @@ export const resources = {
         placeholder: "向 AI 提问...",
         send: "发送",
         stop: "停止",
+        errorTitle: "AI 回复失败",
+        errorFallback: "请求失败，请稍后重试。",
         roles: {
           user: "你",
           assistant: "AI",
@@ -262,6 +264,8 @@ export const resources = {
         placeholder: "Ask AI anything...",
         send: "Send",
         stop: "Stop",
+        errorTitle: "AI response failed",
+        errorFallback: "Request failed. Please try again later.",
         roles: {
           user: "You",
           assistant: "AI",

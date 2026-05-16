@@ -7,7 +7,7 @@ import { aiConversationsQueryKey, aiMessagesQueryKey } from "./queryKeys";
 import type { AIChatStreamEvent, ChatMessage } from "./types";
 
 type UseAIChatOptions = {
-  accessToken: string;
+accessToken: string;
   model: string;
 };
 
@@ -108,7 +108,8 @@ export function useAIChat({ accessToken, model }: UseAIChatOptions) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
-      setStreamError(error instanceof Error ? error.message : "AI chat request failed.");
+      setMessages((messages) => removeStreamingAssistantMessage(messages));
+      setStreamError(error instanceof Error ? error.message : "");
     } finally {
       abortControllerRef.current = null;
       setSending(false);
@@ -168,7 +169,8 @@ function handleStreamEvent(event: AIChatStreamEvent, handlers: StreamEventHandle
       handlers.setStreamingMessage("");
       break;
     case "error":
-      handlers.setStreamError(event.data.message ?? "AI chat stream failed.");
+      handlers.setMessages((messages) => removeStreamingAssistantMessage(messages));
+      handlers.setStreamError(event.data.message ?? "");
       break;
     case "done":
       void handlers.queryClient.invalidateQueries({ queryKey: aiMessagesQueryKey(event.data.conversationId) });
@@ -219,4 +221,8 @@ function replaceStreamingAssistantMessage(messages: ChatMessage[], message: AIMe
   // 用落库后的 assistant 消息替换临时 streaming 消息，保证刷新后列表和服务端状态一致。
   const withoutStreaming = messages.filter((item) => !item.streaming && item.id !== message.id);
   return [...withoutStreaming, message];
+}
+
+function removeStreamingAssistantMessage(messages: ChatMessage[]): ChatMessage[] {
+  return messages.filter((message) => !message.streaming);
 }

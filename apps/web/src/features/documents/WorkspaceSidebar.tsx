@@ -1,6 +1,7 @@
 import { LogOut, Moon, PanelLeftClose, Plus, Search, Settings, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { User, DocumentTreeNode } from "@my-notion-go/api-client";
+import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "../i18n/LanguageToggle";
 import { DocumentTree } from "./DocumentTree";
 import { TreeSkeleton } from "./TreeSkeleton";
@@ -55,28 +56,28 @@ export function WorkspaceSidebar({
             <span>{user?.email}</span>
           </div>
         </div>
-        <button className="icon-button subtle desktop-only" onClick={onCollapse} title={t("workspace.collapseSidebar")} type="button">
+        <Button className="desktop-only size-7" onClick={onCollapse} size="icon" title={t("workspace.collapseSidebar")} type="button" variant="ghost">
           <PanelLeftClose size={18} />
-        </button>
+        </Button>
       </div>
 
       <nav className="sidebar-actions">
-        <button className="sidebar-row muted-row" type="button">
+        <Button className="sidebar-row muted-row h-auto justify-start" type="button" variant="ghost">
           <Search size={18} />
           <span>{t("workspace.search")}</span>
-        </button>
-        <button className="sidebar-row muted-row" type="button">
+        </Button>
+        <Button className="sidebar-row muted-row h-auto justify-start" type="button" variant="ghost">
           <Settings size={18} />
           <span>{t("workspace.settings")}</span>
-        </button>
+        </Button>
       </nav>
 
       <section className="document-section">
         <div className="section-heading">
           <span>{t("workspace.private")}</span>
-          <button aria-label={t("workspace.newPage")} className="icon-button subtle" disabled={createLoading} onClick={onCreateRoot} type="button">
+          <Button aria-label={t("workspace.newPage")} className="size-7" disabled={createLoading} onClick={onCreateRoot} size="icon" type="button" variant="ghost">
             <Plus size={16} />
-          </button>
+          </Button>
         </div>
 
         {treeLoading ? <TreeSkeleton /> : null}
@@ -95,14 +96,14 @@ export function WorkspaceSidebar({
 
       <div className="sidebar-footer">
         <LanguageToggle />
-        <button className="sidebar-row muted-row" onClick={onToggleTheme} type="button">
+        <Button className="sidebar-row muted-row h-auto justify-start" onClick={onToggleTheme} type="button" variant="ghost">
           {themeMode === "dark" ? <Moon size={18} /> : <Sun size={18} />}
           <span>{themeMode === "dark" ? t("common.darkMode") : t("common.lightMode")}</span>
-        </button>
-        <button className="sidebar-row muted-row" disabled={logoutLoading} onClick={onLogout} type="button">
+        </Button>
+        <Button className="sidebar-row muted-row h-auto justify-start" disabled={logoutLoading} onClick={onLogout} type="button" variant="ghost">
           <LogOut size={18} />
           <span>{logoutLoading ? t("workspace.loggingOut") : t("workspace.logout")}</span>
-        </button>
+        </Button>
       </div>
     </aside>
   );

@@ -1,5 +1,6 @@
 import { Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
 import type { SupportedLanguage } from "../../i18n";
 
 type LanguageToggleProps = {
@@ -13,14 +14,16 @@ export function LanguageToggle({ compact = false }: LanguageToggleProps) {
   const nextLanguage: SupportedLanguage = currentLanguage === "zh" ? "en" : "zh";
 
   return (
-    <button
-      className={compact ? "icon-button" : "sidebar-row muted-row"}
+    <Button
+      className={compact ? undefined : "sidebar-row muted-row h-auto justify-start"}
       onClick={() => void i18n.changeLanguage(nextLanguage)}
+      size={compact ? "icon" : undefined}
       title={t("common.language")}
       type="button"
+      variant="ghost"
     >
       <Languages size={18} />
       {compact ? null : <span>{currentLanguage === "zh" ? t("common.chinese") : t("common.english")}</span>}
-    </button>
+    </Button>
   );
 }

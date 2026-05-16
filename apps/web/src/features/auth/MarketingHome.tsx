@@ -4,6 +4,7 @@ import { ArrowRight, Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "@my-notion-go/api-client";
+import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "../i18n/LanguageToggle";
 import { useThemeStore } from "../theme/themeStore";
 import { AuthDialog } from "./AuthDialog";
@@ -38,16 +39,16 @@ export function MarketingHome({ initialAuthMode }: MarketingHomeProps) {
           <span>{t("common.brand")}</span>
         </Link>
         <div className="marketing-nav-actions">
-          <button className="ghost-button" onClick={() => openAuth("login")} type="button">
+          <Button onClick={() => openAuth("login")} size="sm" type="button" variant="ghost">
             {t("marketing.login")}
-          </button>
-          <button className="primary-button compact" onClick={() => openAuth("register")} type="button">
+          </Button>
+          <Button onClick={() => openAuth("register")} size="sm" type="button">
             {t("marketing.cta")}
-          </button>
+          </Button>
           <LanguageToggle compact />
-          <button className="icon-button" onClick={toggleTheme} title={t("common.toggleTheme")} type="button">
+          <Button onClick={toggleTheme} size="icon" title={t("common.toggleTheme")} type="button" variant="ghost">
             {themeMode === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+          </Button>
         </div>
       </nav>
 
@@ -55,10 +56,10 @@ export function MarketingHome({ initialAuthMode }: MarketingHomeProps) {
         <div className="hero-copy">
           <h1>{t("marketing.heading")}</h1>
           <p>{t("marketing.subheading")}</p>
-          <button className="primary-button hero-cta" onClick={() => openAuth("register")} type="button">
+          <Button className="hero-cta" onClick={() => openAuth("register")} type="button">
             {t("marketing.cta")}
             <ArrowRight size={18} />
-          </button>
+          </Button>
           <span className="hero-api-note">{t("marketing.apiLabel", { baseUrl: apiClient.baseUrl })}</span>
         </div>
         <div className="hero-art" aria-hidden="true">

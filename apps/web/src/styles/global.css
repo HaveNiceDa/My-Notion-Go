@@ -203,117 +203,14 @@ img {
   width: min(34vw, 360px);
 }
 
-.primary-button,
-.ghost-button,
-.icon-button,
-.link-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 140ms ease, color 140ms ease, opacity 140ms ease;
-}
-
-.primary-button {
-  min-height: 38px;
-  padding: 0 16px;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  font-weight: 600;
-}
-
-.primary-button:hover {
-  opacity: 0.9;
-}
-
-.primary-button.compact,
-.ghost-button {
-  min-height: 32px;
-  padding: 0 12px;
-  font-size: 14px;
-}
-
-.primary-button.full-width {
-  width: 100%;
-}
-
-.ghost-button {
-  background: transparent;
-  color: var(--foreground);
-}
-
-.ghost-button:hover,
-.icon-button:hover,
 .sidebar-row:hover,
 .document-tree-row:hover {
   background: var(--secondary-hover);
 }
 
-.ghost-button.danger {
-  color: var(--danger);
-}
-
-.icon-button {
-  width: 32px;
-  height: 32px;
-  background: transparent;
-  color: var(--muted-foreground);
-}
-
-.icon-button.subtle {
-  width: 26px;
-  height: 26px;
-}
-
-.icon-button:disabled,
-.primary-button:disabled,
-.ghost-button:disabled,
 .sidebar-row:disabled {
   cursor: not-allowed;
   opacity: 0.55;
-}
-
-.link-button {
-  padding: 0;
-  background: transparent;
-  color: var(--foreground);
-  font-weight: 600;
-}
-
-.auth-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.36);
-}
-
-.auth-modal {
-  position: relative;
-  width: min(420px, 100%);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--popover);
-  box-shadow: var(--shadow);
-  padding: 28px;
-}
-
-.close-button {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-}
-
-.auth-modal-header {
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-  margin-bottom: 22px;
-  text-align: center;
 }
 
 .auth-modal-logo {
@@ -321,13 +218,6 @@ img {
   height: 36px;
 }
 
-.auth-modal-header h2 {
-  margin: 6px 0 0;
-  font-size: 22px;
-  letter-spacing: -0.02em;
-}
-
-.auth-modal-header p,
 .auth-switch-text,
 .form-error,
 .field-error {
@@ -336,30 +226,6 @@ img {
   font-size: 14px;
 }
 
-.auth-form {
-  display: grid;
-  gap: 14px;
-}
-
-.auth-form label {
-  display: grid;
-  gap: 7px;
-  color: var(--foreground);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.auth-form input {
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  outline: none;
-  background: var(--background);
-  color: var(--foreground);
-  padding: 10px 12px;
-}
-
-.auth-form input:focus,
 .document-title-input:focus {
   border-color: var(--foreground);
   box-shadow: 0 0 0 3px var(--ring);
@@ -629,88 +495,6 @@ img {
   background: var(--border);
 }
 
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background: rgba(15, 15, 15, 0.42);
-}
-
-.dialog-content {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  z-index: 1001;
-  width: min(420px, calc(100vw - 32px));
-  padding: 22px;
-  transform: translate(-50%, -50%);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--background);
-  color: var(--foreground);
-  box-shadow: var(--shadow);
-}
-
-.dialog-close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--muted-foreground);
-  cursor: pointer;
-}
-
-.dialog-close:hover {
-  background: var(--secondary-hover);
-  color: var(--foreground);
-}
-
-.dialog-header {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.dialog-header h2 {
-  margin: 0;
-  font-size: 18px;
-  line-height: 1.2;
-}
-
-.dialog-header p {
-  margin: 0;
-  color: var(--muted-foreground);
-  font-size: 13px;
-}
-
-.dialog-input {
-  width: 100%;
-  min-height: 38px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--background);
-  color: var(--foreground);
-  font-size: 14px;
-}
-
-.dialog-input:focus {
-  border-color: var(--primary);
-  outline: none;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 18px;
-}
-
 .empty-sidebar-text {
   margin: 6px 12px;
   color: var(--muted-foreground);
@@ -972,7 +756,4 @@ img {
     margin-left: 0;
   }
 
-  .auth-modal {
-    padding: 24px;
-  }
 }

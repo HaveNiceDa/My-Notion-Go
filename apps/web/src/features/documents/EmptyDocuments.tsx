@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
 
 type EmptyDocumentsProps = {
   creating: boolean;
@@ -19,10 +20,10 @@ export function EmptyDocuments({ creating, onCreate, userName }: EmptyDocumentsP
       </div>
       <h2>{userName ? t("documents.emptyTitle", { name: userName }) : t("documents.emptyTitleFallback")}</h2>
       <p>{t("documents.emptyDescription")}</p>
-      <button className="primary-button compact" disabled={creating} onClick={onCreate} type="button">
+      <Button disabled={creating} onClick={onCreate} size="sm" type="button">
         <Plus size={16} />
         {creating ? t("documents.creating") : t("documents.createNote")}
-      </button>
+      </Button>
     </div>
   );
 }

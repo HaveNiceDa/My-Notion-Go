@@ -1,11 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemoizedFn, useRequest } from "ahooks";
-import { Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "@my-notion-go/api-client";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { createLoginSchema, createRegisterSchema } from "./authSchemas";
 import { toErrorMessage } from "./authErrors";
 import { useAuthStore } from "./authStore";
@@ -72,35 +75,32 @@ export function AuthDialog({ mode, onClose, onSwitchMode }: AuthDialogProps) {
   });
 
   return (
-    <div className="auth-modal-backdrop" role="presentation">
-      <section aria-modal="true" className="auth-modal" role="dialog">
-        <button aria-label={t("auth.close")} className="icon-button close-button" onClick={onClose} type="button">
-          <X size={18} />
-        </button>
-        <div className="auth-modal-header">
+    <Dialog open onOpenChange={(open) => (open ? undefined : onClose())}>
+      <DialogContent className="p-7">
+        <DialogHeader className="mb-6 justify-items-center text-center">
           <img alt={t("common.brand")} className="auth-modal-logo light-logo" src="/logo.svg" />
           <img alt={t("common.brand")} className="auth-modal-logo dark-logo" src="/logo-dark.svg" />
-          <h2>{isLogin ? t("auth.loginTitle") : t("auth.registerTitle")}</h2>
-          <p>{isLogin ? t("auth.loginSubtitle") : t("auth.registerSubtitle")}</p>
-        </div>
+          <DialogTitle className="mt-2 text-2xl">{isLogin ? t("auth.loginTitle") : t("auth.registerTitle")}</DialogTitle>
+          <DialogDescription>{isLogin ? t("auth.loginSubtitle") : t("auth.registerSubtitle")}</DialogDescription>
+        </DialogHeader>
 
-        <form className="auth-form modal-form" onSubmit={handleSubmit(submitForm)}>
+        <form className="grid gap-4" onSubmit={handleSubmit(submitForm)}>
           {!isLogin ? (
-            <label>
-              {t("auth.name")}
-              <input autoComplete="name" placeholder={t("auth.namePlaceholder")} type="text" {...register("name")} />
+            <label className="grid gap-2 text-sm font-medium text-foreground">
+              <span>{t("auth.name")}</span>
+              <Input autoComplete="name" placeholder={t("auth.namePlaceholder")} type="text" {...register("name")} />
             </label>
           ) : null}
 
-          <label>
-            {t("auth.email")}
-            <input autoComplete="email" placeholder={t("auth.emailPlaceholder")} type="email" {...register("email")} />
+          <label className="grid gap-2 text-sm font-medium text-foreground">
+            <span>{t("auth.email")}</span>
+            <Input autoComplete="email" placeholder={t("auth.emailPlaceholder")} type="email" {...register("email")} />
             {errors.email?.message ? <span className="field-error">{errors.email.message}</span> : null}
           </label>
 
-          <label>
-            {t("auth.password")}
-            <input
+          <label className="grid gap-2 text-sm font-medium text-foreground">
+            <span>{t("auth.password")}</span>
+            <Input
               autoComplete={isLogin ? "current-password" : "new-password"}
               placeholder={isLogin ? t("auth.loginPasswordPlaceholder") : t("auth.registerPasswordPlaceholder")}
               type="password"
@@ -111,19 +111,19 @@ export function AuthDialog({ mode, onClose, onSwitchMode }: AuthDialogProps) {
 
           {errors.root?.message ? <p className="form-error">{errors.root.message}</p> : null}
 
-          <button className="primary-button full-width" disabled={isSubmitting || authRequest.loading} type="submit">
+          <Button className="w-full" disabled={isSubmitting || authRequest.loading} type="submit">
             {isSubmitting || authRequest.loading ? <Loader2 className="spin" size={16} /> : null}
             {isSubmitting || authRequest.loading ? t("auth.processing") : isLogin ? t("auth.loginSubmit") : t("auth.registerSubmit")}
-          </button>
+          </Button>
         </form>
 
         <p className="auth-switch-text">
           {isLogin ? t("auth.noAccount") : t("auth.hasAccount")}
-          <button className="link-button" onClick={() => switchMode(isLogin ? "register" : "login")} type="button">
+          <Button className="h-auto p-0 font-semibold" onClick={() => switchMode(isLogin ? "register" : "login")} type="button" variant="link">
             {isLogin ? t("auth.signUp") : t("auth.signIn")}
-          </button>
+          </Button>
         </p>
-      </section>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -8,7 +8,3 @@ export function documentQueryKey(documentId?: string) {
 export function documentContentQueryKey(documentId?: string) {
   return ["documents", documentId, "content"] as const;
 }
-
-export function ragDocumentStatusQueryKey(documentId?: string) {
-  return ["rag", "documents", documentId, "status"] as const;
-}

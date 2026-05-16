@@ -266,8 +266,9 @@ export const documentApi = {
 		});
 	},
 
-	updateContent(documentId: string, input: UpdateDocumentContentRequest, accessToken: string) {
+	updateContent(documentId: string, input: UpdateDocumentContentRequest, accessToken: string, options: RequestInit = {}) {
 		return request<DocumentContent>(`/api/v1/documents/${documentId}/content`, {
+			...options,
 			method: "PUT",
 			accessToken,
 			body: JSON.stringify(input),
@@ -307,15 +308,17 @@ export const ragApi = {
 		});
 	},
 
-	enable(documentId: string, accessToken: string) {
+	enable(documentId: string, accessToken: string, options: RequestInit = {}) {
 		return request<RAGDocumentStatus>(`/api/v1/rag/documents/${documentId}/index`, {
+			...options,
 			method: "POST",
 			accessToken,
 		});
 	},
 
-	disable(documentId: string, accessToken: string) {
+	disable(documentId: string, accessToken: string, options: RequestInit = {}) {
 		return request<RAGDocumentStatus>(`/api/v1/rag/documents/${documentId}/index`, {
+			...options,
 			method: "DELETE",
 			accessToken,
 		});

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemoizedFn } from "ahooks";
+import { Bot } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { documentApi, ragApi, type RAGDocumentStatus, type UpdateDocumentRequest } from "@my-notion-go/api-client";
+import { documentApi, ragApi, type UpdateDocumentRequest } from "@my-notion-go/api-client";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { useResizableWidth } from "@/hooks/useResizableWidth";
 import { AIChatPanel } from "../ai-chat/AIChatPanel";
 import { useAuthStore } from "../auth/authStore";
@@ -13,7 +15,7 @@ import { DocumentDetail } from "./DocumentDetail";
 import { DocumentNavbar } from "./DocumentNavbar";
 import { EmptyDocuments } from "./EmptyDocuments";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
-import { documentQueryKey, documentsQueryKey, ragDocumentStatusQueryKey } from "./queryKeys";
+import { documentQueryKey, documentsQueryKey } from "./queryKeys";
 
 type DocumentWorkspaceProps = {
   onLogout: () => void;
@@ -51,16 +53,6 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
     queryFn: () => documentApi.get(documentId!, accessToken),
     enabled: Boolean(accessToken && documentId),
   });
-  const ragStatusQuery = useQuery({
-    queryKey: ragDocumentStatusQueryKey(documentId),
-    queryFn: () => ragApi.status(documentId!, accessToken),
-    enabled: Boolean(accessToken && documentId),
-    // 自动索引在后台 goroutine 中执行；处于过渡状态时短轮询即可让顶部栏及时收敛到 indexed/failed。
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      return status === "pending" || status === "indexing" ? 2000 : false;
-    },
-  });
   const createDocument = useMutation({
     mutationFn: (parentId?: string) =>
       documentApi.create(
@@ -91,9 +83,9 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
   });
   const toggleKnowledgeBase = useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
-      enabled ? ragApi.disable(id, accessToken) : ragApi.enable(id, accessToken),
+      enabled ? ragApi.disable(id, accessToken, { keepalive: true }) : ragApi.enable(id, accessToken, { keepalive: true }),
     onSuccess(status) {
-      syncRAGStatus(queryClient, status);
+      syncKnowledgeBaseFlag(queryClient, status);
       toast.success(status.isInKnowledgeBase ? t("documents.knowledgeBaseEnabledToast") : t("documents.knowledgeBaseDisabledToast"), {
         description: status.isInKnowledgeBase ? t("documents.knowledgeBaseEnabledDescription") : t("documents.knowledgeBaseDisabledDescription"),
       });
@@ -157,8 +149,6 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
           onToggleKnowledgeBase={toggleCurrentKnowledgeBase}
           onToggleTheme={toggleTheme}
           ragActionLoading={toggleKnowledgeBase.isPending}
-          ragStatus={ragStatusQuery.data}
-          ragStatusLoading={ragStatusQuery.isLoading}
           sidebarCollapsed={sidebarCollapsed}
           themeMode={themeMode}
         />
@@ -175,13 +165,26 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
         )}
       </section>
 
+      {!aiChatOpen ? (
+        <Button
+          aria-label={t("aiChat.open")}
+          className="fixed bottom-8 right-8 z-30 size-12 rounded-full border bg-background shadow-lg hover:bg-secondary"
+          onClick={() => setAIChatOpen(true)}
+          size="icon"
+          title={t("aiChat.open")}
+          type="button"
+          variant="outline"
+        >
+          <Bot size={22} />
+        </Button>
+      ) : null}
+
       <AIChatPanel accessToken={accessToken} onClose={() => setAIChatOpen(false)} open={aiChatOpen} />
     </main>
   );
 }
 
-function syncRAGStatus(queryClient: ReturnType<typeof useQueryClient>, status: RAGDocumentStatus) {
-  queryClient.setQueryData(ragDocumentStatusQueryKey(status.documentId), status);
+function syncKnowledgeBaseFlag(queryClient: ReturnType<typeof useQueryClient>, status: { documentId: string; isInKnowledgeBase: boolean }) {
   queryClient.setQueryData(documentQueryKey(status.documentId), (document) =>
     document ? { ...document, isInKnowledgeBase: status.isInKnowledgeBase } : document,
   );

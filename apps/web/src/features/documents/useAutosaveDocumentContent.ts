@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useDebounceFn, useMemoizedFn } from "ahooks";
-import { documentApi, type DocumentContent, type RAGDocumentStatus } from "@my-notion-go/api-client";
-import { documentContentQueryKey, ragDocumentStatusQueryKey } from "./queryKeys";
+import { useDebounceFn, useMemoizedFn, useUnmount } from "ahooks";
+import { documentApi, type DocumentContent } from "@my-notion-go/api-client";
+import { documentContentQueryKey } from "./queryKeys";
 
 export type AutosaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -15,13 +15,16 @@ type UseAutosaveDocumentContentInput = {
 // 组件只需要提交最新 blocks，hook 负责防抖、调用 API、更新 React Query 缓存和暴露保存状态。
 export function useAutosaveDocumentContent({ accessToken, documentId }: UseAutosaveDocumentContentInput) {
   const queryClient = useQueryClient();
+  const latestContentRef = useRef<unknown[] | null>(null);
+  const hasUnsavedContentRef = useRef(false);
   const [status, setStatus] = useState<AutosaveStatus>("idle");
   const saveMutation = useMutation({
     mutationFn: (content: unknown[]) => documentApi.updateContent(documentId, { content }, accessToken),
-    onSuccess(content) {
+    onSuccess(content, savedContent) {
+      if (latestContentRef.current === savedContent) {
+        hasUnsavedContentRef.current = false;
+      }
       queryClient.setQueryData<DocumentContent>(documentContentQueryKey(documentId), content);
-      markRAGStatusRefreshing(queryClient, documentId);
-      void queryClient.invalidateQueries({ queryKey: ragDocumentStatusQueryKey(documentId) });
       setStatus("saved");
     },
     onError() {
@@ -38,8 +41,21 @@ export function useAutosaveDocumentContent({ accessToken, documentId }: UseAutos
   );
 
   const scheduleSave = useMemoizedFn((content: unknown[]) => {
+    latestContentRef.current = content;
+    hasUnsavedContentRef.current = true;
     setStatus("saving");
     debouncedSave(content);
+  });
+
+  useUnmount(() => {
+    cancel();
+    const latestContent = latestContentRef.current;
+    if (!hasUnsavedContentRef.current || latestContent === null) {
+      return;
+    }
+
+    // 组件卸载可能发生在切换文档或关闭页面前；keepalive 尽量让最后一次正文保存离开页面后仍能送达后端。
+    void documentApi.updateContent(documentId, { content: latestContent }, accessToken, { keepalive: true }).catch(() => undefined);
   });
 
   return {
@@ -47,19 +63,4 @@ export function useAutosaveDocumentContent({ accessToken, documentId }: UseAutos
     scheduleSave,
     status,
   };
-}
-
-function markRAGStatusRefreshing(queryClient: ReturnType<typeof useQueryClient>, documentId: string) {
-  queryClient.setQueryData<RAGDocumentStatus>(ragDocumentStatusQueryKey(documentId), (status) => {
-    if (!status?.isInKnowledgeBase || status.status === "disabled") {
-      return status;
-    }
-
-    // 正文保存成功后后端会后台重建索引；前端先进入 indexing，随后由 status query 轮询校准真实结果。
-    return {
-      ...status,
-      status: "indexing",
-      updatedAt: new Date().toISOString(),
-    };
-  });
 }

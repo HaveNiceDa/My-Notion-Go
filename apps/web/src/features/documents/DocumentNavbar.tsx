@@ -1,6 +1,6 @@
 import { Archive, Bot, Database, Loader2, MenuIcon, Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { Document, RAGDocumentStatus } from "@my-notion-go/api-client";
+import type { Document } from "@my-notion-go/api-client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DocumentNavbarTitle } from "./DocumentNavbarTitle";
@@ -11,8 +11,6 @@ type DocumentNavbarProps = {
   hasActiveDocument: boolean;
   loading: boolean;
   ragActionLoading: boolean;
-  ragStatus?: RAGDocumentStatus;
-  ragStatusLoading: boolean;
   sidebarCollapsed: boolean;
   themeMode: "light" | "dark";
   onArchive: () => void;
@@ -29,8 +27,6 @@ export function DocumentNavbar({
   hasActiveDocument,
   loading,
   ragActionLoading,
-  ragStatus,
-  ragStatusLoading,
   sidebarCollapsed,
   themeMode,
   onArchive,
@@ -40,10 +36,7 @@ export function DocumentNavbar({
   onToggleTheme,
 }: DocumentNavbarProps) {
   const { t } = useTranslation();
-  const knowledgeBaseEnabled = document?.isInKnowledgeBase ?? ragStatus?.isInKnowledgeBase ?? false;
-  const indexing = ragStatus?.status === "pending" || ragStatus?.status === "indexing";
-  const knowledgeBaseBusy = ragActionLoading || ragStatusLoading || indexing;
-  const knowledgeBaseStatus = getKnowledgeBaseStatusLabel(ragStatus, t);
+  const knowledgeBaseEnabled = document?.isInKnowledgeBase ?? true;
 
   return (
     <nav className="flex min-h-[45px] items-center justify-between gap-4 border-b border-transparent bg-background px-3">
@@ -57,8 +50,13 @@ export function DocumentNavbar({
         {hasActiveDocument ? (
           <Button
             aria-checked={knowledgeBaseEnabled}
-            className={cn("h-8 rounded-full px-2.5 text-xs", knowledgeBaseEnabled && "border-primary/30 bg-secondary text-foreground")}
-            disabled={knowledgeBaseBusy}
+            className={cn(
+              "h-8 rounded-full px-2.5 text-xs transition-colors",
+              knowledgeBaseEnabled
+                ? "border-primary/30 bg-secondary text-foreground hover:bg-secondary/80"
+                : "border-border bg-background text-muted-foreground hover:text-foreground",
+            )}
+            disabled={ragActionLoading}
             onClick={onToggleKnowledgeBase}
             role="switch"
             size="sm"
@@ -66,13 +64,8 @@ export function DocumentNavbar({
             type="button"
             variant="outline"
           >
-            {knowledgeBaseBusy ? <Loader2 className="animate-spin" size={14} /> : <Database size={14} />}
-            <span className="font-medium">{knowledgeBaseEnabled ? t("documents.knowledgeBaseOn") : t("documents.knowledgeBaseOff")}</span>
-            {knowledgeBaseStatus ? (
-              <span className={cn("hidden max-w-28 truncate text-muted-foreground sm:inline", ragStatus?.status === "failed" && "text-[var(--danger)]")} title={ragStatus?.lastError || knowledgeBaseStatus}>
-                {knowledgeBaseStatus}
-              </span>
-            ) : null}
+            {ragActionLoading ? <Loader2 className="animate-spin" size={14} /> : <Database size={14} />}
+            <span className="font-medium">{t("documents.knowledgeBase")}</span>
           </Button>
         ) : null}
         <Button onClick={onToggleAIChat} size="sm" type="button" variant="ghost">
@@ -91,15 +84,4 @@ export function DocumentNavbar({
       </div>
     </nav>
   );
-}
-
-function getKnowledgeBaseStatusLabel(ragStatus: RAGDocumentStatus | undefined, t: ReturnType<typeof useTranslation>["t"]) {
-  if (!ragStatus) {
-    return "";
-  }
-
-  if (ragStatus.status === "indexed") {
-    return t("documents.knowledgeBaseStatus.indexed", { count: ragStatus.chunkCount });
-  }
-  return t(`documents.knowledgeBaseStatus.${ragStatus.status}`);
 }

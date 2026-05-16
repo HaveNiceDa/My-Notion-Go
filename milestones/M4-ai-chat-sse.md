@@ -113,11 +113,42 @@
 - 已新增后端 AI 包单测和 Playwright E2E 测试。
 - Playwright E2E 已覆盖首页注册/登录、工作区布局拉伸、AI 面板模型切换和 SSE 请求模型透传。
 
+## M4.2 AI Chat 体验收尾
+
+- 后端新增会话标题生成收口：
+  - 手动新建的占位会话收到首条用户消息后，会自动用消息摘要更新标题。
+  - 标题更新通过 SSE `conversation` 事件同步到前端会话列表和面板顶部。
+  - 标题更新只允许作用于当前用户自己的会话，避免跨用户改名。
+- 前端补齐消息体验：
+  - 消息列表新增底部滚动锚点。
+  - 流式 delta、发送状态变化和错误提示出现时自动滚动到底部。
+  - 流式错误时清理临时 assistant 消息，避免错误后残留闪烁光标。
+- 错误提示体验：
+  - AI 面板新增 `role="alert"` 错误提示条。
+  - 错误提示使用 `AlertCircle` 图标和 Tailwind 样式。
+  - `resources.ts` 补齐 `zh/en` 的 `aiChat.errorTitle` 和 `aiChat.errorFallback`。
+- 已新增阶段日志：
+  - `progress/20260516-214800.md`
+
+## M4.2 验证
+
+- `gofmt -w services/api/internal/chat/repository.go services/api/internal/chat/service.go` 通过。
+- `pnpm --filter @my-notion-go/web typecheck` 通过。
+- `go test ./services/api/...` 通过。
+- `pnpm build:api` 通过。
+- `pnpm --filter @my-notion-go/web build` 通过。
+- `pnpm smoke:api:ai-chat` 通过：
+  - authenticated as `demo@example.com`
+  - created conversation `89a3a0bb-2b4d-4682-9779-14d9979967e1`
+  - conversation list ok, size=11
+  - stream ok, delta count=18
+  - messages persisted ok, size=2
+
 ## 后续
 
-- 浏览器真实验证 AI 面板交互、SSE 流式显示和刷新后历史消息恢复。
-- 增加会话标题生成、滚动到底、错误提示体验、Thinking Steps 和模型配置。
-- 进入 M5 前，再手动配置真实 `LLM_API_KEY` 做一次浏览器端模型联调。
+- M4 AI Chat 已具备真实模型流式输出、会话历史、模型选择、基础错误提示和自动滚动体验。
+- 后续可在 M5/RAG 阶段继续补 Thinking Steps、Tool Call、文档上下文引用和更细粒度的上游错误透传。
+- 下一阶段正式进入 M5：Redis + RabbitMQ Worker + Qdrant + RAG 知识库最小闭环。
 
 ## 来源日志
 
@@ -125,3 +156,4 @@
 - `progress/20260516-110221.md`
 - `progress/20260516-111742.md`
 - `progress/20260516-123227.md`
+- `progress/20260516-214800.md`

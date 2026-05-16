@@ -166,7 +166,7 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
                   {citations.slice(0, 3).map((citation, index) => (
                     <Button
                       asChild
-                      className="h-auto justify-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-muted-foreground hover:text-foreground"
+                      className="h-auto min-w-0 justify-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-muted-foreground hover:text-foreground"
                       key={citation.chunkId}
                       title={t("aiChat.openCitationDocument")}
                       variant="ghost"
@@ -176,10 +176,15 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
                           {index + 1}
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate font-medium text-foreground">
-                            {citation.documentTitle || t("aiChat.citationFallbackTitle", { index: index + 1 })}
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <span className="truncate font-medium text-foreground">
+                              {citation.documentTitle || t("aiChat.citationUntitledDocument")}
+                            </span>
+                            <span className="flex-none rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              {t("aiChat.citationScore", { score: formatCitationScore(citation.score) })}
+                            </span>
                           </span>
-                          <span className="line-clamp-2 leading-5">{citation.preview}</span>
+                          <span className="block truncate leading-5">{citation.preview}</span>
                         </span>
                       </a>
                     </Button>
@@ -305,4 +310,11 @@ function isRAGMetadata(value: unknown): value is { citations: RAGCitation[] } {
   }
   const citations = (value as { citations?: unknown }).citations;
   return Array.isArray(citations);
+}
+
+function formatCitationScore(score: number) {
+  if (!Number.isFinite(score)) {
+    return "0%";
+  }
+  return `${Math.round(score * 100)}%`;
 }

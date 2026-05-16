@@ -31,6 +31,7 @@ var ragUUIDPattern = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4
 const (
 	defaultRAGTopK      = 5
 	maxRAGTopK          = 8
+	ragMinScore         = 0.6
 	ragContextMaxRunes  = 4000
 	ragCitationMaxRunes = 220
 )
@@ -278,7 +279,7 @@ func (s *Service) searchContext(ctx context.Context, userID string, question str
 func (s *Service) filterSearchResults(ctx context.Context, userID string, results []SearchResult) ([]SearchResult, error) {
 	chunkIDs := make([]string, 0, len(results))
 	for _, result := range results {
-		if result.ChunkID != "" {
+		if result.ChunkID != "" && result.Score >= ragMinScore {
 			chunkIDs = append(chunkIDs, result.ChunkID)
 		}
 	}
@@ -289,6 +290,9 @@ func (s *Service) filterSearchResults(ctx context.Context, userID string, result
 
 	filtered := make([]SearchResult, 0, len(results))
 	for _, result := range results {
+		if result.Score < ragMinScore {
+			continue
+		}
 		chunk, ok := chunksByID[result.ChunkID]
 		if !ok {
 			continue

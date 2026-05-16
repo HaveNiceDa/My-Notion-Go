@@ -1,6 +1,8 @@
 import type { PartialBlock } from "@blocknote/core";
+import { en, zh } from "@blocknote/core/locales";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useThemeStore } from "../theme/themeStore";
 import { useAutosaveDocumentContent, type AutosaveStatus } from "./useAutosaveDocumentContent";
@@ -42,14 +44,21 @@ type BlockNoteEditorSurfaceProps = {
   initialContent: PartialBlock[] | undefined;
 };
 
+type BlockNoteDictionary = NonNullable<Parameters<typeof useCreateBlockNote>[0]>["dictionary"];
+
 // BlockNoteEditorSurface 按 documentId 重新挂载，确保切换文档时编辑器不会复用上一篇文档的本地状态。
 function BlockNoteEditorSurface({ accessToken, documentId, initialContent }: BlockNoteEditorSurfaceProps) {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const themeMode = useThemeStore((state) => state.mode);
   const autosave = useAutosaveDocumentContent({ accessToken, documentId });
+  const blockNoteDictionary = useMemo(
+    () => createBlockNoteDictionary(i18n.language, t("editor.placeholder")),
+    [i18n.language, t],
+  );
   const editor = useCreateBlockNote({
+    dictionary: blockNoteDictionary,
     initialContent,
-  });
+  }, [blockNoteDictionary]);
 
   return (
     <section className="document-editor">
@@ -63,6 +72,19 @@ function BlockNoteEditorSurface({ accessToken, documentId, initialContent }: Blo
       />
     </section>
   );
+}
+
+function createBlockNoteDictionary(language: string, placeholder: string): BlockNoteDictionary {
+  const baseDictionary = (language === "en" ? en : zh) as NonNullable<BlockNoteDictionary>;
+
+  return {
+    ...baseDictionary,
+    placeholders: {
+      ...baseDictionary.placeholders,
+      default: placeholder,
+      emptyDocument: placeholder,
+    },
+  };
 }
 
 function statusLabel(status: AutosaveStatus, t: ReturnType<typeof useTranslation>["t"]) {

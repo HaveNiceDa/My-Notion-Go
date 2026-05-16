@@ -146,10 +146,10 @@ await request(`/api/v1/documents/${document.id}/content`, {
 });
 console.log("write content ok");
 
-// 首次查询状态会懒创建 rag_documents.pending，避免创建文档流程强耦合索引表。
+// 正文保存会后台触发自动索引；如果后台任务尚未完成，状态仍可能是 pending/indexing。
 const initialStatus = await request(`/api/v1/rag/documents/${document.id}/status`, { token });
 assert(initialStatus.isInKnowledgeBase === true, "initial RAG status should be enabled");
-assert(initialStatus.status === "pending", `initial RAG status should be pending, got ${initialStatus.status}`);
+assert(["pending", "indexing", "indexed"].includes(initialStatus.status), `initial RAG status should be pending/indexing/indexed, got ${initialStatus.status}`);
 console.log("initial rag status ok");
 
 const indexed = await request(`/api/v1/rag/documents/${document.id}/index`, {

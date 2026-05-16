@@ -122,7 +122,7 @@ func (h *Handler) StreamRAGChat(c *gin.Context) {
 
 	writeSSEEvent(c, "conversation", prepared.Chat.Conversation)
 	writeSSEEvent(c, "user_message", prepared.Chat.UserMessage)
-	writeSSEEvent(c, "citations", gin.H{"items": prepared.Citations})
+	writeSSEEvent(c, "citations", gin.H{"items": prepared.Metadata.Citations, "fallback": prepared.Metadata.Fallback, "reason": prepared.Metadata.Reason})
 
 	assistantContent, metadata, err := h.service.StreamRAGAssistant(c.Request.Context(), prepared, func(delta string) error {
 		writeSSEEvent(c, "message", gin.H{"delta": delta})

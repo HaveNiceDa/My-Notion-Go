@@ -20,8 +20,11 @@ var uuidPattern = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[
 
 // Service 承载 Document 业务规则：归属校验、标题规范化、树结构组装和文档状态变更。
 type Service struct {
-	repo *Repository
+	repo               *Repository
+	contentUpdatedHook ContentUpdatedHook
 }
+
+type ContentUpdatedHook func(ctx context.Context, userID string, documentID string) error
 
 // CreateDocumentInput 是创建文档用例的内部入参。
 // Handler 负责从 HTTP JSON 解析请求，Service 使用这个结构表达业务所需字段，避免直接依赖 Gin。
@@ -49,6 +52,10 @@ type UpdateDocumentInput struct {
 // 这样 Service 可以专注业务规则，具体数据库实现仍然被 Repository 隔离。
 func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
+}
+
+func (s *Service) SetContentUpdatedHook(hook ContentUpdatedHook) {
+	s.contentUpdatedHook = hook
 }
 
 // CreateDocument 创建一个属于当前用户的文档。

@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemoizedFn } from "ahooks";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { documentApi, type UpdateDocumentRequest } from "@my-notion-go/api-client";
+import { documentApi, ragApi, type RAGDocumentStatus, type UpdateDocumentRequest } from "@my-notion-go/api-client";
+import { toast } from "sonner";
 import { useResizableWidth } from "@/hooks/useResizableWidth";
 import { AIChatPanel } from "../ai-chat/AIChatPanel";
 import { useAuthStore } from "../auth/authStore";
@@ -12,7 +13,7 @@ import { DocumentDetail } from "./DocumentDetail";
 import { DocumentNavbar } from "./DocumentNavbar";
 import { EmptyDocuments } from "./EmptyDocuments";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
-import { documentQueryKey, documentsQueryKey } from "./queryKeys";
+import { documentQueryKey, documentsQueryKey, ragDocumentStatusQueryKey } from "./queryKeys";
 
 type DocumentWorkspaceProps = {
   onLogout: () => void;
@@ -50,6 +51,11 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
     queryFn: () => documentApi.get(documentId!, accessToken),
     enabled: Boolean(accessToken && documentId),
   });
+  const ragStatusQuery = useQuery({
+    queryKey: ragDocumentStatusQueryKey(documentId),
+    queryFn: () => ragApi.status(documentId!, accessToken),
+    enabled: Boolean(accessToken && documentId),
+  });
   const createDocument = useMutation({
     mutationFn: (parentId?: string) =>
       documentApi.create(
@@ -78,6 +84,21 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
       navigate("/app");
     },
   });
+  const toggleKnowledgeBase = useMutation({
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
+      enabled ? ragApi.disable(id, accessToken) : ragApi.enable(id, accessToken),
+    onSuccess(status) {
+      syncRAGStatus(queryClient, status);
+      toast.success(status.isInKnowledgeBase ? t("documents.knowledgeBaseEnabledToast") : t("documents.knowledgeBaseDisabledToast"), {
+        description: status.isInKnowledgeBase ? t("documents.knowledgeBaseEnabledDescription") : t("documents.knowledgeBaseDisabledDescription"),
+      });
+    },
+    onError() {
+      toast.error(t("documents.knowledgeBaseFailedToast"), {
+        description: t("documents.knowledgeBaseFailedDescription"),
+      });
+    },
+  });
 
   // 新建和归档是工作区级动作，使用稳定回调传给多个子组件，避免子组件重复理解 mutation 细节。
   const createRootDocument = useMemoizedFn(() => {
@@ -87,6 +108,13 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
     if (documentId) {
       archiveDocument.mutate(documentId);
     }
+  });
+  const toggleCurrentKnowledgeBase = useMemoizedFn(() => {
+    if (!documentId || !currentDocumentQuery.data) {
+      return;
+    }
+    const enabled = currentDocumentQuery.data.isInKnowledgeBase;
+    toggleKnowledgeBase.mutate({ id: documentId, enabled });
   });
 
   return (
@@ -121,7 +149,11 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
           onArchive={archiveCurrentDocument}
           onExpandSidebar={() => setSidebarCollapsed(false)}
           onToggleAIChat={() => setAIChatOpen((open) => !open)}
+          onToggleKnowledgeBase={toggleCurrentKnowledgeBase}
           onToggleTheme={toggleTheme}
+          ragActionLoading={toggleKnowledgeBase.isPending}
+          ragStatus={ragStatusQuery.data}
+          ragStatusLoading={ragStatusQuery.isLoading}
           sidebarCollapsed={sidebarCollapsed}
           themeMode={themeMode}
         />
@@ -141,4 +173,12 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
       <AIChatPanel accessToken={accessToken} onClose={() => setAIChatOpen(false)} open={aiChatOpen} />
     </main>
   );
+}
+
+function syncRAGStatus(queryClient: ReturnType<typeof useQueryClient>, status: RAGDocumentStatus) {
+  queryClient.setQueryData(ragDocumentStatusQueryKey(status.documentId), status);
+  queryClient.setQueryData(documentQueryKey(status.documentId), (document) =>
+    document ? { ...document, isInKnowledgeBase: status.isInKnowledgeBase } : document,
+  );
+  void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
 }

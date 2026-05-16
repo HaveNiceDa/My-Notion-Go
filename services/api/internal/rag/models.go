@@ -83,6 +83,13 @@ type CitationDTO struct {
 	Preview    string  `json:"preview"`
 }
 
+type ChatMetadataDTO struct {
+	Enabled   bool          `json:"enabled"`
+	Fallback  bool          `json:"fallback"`
+	Reason    string        `json:"reason,omitempty"`
+	Citations []CitationDTO `json:"citations"`
+}
+
 func NewDocumentStatusDTO(documentID string, inKnowledgeBase bool, ragDocument *Document) DocumentStatusDTO {
 	if ragDocument == nil {
 		status := StatusDisabled

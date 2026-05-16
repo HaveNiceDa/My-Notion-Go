@@ -149,8 +149,8 @@ type StreamChatInput struct {
 }
 
 type PreparedRAGChat struct {
-	Chat      chat.PreparedChat
-	Citations []CitationDTO
+	Chat     chat.PreparedChat
+	Metadata ChatMetadataDTO
 }
 
 // PrepareRAGChat 先保存用户消息，再检索知识库上下文，并把上下文作为 system prompt 注入 LLM 消息。
@@ -179,21 +179,27 @@ func (s *Service) PrepareRAGChat(ctx context.Context, input StreamChatInput) (Pr
 	if err != nil {
 		return PreparedRAGChat{}, err
 	}
+	metadata := ChatMetadataDTO{
+		Enabled:   len(results) > 0,
+		Fallback:  len(results) == 0,
+		Citations: []CitationDTO{},
+	}
 	if len(results) == 0 {
-		return PreparedRAGChat{}, ErrNoRAGContext
+		metadata.Reason = "no_indexed_context"
+	} else {
+		var contextPrompt string
+		contextPrompt, metadata.Citations = buildRAGContext(results)
+		prepared.Messages = append([]ai.Message{
+			{
+				Role:    chat.RoleSystem,
+				Content: contextPrompt,
+			},
+		}, prepared.Messages...)
 	}
 
-	contextPrompt, citations := buildRAGContext(results)
-	prepared.Messages = append([]ai.Message{
-		{
-			Role:    chat.RoleSystem,
-			Content: contextPrompt,
-		},
-	}, prepared.Messages...)
-
 	return PreparedRAGChat{
-		Chat:      prepared,
-		Citations: citations,
+		Chat:     prepared,
+		Metadata: metadata,
 	}, nil
 }
 
@@ -207,10 +213,7 @@ func (s *Service) StreamRAGAssistant(ctx context.Context, prepared PreparedRAGCh
 	if len(rawMetadata) > 0 {
 		_ = json.Unmarshal(rawMetadata, &metadata)
 	}
-	metadata["rag"] = map[string]any{
-		"enabled":   true,
-		"citations": prepared.Citations,
-	}
+	metadata["rag"] = prepared.Metadata
 
 	merged, err := json.Marshal(metadata)
 	if err != nil {
@@ -221,6 +224,20 @@ func (s *Service) StreamRAGAssistant(ctx context.Context, prepared PreparedRAGCh
 
 func (s *Service) SaveRAGAssistantMessage(ctx context.Context, userID string, conversationID string, content string, metadata json.RawMessage) (chat.MessageDTO, error) {
 	return s.chat.SaveAssistantMessage(ctx, userID, conversationID, content, metadata)
+}
+
+// ReindexDocumentIfEnabled 用于正文保存后的自动索引更新。
+// 它复用用户维度归属校验，只在文档知识库开关开启时重建当前文档的 chunks 和 Qdrant points。
+func (s *Service) ReindexDocumentIfEnabled(ctx context.Context, userID string, documentID string) error {
+	document, err := s.findDocument(ctx, userID, documentID)
+	if err != nil {
+		return err
+	}
+	if !document.IsInKnowledgeBase {
+		return nil
+	}
+	_, err = s.indexDocument(ctx, userID, document)
+	return err
 }
 
 // findDocument 是所有 RAG 操作的归属校验入口。
@@ -251,7 +268,39 @@ func (s *Service) searchContext(ctx context.Context, userID string, question str
 	if err != nil {
 		return nil, err
 	}
-	return s.qdrant.SearchByUser(ctx, s.collection, userID, vectors[0], topK)
+	results, err := s.qdrant.SearchByUser(ctx, s.collection, userID, vectors[0], topK)
+	if err != nil {
+		return nil, err
+	}
+	return s.filterSearchResults(ctx, userID, results)
+}
+
+func (s *Service) filterSearchResults(ctx context.Context, userID string, results []SearchResult) ([]SearchResult, error) {
+	chunkIDs := make([]string, 0, len(results))
+	for _, result := range results {
+		if result.ChunkID != "" {
+			chunkIDs = append(chunkIDs, result.ChunkID)
+		}
+	}
+	chunksByID, err := s.repo.ListEnabledChunksByIDs(ctx, userID, chunkIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	filtered := make([]SearchResult, 0, len(results))
+	for _, result := range results {
+		chunk, ok := chunksByID[result.ChunkID]
+		if !ok {
+			continue
+		}
+		result.UserID = chunk.UserID
+		result.DocumentID = chunk.DocumentID
+		result.ChunkID = chunk.ID
+		result.Position = chunk.Position
+		result.Text = chunk.Content
+		filtered = append(filtered, result)
+	}
+	return filtered, nil
 }
 
 func buildRAGContext(results []SearchResult) (string, []CitationDTO) {

@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"log"
 	"strings"
+	"time"
 )
 
 // UpdateDocumentContentInput 是保存正文的业务入参。
@@ -46,7 +48,23 @@ func (s *Service) UpdateDocumentContent(ctx context.Context, input UpdateDocumen
 		return DocumentContentDTO{}, err
 	}
 
+	s.scheduleContentIndexRefresh(input.UserID, input.DocumentID)
 	return NewDocumentContentDTO(updated), nil
+}
+
+func (s *Service) scheduleContentIndexRefresh(userID string, documentID string) {
+	if s.contentUpdatedHook == nil {
+		return
+	}
+
+	go func() {
+		// 自动保存接口不能被 embedding/Qdrant 慢请求阻塞；后台刷新失败时由 RAG 状态记录 last_error。
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+		if err := s.contentUpdatedHook(ctx, userID, documentID); err != nil {
+			log.Printf("refresh rag index after content update failed: document=%s user=%s error=%v", documentID, userID, err)
+		}
+	}()
 }
 
 // isJSONBlockArray 只做结构层校验：必须是合法 JSON，并且顶层是数组。

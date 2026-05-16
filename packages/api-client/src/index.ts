@@ -78,6 +78,7 @@ export type UpdateDocumentRequest = {
 	icon?: string;
 	coverImage?: string;
 	isStarred?: boolean;
+	isInKnowledgeBase?: boolean;
 	parentId?: string;
 };
 
@@ -120,6 +121,16 @@ export type StreamAIChatRequest = {
   conversationId?: string;
   message: string;
   model?: string;
+};
+
+export type RAGDocumentStatus = {
+	documentId: string;
+	isInKnowledgeBase: boolean;
+	status: "pending" | "indexing" | "indexed" | "failed" | "disabled";
+	chunkCount: number;
+	lastError: string;
+	indexedAt?: string | null;
+	updatedAt?: string | null;
 };
 
 // ApiError 保留 HTTP 状态码和业务错误码，方便页面做提示，也方便后续按 code 做分支处理。
@@ -288,10 +299,34 @@ export const aiChatApi = {
   },
 };
 
+export const ragApi = {
+	status(documentId: string, accessToken: string) {
+		return request<RAGDocumentStatus>(`/api/v1/rag/documents/${documentId}/status`, {
+			method: "GET",
+			accessToken,
+		});
+	},
+
+	enable(documentId: string, accessToken: string) {
+		return request<RAGDocumentStatus>(`/api/v1/rag/documents/${documentId}/index`, {
+			method: "POST",
+			accessToken,
+		});
+	},
+
+	disable(documentId: string, accessToken: string) {
+		return request<RAGDocumentStatus>(`/api/v1/rag/documents/${documentId}/index`, {
+			method: "DELETE",
+			accessToken,
+		});
+	},
+};
+
 export const apiClient = {
   baseUrl,
   request,
   auth: authApi,
 	documents: documentApi,
   aiChat: aiChatApi,
+	rag: ragApi,
 };

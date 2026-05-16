@@ -274,6 +274,10 @@ RAG Chat 请求体草案：
   - AI 面板已增加普通对话 / 知识库模式开关，并持久化用户选择。
   - RAG 模式已调用 `/api/v1/rag/chat/stream`，普通模式仍调用 `/api/v1/ai/chat/stream`。
   - 前端 SSE parser 已兼容 `citations` 事件，RAG 回复下方已最小化展示引用摘要。
+  - RAG Chat 已在无可用索引时降级为普通 AI 回答，不再返回 404；metadata 会标记 `rag.fallback=true`。
+  - Qdrant 命中结果会再通过 PostgreSQL 校验 `user_id`、文档知识库开关和索引状态，避免 stale point 或跨用户数据进入上下文。
+  - 文档顶部栏已增加知识库开关，开启/关闭后通过 toast 提示结果。
+  - 文档正文保存成功后会后台触发当前文档自动重建索引。
 - 已运行验证：
   - `node --check ./scripts/smoke-rag-api.mjs`
   - `pnpm build:api`
@@ -284,5 +288,6 @@ RAG Chat 请求体草案：
   - `pnpm smoke:api:embedding`
   - `pnpm typecheck`
   - `pnpm build:web`
+  - 定制验证：无索引 fallback、保存正文自动索引、关闭知识库后 fallback 均通过。
 - 尚未实现真实异步 job/worker 和前端 RAG 入口。
-- 下一步建议继续 M5.4：文档页增加知识库状态入口、开启/关闭/重建索引操作和更完整的引用跳转体验。
+- 下一步建议继续 M5.4：把引用展示升级为可点击跳转到文档来源，并把后台索引任务迁移到 worker。

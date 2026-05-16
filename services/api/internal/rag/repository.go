@@ -110,3 +110,32 @@ func (r *Repository) ListPointIDsByDocumentID(ctx context.Context, userID string
 		Error
 	return pointIDs, err
 }
+
+// ListEnabledChunksByIDs 用 PostgreSQL 对 Qdrant 命中结果做二次校验。
+// Qdrant 只负责向量相似度，最终是否能进入回答上下文必须再确认 user_id、知识库开关和索引状态。
+func (r *Repository) ListEnabledChunksByIDs(ctx context.Context, userID string, chunkIDs []string) (map[string]Chunk, error) {
+	if len(chunkIDs) == 0 {
+		return map[string]Chunk{}, nil
+	}
+
+	var chunks []Chunk
+	err := r.db.WithContext(ctx).
+		Table("rag_chunks AS rc").
+		Select("rc.*").
+		Joins("JOIN documents AS d ON d.id = rc.document_id AND d.user_id = rc.user_id").
+		Joins("JOIN rag_documents AS rd ON rd.id = rc.rag_document_id AND rd.user_id = rc.user_id").
+		Where("rc.user_id = ? AND rc.id IN ?", userID, chunkIDs).
+		Where("d.deleted_at IS NULL AND d.is_in_knowledge_base = TRUE").
+		Where("rd.status = ?", StatusIndexed).
+		Find(&chunks).
+		Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]Chunk, len(chunks))
+	for _, chunk := range chunks {
+		result[chunk.ID] = chunk
+	}
+	return result, nil
+}

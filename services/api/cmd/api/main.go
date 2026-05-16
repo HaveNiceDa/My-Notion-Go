@@ -142,6 +142,7 @@ func main() {
 	ragRepo := rag.NewRepository(db)
 	ragService := rag.NewService(ragRepo, documentRepo, chatService, embeddingClient, qdrantClient, cfg.QdrantCollection)
 	ragHandler := rag.NewHandler(ragService)
+	documentService.SetContentUpdatedHook(ragService.ReindexDocumentIfEnabled)
 
 	// 公开 Auth 接口：注册、登录、刷新 token、退出登录。
 	authRoutes := api.Group("/auth")

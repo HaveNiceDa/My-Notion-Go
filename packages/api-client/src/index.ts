@@ -93,6 +93,34 @@ export type UpdateDocumentContentRequest = {
 	content: unknown[];
 };
 
+export type AIConversation = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AIMessageRole = "user" | "assistant" | "system" | "tool";
+
+export type AIMessage = {
+  id: string;
+  conversationId: string;
+  role: AIMessageRole;
+  content: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateAIConversationRequest = {
+  title?: string;
+};
+
+export type StreamAIChatRequest = {
+  conversationId?: string;
+  message: string;
+};
+
 // ApiError 保留 HTTP 状态码和业务错误码，方便页面做提示，也方便后续按 code 做分支处理。
 export class ApiError extends Error {
   readonly status: number;
@@ -235,9 +263,34 @@ export const documentApi = {
 	},
 };
 
+export const aiChatApi = {
+  conversations(accessToken: string) {
+    return request<AIConversation[]>("/api/v1/ai/conversations", {
+      method: "GET",
+      accessToken,
+    });
+  },
+
+  createConversation(input: CreateAIConversationRequest, accessToken: string) {
+    return request<AIConversation>("/api/v1/ai/conversations", {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify(input),
+    });
+  },
+
+  messages(conversationId: string, accessToken: string) {
+    return request<AIMessage[]>(`/api/v1/ai/conversations/${conversationId}/messages`, {
+      method: "GET",
+      accessToken,
+    });
+  },
+};
+
 export const apiClient = {
   baseUrl,
   request,
   auth: authApi,
 	documents: documentApi,
+  aiChat: aiChatApi,
 };

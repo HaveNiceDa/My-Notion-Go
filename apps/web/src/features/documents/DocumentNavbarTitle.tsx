@@ -11,13 +11,13 @@ export function DocumentNavbarTitle({ document, loading }: DocumentNavbarTitlePr
   const { t } = useTranslation();
 
   if (loading) {
-    return <div className="navbar-title skeleton-line short" />;
+    return <div className="h-3.5 w-[46%] rounded-full bg-muted" />;
   }
 
   return (
-    <div className="navbar-title">
+    <div className="flex min-w-0 items-center gap-1.5 truncate text-sm text-muted-foreground">
       {document?.icon ? <span>{document.icon}</span> : null}
-      <span>{document?.title || t("documents.navbarFallback")}</span>
+      <span className="truncate">{document?.title || t("documents.navbarFallback")}</span>
     </div>
   );
 }

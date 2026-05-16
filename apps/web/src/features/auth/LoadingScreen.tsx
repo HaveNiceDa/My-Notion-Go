@@ -5,10 +5,10 @@ export function LoadingScreen() {
   const { t } = useTranslation();
 
   return (
-    <main className="loading-screen">
-      <section className="loading-card">
-        <img alt={t("common.brand")} className="auth-modal-logo light-logo" src="/logo.svg" />
-        <img alt={t("common.brand")} className="auth-modal-logo dark-logo" src="/logo-dark.svg" />
+    <main className="grid min-h-screen place-items-center overflow-auto bg-background">
+      <section className="grid justify-items-center gap-3 text-muted-foreground">
+        <img alt={t("common.brand")} className="light-logo size-9" src="/logo.svg" />
+        <img alt={t("common.brand")} className="dark-logo size-9" src="/logo-dark.svg" />
         <p>{t("common.loadingSession")}</p>
       </section>
     </main>

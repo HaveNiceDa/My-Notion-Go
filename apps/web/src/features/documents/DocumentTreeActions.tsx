@@ -2,6 +2,7 @@ import { MoreHorizontal, Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DocumentTreeNode } from "@my-notion-go/api-client";
+import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../components/ui/dropdown-menu";
 import { RenameDocumentDialog } from "./RenameDocumentDialog";
 
@@ -16,21 +17,24 @@ type DocumentTreeActionsProps = {
 export function DocumentTreeActions({ disabled, node, onCreateChild, onRename }: DocumentTreeActionsProps) {
   const { t } = useTranslation();
   const [renameOpen, setRenameOpen] = useState(false);
+  const actionButtonClass = "h-[22px] w-5 rounded p-0 text-muted-foreground opacity-0 hover:bg-[var(--secondary-hover)] group-hover:opacity-100 group-focus-within:opacity-100";
 
   return (
-    <div className="document-row-actions">
+    <div className="ml-auto inline-flex items-center gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button
+          <Button
             aria-label={t("documents.moreActions")}
-            className="tree-action-button row-action"
+            className={actionButtonClass}
             disabled={disabled}
             onClick={(event) => event.stopPropagation()}
+            size="icon"
             title={t("documents.moreActions")}
             type="button"
+            variant="ghost"
           >
             <MoreHorizontal size={16} />
-          </button>
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" side="right">
           <DropdownMenuItem
@@ -44,19 +48,21 @@ export function DocumentTreeActions({ disabled, node, onCreateChild, onRename }:
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <button
+      <Button
         aria-label={t("documents.newSubPage")}
-        className="tree-action-button row-action"
+        className={actionButtonClass}
         disabled={disabled}
         onClick={(event) => {
           event.stopPropagation();
           onCreateChild(node.id);
         }}
+        size="icon"
         title={t("documents.newSubPage")}
         type="button"
+        variant="ghost"
       >
         <Plus size={14} />
-      </button>
+      </Button>
       <RenameDocumentDialog
         currentTitle={node.title}
         loading={disabled}

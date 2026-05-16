@@ -78,8 +78,8 @@ export function AuthDialog({ mode, onClose, onSwitchMode }: AuthDialogProps) {
     <Dialog open onOpenChange={(open) => (open ? undefined : onClose())}>
       <DialogContent className="p-7">
         <DialogHeader className="mb-6 justify-items-center text-center">
-          <img alt={t("common.brand")} className="auth-modal-logo light-logo" src="/logo.svg" />
-          <img alt={t("common.brand")} className="auth-modal-logo dark-logo" src="/logo-dark.svg" />
+          <img alt={t("common.brand")} className="light-logo size-9" src="/logo.svg" />
+          <img alt={t("common.brand")} className="dark-logo size-9" src="/logo-dark.svg" />
           <DialogTitle className="mt-2 text-2xl">{isLogin ? t("auth.loginTitle") : t("auth.registerTitle")}</DialogTitle>
           <DialogDescription>{isLogin ? t("auth.loginSubtitle") : t("auth.registerSubtitle")}</DialogDescription>
         </DialogHeader>
@@ -95,7 +95,7 @@ export function AuthDialog({ mode, onClose, onSwitchMode }: AuthDialogProps) {
           <label className="grid gap-2 text-sm font-medium text-foreground">
             <span>{t("auth.email")}</span>
             <Input autoComplete="email" placeholder={t("auth.emailPlaceholder")} type="email" {...register("email")} />
-            {errors.email?.message ? <span className="field-error">{errors.email.message}</span> : null}
+            {errors.email?.message ? <span className="m-0 text-sm text-[var(--danger)]">{errors.email.message}</span> : null}
           </label>
 
           <label className="grid gap-2 text-sm font-medium text-foreground">
@@ -106,18 +106,22 @@ export function AuthDialog({ mode, onClose, onSwitchMode }: AuthDialogProps) {
               type="password"
               {...register("password")}
             />
-            {errors.password?.message ? <span className="field-error">{errors.password.message}</span> : null}
+            {errors.password?.message ? <span className="m-0 text-sm text-[var(--danger)]">{errors.password.message}</span> : null}
           </label>
 
-          {errors.root?.message ? <p className="form-error">{errors.root.message}</p> : null}
+          {errors.root?.message ? (
+            <p className="m-0 rounded-lg border border-[color-mix(in_srgb,var(--danger)_30%,transparent)] bg-[var(--danger-muted)] px-3 py-2.5 text-sm text-[var(--danger)]">
+              {errors.root.message}
+            </p>
+          ) : null}
 
           <Button className="w-full" disabled={isSubmitting || authRequest.loading} type="submit">
-            {isSubmitting || authRequest.loading ? <Loader2 className="spin" size={16} /> : null}
+            {isSubmitting || authRequest.loading ? <Loader2 className="animate-spin" size={16} /> : null}
             {isSubmitting || authRequest.loading ? t("auth.processing") : isLogin ? t("auth.loginSubmit") : t("auth.registerSubmit")}
           </Button>
         </form>
 
-        <p className="auth-switch-text">
+        <p className="mt-[18px] flex justify-center gap-1.5 text-sm text-muted-foreground">
           {isLogin ? t("auth.noAccount") : t("auth.hasAccount")}
           <Button className="h-auto p-0 font-semibold" onClick={() => switchMode(isLogin ? "register" : "login")} type="button" variant="link">
             {isLogin ? t("auth.signUp") : t("auth.signIn")}

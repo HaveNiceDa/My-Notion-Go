@@ -19,11 +19,11 @@ export function DocumentEditor({ accessToken, documentId }: DocumentEditorProps)
   const contentQuery = useDocumentContent(documentId, accessToken);
 
   if (contentQuery.isLoading) {
-    return <p className="editor-status-text">{t("documents.contentLoading")}</p>;
+    return <p className="my-5 text-sm text-muted-foreground">{t("documents.contentLoading")}</p>;
   }
 
   if (contentQuery.isError || !contentQuery.data) {
-    return <p className="editor-status-text error">{t("documents.contentLoadFailed")}</p>;
+    return <p className="my-5 text-sm text-[var(--danger)]">{t("documents.contentLoadFailed")}</p>;
   }
 
   const initialContent = toBlockNoteContent(contentQuery.data.content);
@@ -61,8 +61,8 @@ function BlockNoteEditorSurface({ accessToken, documentId, initialContent }: Blo
   }, [blockNoteDictionary]);
 
   return (
-    <section className="document-editor">
-      <div className={`autosave-indicator ${autosave.status}`}>
+    <section className="document-editor mt-4">
+      <div className={`mb-2 flex min-h-5 justify-end text-xs ${autosave.status === "error" ? "text-[var(--danger)]" : "text-muted-foreground"}`}>
         <span>{statusLabel(autosave.status, t)}</span>
       </div>
       <BlockNoteView

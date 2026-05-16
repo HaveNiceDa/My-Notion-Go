@@ -4,6 +4,7 @@ import { useMemoizedFn } from "ahooks";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { documentApi, type UpdateDocumentRequest } from "@my-notion-go/api-client";
+import { AIChatPanel } from "../ai-chat/AIChatPanel";
 import { useAuthStore } from "../auth/authStore";
 import { useThemeStore } from "../theme/themeStore";
 import { DocumentDetail } from "./DocumentDetail";
@@ -28,6 +29,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
   const themeMode = useThemeStore((state) => state.mode);
   const toggleTheme = useThemeStore((state) => state.toggle);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [aiChatOpen, setAIChatOpen] = useState(false);
 
   const treeQuery = useQuery({
     queryKey: documentsQueryKey,
@@ -79,7 +81,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
   });
 
   return (
-    <main className="workspace-shell">
+    <main className="flex h-screen w-screen overflow-hidden bg-background">
       <WorkspaceSidebar
         activeDocumentId={documentId}
         actionLoading={createDocument.isPending || updateDocument.isPending}
@@ -99,7 +101,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
         user={user}
       />
 
-      <section className="workspace-main">
+      <section className="flex h-full min-w-0 flex-1 flex-col bg-background">
         <DocumentNavbar
           archiveLoading={archiveDocument.isPending}
           document={currentDocumentQuery.data}
@@ -107,6 +109,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
           loading={currentDocumentQuery.isLoading}
           onArchive={archiveCurrentDocument}
           onExpandSidebar={() => setSidebarCollapsed(false)}
+          onToggleAIChat={() => setAIChatOpen((open) => !open)}
           onToggleTheme={toggleTheme}
           sidebarCollapsed={sidebarCollapsed}
           themeMode={themeMode}
@@ -123,6 +126,8 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
           <EmptyDocuments creating={createDocument.isPending} onCreate={createRootDocument} userName={user?.name || ""} />
         )}
       </section>
+
+      <AIChatPanel accessToken={accessToken} onClose={() => setAIChatOpen(false)} open={aiChatOpen} />
     </main>
   );
 }

@@ -13,7 +13,7 @@ type DocumentTreeProps = {
 // DocumentTree 只负责渲染根文档列表；递归行逻辑交给 DocumentTreeItem，避免树容器过重。
 export function DocumentTree({ activeDocumentId, actionLoading, nodes, onCreateChild, onMove, onRename }: DocumentTreeProps) {
   return (
-    <div className="document-tree">
+    <div className="grid gap-px">
       {nodes.map((node) => (
         <DocumentTreeItem
           activeDocumentId={activeDocumentId}

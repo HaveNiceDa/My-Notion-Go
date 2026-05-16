@@ -3,6 +3,8 @@ import { ChevronDown, ChevronRight, FileIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import type { DocumentTreeNode } from "@my-notion-go/api-client";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { DocumentTreeActions } from "./DocumentTreeActions";
 
 type DocumentTreeItemProps = {
@@ -76,7 +78,12 @@ export function DocumentTreeItem({
   return (
     <div>
       <div
-        className={`document-tree-row ${activeDocumentId === node.id ? "active" : ""} ${dragging ? "dragging" : ""} ${dragOver ? "drag-over" : ""}`}
+        className={cn(
+          "group relative flex min-h-[30px] w-full items-center rounded bg-transparent pr-1.5 text-left text-sm font-medium text-muted-foreground hover:bg-[var(--secondary-hover)]",
+          activeDocumentId === node.id && "bg-[color-mix(in_srgb,var(--primary)_8%,transparent)] text-foreground",
+          dragging && "opacity-50",
+          dragOver && "bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] shadow-[inset_2px_0_0_var(--primary)]",
+        )}
         draggable={!actionLoading}
         onDragEnd={handleDragEnd}
         onDragLeave={handleDragLeave}
@@ -85,18 +92,20 @@ export function DocumentTreeItem({
         onDrop={handleDrop}
         style={{ paddingLeft: `${level * 12 + 12}px` }}
       >
-        <button
+        <Button
           aria-label={expanded ? t("documents.collapsePage") : t("documents.expandPage")}
-          className="tree-chevron"
+          className="h-[22px] w-[18px] flex-none rounded p-0 text-muted-foreground disabled:cursor-default disabled:opacity-[0.35]"
           disabled={!hasChildren}
           onClick={() => setExpanded((value) => !value)}
+          size="icon"
           type="button"
+          variant="ghost"
         >
           {hasChildren ? <ChevronIcon size={14} /> : <span />}
-        </button>
-        <Link className="document-row-link" draggable={false} to={`/documents/${node.id}`}>
-          {node.icon ? <span className="document-emoji">{node.icon}</span> : <FileIcon size={18} />}
-          <span>{node.title}</span>
+        </Button>
+        <Link className="flex h-[30px] min-w-0 flex-1 items-center gap-[7px]" draggable={false} to={`/documents/${node.id}`}>
+          {node.icon ? <span className="text-[17px]">{node.icon}</span> : <FileIcon size={18} />}
+          <span className="truncate">{node.title}</span>
         </Link>
         <DocumentTreeActions
           disabled={actionLoading}

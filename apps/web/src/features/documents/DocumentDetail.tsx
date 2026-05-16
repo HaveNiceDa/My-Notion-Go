@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useMemoizedFn } from "ahooks";
 import { useTranslation } from "react-i18next";
 import type { Document } from "@my-notion-go/api-client";
+import { Input } from "@/components/ui/input";
 import { useAuthStore } from "../auth/authStore";
 import { DocumentEditor } from "./DocumentEditor";
 import { EmptyDocuments } from "./EmptyDocuments";
@@ -34,10 +35,10 @@ export function DocumentDetail({ document, loading, onRename, renaming }: Docume
 
   if (loading) {
     return (
-      <article className="document-canvas">
-        <div className="skeleton-line title" />
-        <div className="skeleton-line" />
-        <div className="skeleton-line wide" />
+      <article className="mx-auto w-[min(900px,100%)] px-6 py-12 pb-24 md:px-24 md:py-[74px] md:pb-[120px]">
+        <div className="mb-6 h-11 w-[62%] rounded-full bg-muted" />
+        <div className="h-3.5 w-full rounded-full bg-muted" />
+        <div className="mt-2 h-3.5 w-[72%] rounded-full bg-muted" />
       </article>
     );
   }
@@ -49,11 +50,11 @@ export function DocumentDetail({ document, loading, onRename, renaming }: Docume
   const updatedAt = new Date(document.updatedAt).toLocaleString(i18n.language === "en" ? "en-US" : "zh-CN");
 
   return (
-    <article className="document-canvas">
-      <div className="document-cover-placeholder" />
-      <input
+    <article className="mx-auto w-[min(900px,100%)] px-6 py-12 pb-24 md:px-24 md:py-[74px] md:pb-[120px]">
+      <div className="mb-[18px] h-24 rounded-[10px] bg-[linear-gradient(135deg,var(--secondary),color-mix(in_srgb,var(--secondary)_70%,var(--background)))]" />
+      <Input
         aria-label={t("documents.titleInput")}
-        className="document-title-input"
+        className="h-auto border-transparent bg-transparent px-0 py-1 text-[clamp(34px,5vw,48px)] font-bold tracking-[-0.045em] shadow-none focus-visible:border-border focus-visible:px-2.5 focus-visible:ring-[var(--ring)]"
         disabled={renaming}
         onBlur={commitTitle}
         onChange={(event) => setTitle(event.target.value)}
@@ -64,7 +65,7 @@ export function DocumentDetail({ document, loading, onRename, renaming }: Docume
         }}
         value={title}
       />
-      <p className="document-meta">{t("documents.lastEdited", { time: updatedAt })}</p>
+      <p className="mb-7 mt-2.5 text-[13px] text-muted-foreground">{t("documents.lastEdited", { time: updatedAt })}</p>
 			<DocumentEditor accessToken={accessToken} documentId={document.id} />
     </article>
   );

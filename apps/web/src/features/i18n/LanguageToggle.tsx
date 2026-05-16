@@ -15,7 +15,7 @@ export function LanguageToggle({ compact = false }: LanguageToggleProps) {
 
   return (
     <Button
-      className={compact ? undefined : "sidebar-row muted-row h-auto justify-start"}
+      className={compact ? undefined : "min-h-[30px] w-full justify-start gap-2 rounded px-2.5 text-sm font-medium text-muted-foreground hover:bg-[var(--secondary-hover)] hover:text-muted-foreground"}
       onClick={() => void i18n.changeLanguage(nextLanguage)}
       size={compact ? "icon" : undefined}
       title={t("common.language")}

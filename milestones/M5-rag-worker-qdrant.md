@@ -264,5 +264,19 @@ RAG Chat 请求体草案：
   - `DELETE /api/v1/rag/documents/:id/index` 已同步删除 `rag_chunks` 和 Qdrant points，并把状态置为 `disabled`。
   - `rag_documents` 成功索引后更新为 `indexed`，并记录 `content_hash`、`chunk_count`、`indexed_at`。
   - `pnpm smoke:api:rag` 已升级为真实索引 smoke，覆盖写内容、索引、关闭清理、重新开启重建。
-- 尚未实现 Qdrant search、RAG Chat SSE、真实异步 job/worker 和前端入口。
-- 下一步建议进入 M5.3：实现 query embedding、Qdrant search、RAG Chat SSE 和引用来源 metadata。
+- M5.3 RAG Chat SSE 已落地：
+  - `internal/rag/qdrant.go` 已新增带 `userId` filter 的 Qdrant search，检索边界限定在当前用户的 chunks。
+  - `internal/rag/service.go` 已实现 query embedding、topK search、RAG context prompt 拼接和 citations metadata 合并。
+  - `POST /api/v1/rag/chat/stream` 已注册，SSE 协议复用 AI Chat 的 `conversation`、`user_message`、`message`、`assistant_message`、`done`，并额外发送 `citations`。
+  - `scripts/smoke-rag-api.mjs` 已覆盖索引后发起 RAG SSE、校验 citations、assistant metadata 和消息落库。
+  - `services/api/docs/rag.http` 已补充 RAG Chat Stream 手动调试请求。
+- 已运行验证：
+  - `node --check ./scripts/smoke-rag-api.mjs`
+  - `pnpm build:api`
+  - `go test ./services/api/...`
+  - `pnpm smoke:api:rag`
+  - `pnpm smoke:api:documents`
+  - `pnpm smoke:api:ai-chat`
+  - `pnpm smoke:api:embedding`
+- 尚未实现真实异步 job/worker 和前端 RAG 入口。
+- 下一步建议进入 M5.4：前端增加 RAG 模式开关、知识库状态入口和引用展示。

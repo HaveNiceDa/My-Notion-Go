@@ -59,6 +59,46 @@ type deletePointsRequest struct {
 	Points []string `json:"points"`
 }
 
+type searchPointsRequest struct {
+	Vector      []float32    `json:"vector"`
+	Limit       int          `json:"limit"`
+	WithPayload bool         `json:"with_payload"`
+	Filter      qdrantFilter `json:"filter"`
+}
+
+type qdrantFilter struct {
+	Must []qdrantCondition `json:"must,omitempty"`
+}
+
+type qdrantCondition struct {
+	Key   string      `json:"key"`
+	Match qdrantMatch `json:"match"`
+}
+
+type qdrantMatch struct {
+	Value any `json:"value"`
+}
+
+type searchPointsResponse struct {
+	Result []qdrantSearchPoint `json:"result"`
+}
+
+type qdrantSearchPoint struct {
+	ID      json.RawMessage `json:"id"`
+	Score   float64         `json:"score"`
+	Payload map[string]any  `json:"payload"`
+}
+
+type SearchResult struct {
+	ID         string
+	Score      float64
+	UserID     string
+	DocumentID string
+	ChunkID    string
+	Position   int
+	Text       string
+}
+
 func NewQdrantClient(cfg QdrantConfig) *QdrantClient {
 	timeout := cfg.Timeout
 	if timeout <= 0 {
@@ -226,6 +266,74 @@ func (c *QdrantClient) DeletePoints(ctx context.Context, collection string, poin
 	return nil
 }
 
+// SearchByUser 在当前用户的 point 范围内做相似度检索。
+// userId filter 是 RAG 的关键安全边界，避免不同用户的 chunks 被混入同一次回答上下文。
+func (c *QdrantClient) SearchByUser(ctx context.Context, collection string, userID string, vector []float32, limit int) ([]SearchResult, error) {
+	if !c.Enabled() {
+		return nil, fmt.Errorf("qdrant client is not configured")
+	}
+	collection = strings.TrimSpace(collection)
+	userID = strings.TrimSpace(userID)
+	if collection == "" || userID == "" || len(vector) == 0 {
+		return nil, fmt.Errorf("invalid qdrant search input")
+	}
+	if limit <= 0 {
+		limit = 5
+	}
+
+	body, err := json.Marshal(searchPointsRequest{
+		Vector:      vector,
+		Limit:       limit,
+		WithPayload: true,
+		Filter: qdrantFilter{
+			Must: []qdrantCondition{
+				{
+					Key:   "userId",
+					Match: qdrantMatch{Value: userID},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.collectionURL(collection)+"/points/search", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	c.setHeaders(req)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, qdrantStatusError("search qdrant points failed", resp)
+	}
+
+	var parsed searchPointsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+		return nil, err
+	}
+
+	results := make([]SearchResult, 0, len(parsed.Result))
+	for _, point := range parsed.Result {
+		results = append(results, SearchResult{
+			ID:         decodePointID(point.ID),
+			Score:      point.Score,
+			UserID:     payloadString(point.Payload, "userId"),
+			DocumentID: payloadString(point.Payload, "documentId"),
+			ChunkID:    payloadString(point.Payload, "chunkId"),
+			Position:   payloadInt(point.Payload, "position"),
+			Text:       payloadString(point.Payload, "text"),
+		})
+	}
+	return results, nil
+}
+
 func (c *QdrantClient) collectionExists(ctx context.Context, collection string) (bool, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.collectionURL(collection), nil)
 	if err != nil {
@@ -266,4 +374,38 @@ func qdrantStatusError(message string, resp *http.Response) error {
 		return fmt.Errorf("%s with status %d", message, resp.StatusCode)
 	}
 	return fmt.Errorf("%s with status %d: %s", message, resp.StatusCode, strings.TrimSpace(string(body)))
+}
+
+func decodePointID(raw json.RawMessage) string {
+	var text string
+	if err := json.Unmarshal(raw, &text); err == nil {
+		return text
+	}
+	return strings.Trim(string(raw), `"`)
+}
+
+func payloadString(payload map[string]any, key string) string {
+	value, ok := payload[key]
+	if !ok {
+		return ""
+	}
+	if text, ok := value.(string); ok {
+		return text
+	}
+	return fmt.Sprint(value)
+}
+
+func payloadInt(payload map[string]any, key string) int {
+	value, ok := payload[key]
+	if !ok {
+		return 0
+	}
+	switch typed := value.(type) {
+	case float64:
+		return int(typed)
+	case int:
+		return typed
+	default:
+		return 0
+	}
 }

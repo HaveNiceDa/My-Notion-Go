@@ -65,6 +65,16 @@ Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
 POST {{baseUrl}}/api/v1/rag/documents/{{createDocument.response.body.$.data.id}}/index
 Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
 
+### RAG Chat Stream
+POST {{baseUrl}}/api/v1/rag/chat/stream
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+Content-Type: application/json
+
+{
+  "message": "基于知识库总结这篇文档的内容",
+  "topK": 5
+}
+
 ### Disable Knowledge Base
 DELETE {{baseUrl}}/api/v1/rag/documents/{{createDocument.response.body.$.data.id}}/index
 Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}

@@ -75,6 +75,14 @@ type DocumentStatusDTO struct {
 	UpdatedAt         *time.Time `json:"updatedAt"`
 }
 
+type CitationDTO struct {
+	ChunkID    string  `json:"chunkId"`
+	DocumentID string  `json:"documentId"`
+	Position   int     `json:"position"`
+	Score      float64 `json:"score"`
+	Preview    string  `json:"preview"`
+}
+
 func NewDocumentStatusDTO(documentID string, inKnowledgeBase bool, ragDocument *Document) DocumentStatusDTO {
 	if ragDocument == nil {
 		status := StatusDisabled

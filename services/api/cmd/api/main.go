@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/bytel/my-notion-go/services/api/internal/auth"
+	"github.com/bytel/my-notion-go/services/api/internal/chat"
 	"github.com/bytel/my-notion-go/services/api/internal/config"
 	"github.com/bytel/my-notion-go/services/api/internal/database"
 	"github.com/bytel/my-notion-go/services/api/internal/documents"
@@ -111,6 +112,9 @@ func main() {
 	documentRepo := documents.NewRepository(db)
 	documentService := documents.NewService(documentRepo)
 	documentHandler := documents.NewHandler(documentService)
+	chatRepo := chat.NewRepository(db)
+	chatService := chat.NewService(chatRepo)
+	chatHandler := chat.NewHandler(chatService)
 
 	// 公开 Auth 接口：注册、登录、刷新 token、退出登录。
 	authRoutes := api.Group("/auth")
@@ -134,6 +138,13 @@ func main() {
 	documentRoutes.POST("/:id/archive", documentHandler.Archive)
 	documentRoutes.POST("/:id/restore", documentHandler.Restore)
 	documentRoutes.DELETE("/:id", documentHandler.Delete)
+
+	// AI Chat 接口要求登录；当前先提供 mock SSE，后续再替换为真实 LLM provider。
+	aiRoutes := api.Group("/ai", middleware.RequireAuth(tokenManager))
+	aiRoutes.GET("/conversations", chatHandler.ListConversations)
+	aiRoutes.POST("/conversations", chatHandler.CreateConversation)
+	aiRoutes.GET("/conversations/:id/messages", chatHandler.ListMessages)
+	aiRoutes.POST("/chat/stream", chatHandler.StreamChat)
 
 	if err := router.Run(cfg.HTTPAddr); err != nil {
 		panic(err)

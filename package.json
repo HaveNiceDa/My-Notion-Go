@@ -16,7 +16,8 @@
     "lint": "pnpm --filter @my-notion-go/web lint",
     "format:go": "gofmt -w ./services/api",
     "test:go": "go test ./services/api/...",
-    "smoke:api:documents": "node ./scripts/smoke-documents-api.mjs"
+    "smoke:api:documents": "node ./scripts/smoke-documents-api.mjs",
+    "smoke:api:ai-chat": "node ./scripts/smoke-ai-chat-api.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

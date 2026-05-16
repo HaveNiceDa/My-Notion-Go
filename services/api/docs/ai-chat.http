@@ -1,0 +1,59 @@
+### AI Chat API 调试文件
+### 使用方式：
+### 1. 先启动数据库并执行迁移：pnpm migrate:api
+### 2. 启动 API：pnpm dev:api
+### 3. 先执行 Login，后续请求会复用 login 返回的 accessToken。
+
+@baseUrl = http://localhost:8080
+@email = demo@example.com
+@password = password123
+@deviceName = Local HTTP Client
+
+### Login
+# @name login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "deviceName": "{{deviceName}}"
+}
+
+### Create Conversation
+# @name createConversation
+POST {{baseUrl}}/api/v1/ai/conversations
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Manual SSE Test"
+}
+
+### List Conversations
+GET {{baseUrl}}/api/v1/ai/conversations
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+
+### Stream Chat In Existing Conversation
+POST {{baseUrl}}/api/v1/ai/chat/stream
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+Content-Type: application/json
+
+{
+  "conversationId": "{{createConversation.response.body.$.data.id}}",
+  "message": "用一句话介绍当前 mock SSE 接口。"
+}
+
+### Stream Chat And Auto Create Conversation
+# @name streamNewConversation
+POST {{baseUrl}}/api/v1/ai/chat/stream
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+Content-Type: application/json
+
+{
+  "message": "创建一个新会话并测试流式返回。"
+}
+
+### Get Messages
+GET {{baseUrl}}/api/v1/ai/conversations/{{createConversation.response.body.$.data.id}}/messages
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}

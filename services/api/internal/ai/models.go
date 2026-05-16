@@ -1,6 +1,12 @@
 package ai
 
-const DefaultModelID = "deepseek-v4-pro"
+const (
+	DefaultModelID = "deepseek-v4-pro"
+	// Embedding 模型和维度必须和 Qdrant collection 保持一致。
+	// 不放到环境变量里，避免运行时误改模型后写入不同维度的向量，导致检索链路难以排查。
+	DefaultEmbeddingModelID   = "tongyi-embedding-vision-plus-2026-03-06"
+	DefaultEmbeddingDimension = 1024
+)
 
 type Model struct {
 	ID          string `json:"id"`

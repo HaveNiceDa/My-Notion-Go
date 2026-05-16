@@ -13,6 +13,7 @@ import (
 	"github.com/bytel/my-notion-go/services/api/internal/database"
 	"github.com/bytel/my-notion-go/services/api/internal/documents"
 	"github.com/bytel/my-notion-go/services/api/internal/middleware"
+	"github.com/bytel/my-notion-go/services/api/internal/rag"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -118,6 +119,24 @@ func main() {
 		APIKey:  cfg.LLMAPIKey,
 		BaseURL: cfg.LLMBaseURL,
 	})
+	embeddingClient := ai.NewEmbeddingClient(ai.EmbeddingConfig{
+		APIKey:  cfg.DashScopeAPIKey,
+		BaseURL: cfg.DashScopeAPIBaseURL,
+	})
+	// AI Chat 使用 OpenAI Compatible SSE；Embedding 使用 DashScope 原生多模态 API。
+	// 两条链路分开配置，避免把 /chat/completions 和多模态 embedding 的协议格式混用。
+	if embeddingClient.Enabled() {
+		log.Printf("embedding client configured with model %s and dimension %d", ai.DefaultEmbeddingModelID, ai.DefaultEmbeddingDimension)
+	} else {
+		log.Print("embedding client disabled: missing DASHSCOPE_API_KEY/LLM_API_KEY or DASHSCOPE_API_BASE_URL")
+	}
+	qdrantClient := rag.NewQdrantClient(rag.QdrantConfig{
+		BaseURL: cfg.QdrantURL,
+		APIKey:  cfg.QdrantAPIKey,
+	})
+	// Qdrant 属于 M5 RAG 能力，当前不作为 Auth/Document/AI Chat 的强依赖。
+	// 本地没有启动 Qdrant 时仅记录 warning，后续真正调用 RAG API 时再返回明确业务错误。
+	initializeQdrant(qdrantClient, cfg.QdrantCollection, ai.DefaultEmbeddingDimension)
 	chatService := chat.NewService(chatRepo, aiClient)
 	chatHandler := chat.NewHandler(chatService)
 
@@ -154,4 +173,24 @@ func main() {
 	if err := router.Run(cfg.HTTPAddr); err != nil {
 		panic(err)
 	}
+}
+
+func initializeQdrant(client *rag.QdrantClient, collection string, dimension int) {
+	if !client.Enabled() {
+		log.Print("qdrant client disabled: missing QDRANT_URL")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := client.Health(ctx); err != nil {
+		log.Printf("qdrant health check failed: %v", err)
+		return
+	}
+	if err := client.EnsureCollection(ctx, collection, dimension); err != nil {
+		log.Printf("qdrant collection init failed: %v", err)
+		return
+	}
+	log.Printf("qdrant collection ready: %s (dimension=%d)", collection, dimension)
 }

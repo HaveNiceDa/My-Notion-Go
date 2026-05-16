@@ -18,7 +18,8 @@
     "format:go": "gofmt -w ./services/api",
     "test:go": "go test ./services/api/...",
     "smoke:api:documents": "node ./scripts/smoke-documents-api.mjs",
-    "smoke:api:ai-chat": "node ./scripts/smoke-ai-chat-api.mjs"
+    "smoke:api:ai-chat": "node ./scripts/smoke-ai-chat-api.mjs",
+    "smoke:api:embedding": "node ./scripts/smoke-embedding-qdrant.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",

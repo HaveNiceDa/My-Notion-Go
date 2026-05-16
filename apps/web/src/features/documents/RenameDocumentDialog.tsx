@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 type RenameDocumentDialogProps = {
   currentTitle: string;
@@ -41,21 +43,20 @@ export function RenameDocumentDialog({ currentTitle, loading, open, onOpenChange
             <DialogTitle>{t("documents.renameDialogTitle")}</DialogTitle>
             <DialogDescription>{t("documents.renameDialogDescription")}</DialogDescription>
           </DialogHeader>
-          <input
+          <Input
             autoFocus
-            className="dialog-input"
             disabled={loading}
             onChange={(event) => setTitle(event.target.value)}
             placeholder={t("documents.renamePlaceholder")}
             value={title}
           />
           <DialogFooter>
-            <button className="ghost-button" disabled={loading} onClick={() => onOpenChange(false)} type="button">
+            <Button disabled={loading} onClick={() => onOpenChange(false)} type="button" variant="ghost">
               {t("common.cancel")}
-            </button>
-            <button className="primary-button compact" disabled={loading || !title.trim()} type="submit">
+            </Button>
+            <Button disabled={loading || !title.trim()} size="sm" type="submit">
               {loading ? t("documents.renaming") : t("common.save")}
-            </button>
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

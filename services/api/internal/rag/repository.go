@@ -10,6 +10,11 @@ import (
 
 var ErrStatusNotFound = errors.New("rag document status not found")
 
+type EnabledChunk struct {
+	Chunk         `gorm:"embedded"`
+	DocumentTitle string `gorm:"column:document_title"`
+}
+
 type Repository struct {
 	db *gorm.DB
 }
@@ -113,15 +118,15 @@ func (r *Repository) ListPointIDsByDocumentID(ctx context.Context, userID string
 
 // ListEnabledChunksByIDs 用 PostgreSQL 对 Qdrant 命中结果做二次校验。
 // Qdrant 只负责向量相似度，最终是否能进入回答上下文必须再确认 user_id、知识库开关和索引状态。
-func (r *Repository) ListEnabledChunksByIDs(ctx context.Context, userID string, chunkIDs []string) (map[string]Chunk, error) {
+func (r *Repository) ListEnabledChunksByIDs(ctx context.Context, userID string, chunkIDs []string) (map[string]EnabledChunk, error) {
 	if len(chunkIDs) == 0 {
-		return map[string]Chunk{}, nil
+		return map[string]EnabledChunk{}, nil
 	}
 
-	var chunks []Chunk
+	var chunks []EnabledChunk
 	err := r.db.WithContext(ctx).
 		Table("rag_chunks AS rc").
-		Select("rc.*").
+		Select("rc.*, d.title AS document_title").
 		Joins("JOIN documents AS d ON d.id = rc.document_id AND d.user_id = rc.user_id").
 		Joins("JOIN rag_documents AS rd ON rd.id = rc.rag_document_id AND rd.user_id = rc.user_id").
 		Where("rc.user_id = ? AND rc.id IN ?", userID, chunkIDs).
@@ -133,7 +138,7 @@ func (r *Repository) ListEnabledChunksByIDs(ctx context.Context, userID string, 
 		return nil, err
 	}
 
-	result := make(map[string]Chunk, len(chunks))
+	result := make(map[string]EnabledChunk, len(chunks))
 	for _, chunk := range chunks {
 		result[chunk.ID] = chunk
 	}

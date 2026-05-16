@@ -5,6 +5,7 @@ export type AIChatMode = "chat" | "rag";
 export type RAGCitation = {
   chunkId: string;
   documentId: string;
+  documentTitle?: string;
   position: number;
   score: number;
   preview: string;

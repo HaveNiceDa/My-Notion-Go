@@ -278,6 +278,9 @@ RAG Chat 请求体草案：
   - Qdrant 命中结果会再通过 PostgreSQL 校验 `user_id`、文档知识库开关和索引状态，避免 stale point 或跨用户数据进入上下文。
   - 文档顶部栏已增加知识库开关，开启/关闭后通过 toast 提示结果。
   - 文档正文保存成功后会后台触发当前文档自动重建索引。
+  - RAG citations 已补充来源文档标题，并在 AI 面板中支持点击跳转到来源文档。
+  - 文档顶部栏已展示 `pending/indexing/indexed/failed/disabled` 索引状态，`indexed` 会显示 chunk 数。
+  - 正文保存成功后前端会将知识库状态乐观标记为 `indexing`，并通过短轮询收敛到真实状态。
 - 已运行验证：
   - `node --check ./scripts/smoke-rag-api.mjs`
   - `pnpm build:api`
@@ -289,5 +292,8 @@ RAG Chat 请求体草案：
   - `pnpm typecheck`
   - `pnpm build:web`
   - 定制验证：无索引 fallback、保存正文自动索引、关闭知识库后 fallback 均通过。
-- 尚未实现真实异步 job/worker 和前端 RAG 入口。
-- 下一步建议继续 M5.4：把引用展示升级为可点击跳转到文档来源，并把后台索引任务迁移到 worker。
+  - `pnpm --filter @my-notion-go/web typecheck`
+  - `go test ./services/api/...`
+  - `pnpm build:api`
+- 尚未实现真实异步 job/worker。
+- 下一步建议继续 M5.4/M5.5：把后台索引任务迁移到 worker，并补充引用来源 chunk 高亮或滚动定位。

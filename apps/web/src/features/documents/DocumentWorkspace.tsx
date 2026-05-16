@@ -55,6 +55,11 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
     queryKey: ragDocumentStatusQueryKey(documentId),
     queryFn: () => ragApi.status(documentId!, accessToken),
     enabled: Boolean(accessToken && documentId),
+    // 自动索引在后台 goroutine 中执行；处于过渡状态时短轮询即可让顶部栏及时收敛到 indexed/failed。
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "pending" || status === "indexing" ? 2000 : false;
+    },
   });
   const createDocument = useMutation({
     mutationFn: (parentId?: string) =>

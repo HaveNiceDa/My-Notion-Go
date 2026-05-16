@@ -295,6 +295,7 @@ func (s *Service) filterSearchResults(ctx context.Context, userID string, result
 		}
 		result.UserID = chunk.UserID
 		result.DocumentID = chunk.DocumentID
+		result.DocumentTitle = chunk.DocumentTitle
 		result.ChunkID = chunk.ID
 		result.Position = chunk.Position
 		result.Text = chunk.Content
@@ -323,11 +324,12 @@ func buildRAGContext(results []SearchResult) (string, []CitationDTO) {
 		usedRunes += len([]rune(clipped))
 		builder.WriteString(fmt.Sprintf("[%d] documentId=%s chunkId=%s score=%.4f\n%s\n\n", index+1, result.DocumentID, result.ChunkID, result.Score, clipped))
 		citations = append(citations, CitationDTO{
-			ChunkID:    result.ChunkID,
-			DocumentID: result.DocumentID,
-			Position:   result.Position,
-			Score:      result.Score,
-			Preview:    trimRunes(text, ragCitationMaxRunes),
+			ChunkID:       result.ChunkID,
+			DocumentID:    result.DocumentID,
+			DocumentTitle: result.DocumentTitle,
+			Position:      result.Position,
+			Score:         result.Score,
+			Preview:       trimRunes(text, ragCitationMaxRunes),
 		})
 	}
 

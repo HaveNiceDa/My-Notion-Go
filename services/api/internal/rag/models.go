@@ -76,11 +76,12 @@ type DocumentStatusDTO struct {
 }
 
 type CitationDTO struct {
-	ChunkID    string  `json:"chunkId"`
-	DocumentID string  `json:"documentId"`
-	Position   int     `json:"position"`
-	Score      float64 `json:"score"`
-	Preview    string  `json:"preview"`
+	ChunkID       string  `json:"chunkId"`
+	DocumentID    string  `json:"documentId"`
+	DocumentTitle string  `json:"documentTitle,omitempty"`
+	Position      int     `json:"position"`
+	Score         float64 `json:"score"`
+	Preview       string  `json:"preview"`
 }
 
 type ChatMetadataDTO struct {

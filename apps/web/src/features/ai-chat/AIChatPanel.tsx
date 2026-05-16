@@ -1,12 +1,13 @@
-import { AlertCircle, Bot, Check, ChevronDown, Database, Loader2, MessageCircle, Plus, Send, X } from "lucide-react";
+import { AlertCircle, Bot, Check, ChevronDown, Database, Loader2, Plus, Send, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { useResizableWidth } from "@/hooks/useResizableWidth";
 import { cn } from "@/lib/utils";
-import { aiChatModeStorageKey, aiModels, aiModelStorageKey, getInitialAIChatMode, getInitialAIModelId, type AIChatMode, type AIModelId } from "./models";
+import { aiModels, aiModelStorageKey, getInitialAIModelId, type AIChatMode, type AIModelId } from "./models";
 import type { ChatMessage, RAGCitation } from "./types";
 import { useAIChat } from "./useAIChat";
 
@@ -19,7 +20,7 @@ type AIChatPanelProps = {
 export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState("");
-  const [selectedMode, setSelectedMode] = useState<AIChatMode>(() => getInitialAIChatMode());
+  const [selectedMode, setSelectedMode] = useState<AIChatMode>("chat");
   const [selectedModelId, setSelectedModelId] = useState<AIModelId>(() => getInitialAIModelId());
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const selectedModel = aiModels.find((model) => model.id === selectedModelId) ?? aiModels[0];
@@ -60,10 +61,13 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
     window.localStorage.setItem(aiModelStorageKey, modelId);
   };
 
-  const selectMode = (mode: AIChatMode) => {
-    setSelectedMode(mode);
-    window.localStorage.setItem(aiChatModeStorageKey, mode);
+  const toggleKnowledgeMode = () => {
+    const nextMode: AIChatMode = selectedMode === "rag" ? "chat" : "rag";
+    setSelectedMode(nextMode);
+    toast.success(t(nextMode === "rag" ? "aiChat.knowledgeModeEnabledToast" : "aiChat.knowledgeModeDisabledToast"));
   };
+
+  const waitingForAssistant = chat.sending && !chat.messages.some((message) => message.streaming);
 
   return (
     <aside
@@ -79,97 +83,46 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
         role="separator"
       />
 
-      <header className="flex min-h-14 items-center justify-between gap-3 border-b border-border px-4">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="grid size-8 flex-none place-items-center rounded-full border border-border bg-background shadow-sm">
-            <Bot size={18} />
-          </span>
-          <div>
-            <h2 className="text-sm font-semibold leading-tight">{chat.activeConversation?.title || t("aiChat.newConversationTitle")}</h2>
-            <p className="max-w-60 truncate text-xs text-muted-foreground">{t("aiChat.subtitle")}</p>
-          </div>
-        </div>
-        <Button className="size-8" onClick={onClose} size="icon" title={t("aiChat.close")} type="button" variant="ghost">
-          <X size={18} />
-        </Button>
-      </header>
-
-      <section aria-label={t("aiChat.conversations")} className="grid gap-2 border-b border-border px-3 py-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <p className="m-0 text-xs font-medium text-muted-foreground">{t("aiChat.model")}</p>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="h-8 max-w-[230px] justify-between gap-2 rounded-full px-3 text-left text-xs" disabled={chat.sending} type="button" variant="outline">
-                <span className="truncate font-medium">{selectedModel.displayName}</span>
-                <ChevronDown className="size-4 flex-none text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-80">
-              {aiModels.map((model) => (
-                <DropdownMenuItem className="items-start gap-2" key={model.id} onSelect={() => selectModel(model.id)}>
-                  <Check className={cn("mt-0.5 size-4", model.id === selectedModelId ? "opacity-100" : "opacity-0")} />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium text-foreground">{model.displayName}</span>
-                    <span className="block text-xs leading-5 text-muted-foreground">{t(model.descriptionKey)}</span>
-                  </span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <div className="grid gap-1.5">
-          <p className="m-0 text-xs font-medium text-muted-foreground">{t("aiChat.mode")}</p>
-          <div className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/40 p-1">
-            {(["chat", "rag"] as const).map((mode) => (
-              <Button
-                className={cn("h-8 justify-center rounded-md text-xs", selectedMode === mode && "bg-background shadow-sm")}
-                disabled={chat.sending}
-                key={mode}
-                onClick={() => selectMode(mode)}
-                size="sm"
-                type="button"
-                variant={selectedMode === mode ? "outline" : "ghost"}
-              >
-                {mode === "rag" ? <Database size={14} /> : <Bot size={14} />}
-                {t(`aiChat.modes.${mode}`)}
-              </Button>
-            ))}
-          </div>
-          <p className="m-0 text-xs leading-5 text-muted-foreground">{t(`aiChat.modeDescriptions.${selectedMode}`)}</p>
-        </div>
-
-        <Button
-          className="h-8 justify-center rounded-md text-xs"
-          disabled={chat.creatingConversation || chat.sending}
-          onClick={() => chat.createConversation(t("aiChat.newConversationTitle"))}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          {chat.creatingConversation ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />}
-          {t("aiChat.newConversation")}
-        </Button>
-        <div className="grid max-h-[112px] gap-0.5 overflow-auto">
-          {chat.conversationsLoading ? <p className="m-0 text-xs text-muted-foreground">{t("aiChat.loadingConversations")}</p> : null}
-          {chat.conversations.map((conversation) => (
-            <Button
-              className={cn(
-                "h-8 w-full justify-start gap-2 rounded-md px-2 text-left text-xs text-muted-foreground hover:bg-secondary hover:text-foreground",
-                conversation.id === chat.activeConversationId && "bg-secondary text-foreground",
-              )}
-              key={conversation.id}
-              onClick={() => chat.selectConversation(conversation.id)}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              <MessageCircle size={14} />
-              <span className="truncate">{conversation.title || t("aiChat.untitledConversation")}</span>
+      <header className="flex min-h-12 items-center justify-between gap-2 border-b border-border px-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="h-8 min-w-0 max-w-[230px] justify-start gap-1.5 rounded-md px-2 text-left text-sm font-medium text-foreground hover:bg-secondary" type="button" variant="ghost">
+              <span className="truncate">{chat.activeConversation?.title || t("aiChat.newConversationTitle")}</span>
+              <ChevronDown className="size-4 flex-none text-muted-foreground" />
             </Button>
-          ))}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="max-h-80 w-72 overflow-auto">
+            {chat.conversationsLoading ? <DropdownMenuItem disabled>{t("aiChat.loadingConversations")}</DropdownMenuItem> : null}
+            {chat.conversations.map((conversation) => (
+              <DropdownMenuItem
+                className={cn("cursor-pointer text-foreground focus:text-foreground", conversation.id === chat.activeConversationId && "bg-secondary font-medium")}
+                key={conversation.id}
+                onSelect={() => chat.selectConversation(conversation.id)}
+              >
+                <span className="truncate">
+                  {conversation.title || t("aiChat.untitledConversation")}
+                </span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <div className="flex flex-none items-center gap-1">
+          <Button
+            className="size-8"
+            disabled={chat.creatingConversation || chat.sending}
+            onClick={() => chat.createConversation(t("aiChat.newConversationTitle"))}
+            size="icon"
+            title={t("aiChat.newConversation")}
+            type="button"
+            variant="ghost"
+          >
+            {chat.creatingConversation ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
+          </Button>
+          <Button className="size-8" onClick={onClose} size="icon" title={t("aiChat.close")} type="button" variant="ghost">
+            <X size={18} />
+          </Button>
         </div>
-      </section>
+      </header>
 
       <section aria-live="polite" className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-4 py-5">
         {chat.messagesLoading ? <p className="m-0 text-xs text-muted-foreground">{t("aiChat.loadingMessages")}</p> : null}
@@ -210,16 +163,33 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
                     <Database size={13} />
                     {t("aiChat.citationsTitle", { count: citations.length })}
                   </div>
-                  {citations.slice(0, 3).map((citation) => (
-                    <p className="m-0 line-clamp-2 leading-5" key={citation.chunkId}>
-                      {citation.preview}
-                    </p>
+                  {citations.slice(0, 3).map((citation, index) => (
+                    <Button
+                      asChild
+                      className="h-auto justify-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-muted-foreground hover:text-foreground"
+                      key={citation.chunkId}
+                      title={t("aiChat.openCitationDocument")}
+                      variant="ghost"
+                    >
+                      <a href={`/documents/${citation.documentId}`} rel="noopener noreferrer" target="_blank">
+                        <span className="mt-0.5 grid size-5 flex-none place-items-center rounded-full bg-secondary text-[10px] font-semibold text-foreground">
+                          {index + 1}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium text-foreground">
+                            {citation.documentTitle || t("aiChat.citationFallbackTitle", { index: index + 1 })}
+                          </span>
+                          <span className="line-clamp-2 leading-5">{citation.preview}</span>
+                        </span>
+                      </a>
+                    </Button>
                   ))}
                 </div>
               ) : null}
             </article>
           );
         })}
+        {waitingForAssistant ? <WaitingAssistantMessage label={t("aiChat.waitingResponse")} /> : null}
         <div ref={messagesEndRef} />
       </section>
 
@@ -251,9 +221,43 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
             value={draft}
           />
           <div className="flex items-center justify-between gap-2 pt-1">
-            <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
-              {selectedModel.displayName} · {t(`aiChat.modes.${selectedMode}`)}
-            </span>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="h-7 max-w-32 justify-start gap-1.5 rounded-full px-2 text-xs text-foreground" disabled={chat.sending} type="button" variant="outline">
+                    <span className="truncate">{selectedModel.displayName}</span>
+                    <ChevronDown className="size-3.5 flex-none" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-80">
+                  {aiModels.map((model) => (
+                    <DropdownMenuItem className="items-start gap-2" key={model.id} onSelect={() => selectModel(model.id)}>
+                      <Check className={cn("mt-0.5 size-4", model.id === selectedModelId ? "opacity-100" : "opacity-0")} />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium text-foreground">{model.displayName}</span>
+                        <span className="block text-xs leading-5 text-muted-foreground">{t(model.descriptionKey)}</span>
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Button
+                aria-pressed={selectedMode === "rag"}
+                className={cn(
+                  "h-7 justify-start gap-1.5 rounded-full px-2 text-xs",
+                  selectedMode === "rag" ? "border-primary/30 bg-secondary text-foreground" : "text-muted-foreground",
+                )}
+                disabled={chat.sending}
+                onClick={toggleKnowledgeMode}
+                title={t(selectedMode === "rag" ? "aiChat.knowledgeModeDisable" : "aiChat.knowledgeModeEnable")}
+                type="button"
+                variant="outline"
+              >
+                <Database size={13} />
+                <span>{t("aiChat.knowledgeMode")}</span>
+              </Button>
+            </div>
             {chat.sending ? (
               <Button onClick={chat.cancelStreaming} size="sm" type="button" variant="outline">
                 {t("aiChat.stop")}
@@ -267,6 +271,23 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
         </div>
       </form>
     </aside>
+  );
+}
+
+function WaitingAssistantMessage({ label }: { label: string }) {
+  return (
+    <article className="flex flex-col items-start gap-1.5">
+      <div className="px-1 text-[11px] font-medium text-muted-foreground">{label}</div>
+      <div className="flex max-w-[92%] items-center gap-2 rounded-2xl rounded-bl-md bg-secondary px-3 py-2.5 text-sm text-muted-foreground">
+        {/* 首个 SSE delta 返回前没有 assistant 临时消息，这里用轻量动画明确展示请求仍在等待上游响应。 */}
+        <Loader2 className="size-4 animate-spin" />
+        <span className="flex items-center gap-1" aria-label={label}>
+          <span className="size-1.5 animate-bounce rounded-full bg-current" />
+          <span className="size-1.5 animate-bounce rounded-full bg-current [animation-delay:120ms]" />
+          <span className="size-1.5 animate-bounce rounded-full bg-current [animation-delay:240ms]" />
+        </span>
+      </div>
+    </article>
   );
 }
 

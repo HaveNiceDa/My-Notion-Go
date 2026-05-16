@@ -41,7 +41,9 @@ export function DocumentNavbar({
 }: DocumentNavbarProps) {
   const { t } = useTranslation();
   const knowledgeBaseEnabled = document?.isInKnowledgeBase ?? ragStatus?.isInKnowledgeBase ?? false;
-  const knowledgeBaseBusy = ragActionLoading || ragStatusLoading;
+  const indexing = ragStatus?.status === "pending" || ragStatus?.status === "indexing";
+  const knowledgeBaseBusy = ragActionLoading || ragStatusLoading || indexing;
+  const knowledgeBaseStatus = getKnowledgeBaseStatusLabel(ragStatus, t);
 
   return (
     <nav className="flex min-h-[45px] items-center justify-between gap-4 border-b border-transparent bg-background px-3">
@@ -65,7 +67,12 @@ export function DocumentNavbar({
             variant="outline"
           >
             {knowledgeBaseBusy ? <Loader2 className="animate-spin" size={14} /> : <Database size={14} />}
-            {knowledgeBaseEnabled ? t("documents.knowledgeBaseOn") : t("documents.knowledgeBaseOff")}
+            <span className="font-medium">{knowledgeBaseEnabled ? t("documents.knowledgeBaseOn") : t("documents.knowledgeBaseOff")}</span>
+            {knowledgeBaseStatus ? (
+              <span className={cn("hidden max-w-28 truncate text-muted-foreground sm:inline", ragStatus?.status === "failed" && "text-[var(--danger)]")} title={ragStatus?.lastError || knowledgeBaseStatus}>
+                {knowledgeBaseStatus}
+              </span>
+            ) : null}
           </Button>
         ) : null}
         <Button onClick={onToggleAIChat} size="sm" type="button" variant="ghost">
@@ -84,4 +91,15 @@ export function DocumentNavbar({
       </div>
     </nav>
   );
+}
+
+function getKnowledgeBaseStatusLabel(ragStatus: RAGDocumentStatus | undefined, t: ReturnType<typeof useTranslation>["t"]) {
+  if (!ragStatus) {
+    return "";
+  }
+
+  if (ragStatus.status === "indexed") {
+    return t("documents.knowledgeBaseStatus.indexed", { count: ragStatus.chunkCount });
+  }
+  return t(`documents.knowledgeBaseStatus.${ragStatus.status}`);
 }

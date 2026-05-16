@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDebounceFn, useMemoizedFn } from "ahooks";
-import { documentApi, type DocumentContent } from "@my-notion-go/api-client";
-import { documentContentQueryKey } from "./queryKeys";
+import { documentApi, type DocumentContent, type RAGDocumentStatus } from "@my-notion-go/api-client";
+import { documentContentQueryKey, ragDocumentStatusQueryKey } from "./queryKeys";
 
 export type AutosaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -20,6 +20,8 @@ export function useAutosaveDocumentContent({ accessToken, documentId }: UseAutos
     mutationFn: (content: unknown[]) => documentApi.updateContent(documentId, { content }, accessToken),
     onSuccess(content) {
       queryClient.setQueryData<DocumentContent>(documentContentQueryKey(documentId), content);
+      markRAGStatusRefreshing(queryClient, documentId);
+      void queryClient.invalidateQueries({ queryKey: ragDocumentStatusQueryKey(documentId) });
       setStatus("saved");
     },
     onError() {
@@ -45,4 +47,19 @@ export function useAutosaveDocumentContent({ accessToken, documentId }: UseAutos
     scheduleSave,
     status,
   };
+}
+
+function markRAGStatusRefreshing(queryClient: ReturnType<typeof useQueryClient>, documentId: string) {
+  queryClient.setQueryData<RAGDocumentStatus>(ragDocumentStatusQueryKey(documentId), (status) => {
+    if (!status?.isInKnowledgeBase || status.status === "disabled") {
+      return status;
+    }
+
+    // 正文保存成功后后端会后台重建索引；前端先进入 indexing，随后由 status query 轮询校准真实结果。
+    return {
+      ...status,
+      status: "indexing",
+      updatedAt: new Date().toISOString(),
+    };
+  });
 }

@@ -90,13 +90,14 @@ type qdrantSearchPoint struct {
 }
 
 type SearchResult struct {
-	ID         string
-	Score      float64
-	UserID     string
-	DocumentID string
-	ChunkID    string
-	Position   int
-	Text       string
+	ID            string
+	Score         float64
+	UserID        string
+	DocumentID    string
+	DocumentTitle string
+	ChunkID       string
+	Position      int
+	Text          string
 }
 
 func NewQdrantClient(cfg QdrantConfig) *QdrantClient {

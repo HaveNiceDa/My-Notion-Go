@@ -90,6 +90,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
         onCreateChild={(parentId) => createDocument.mutate(parentId)}
         onCreateRoot={createRootDocument}
         onLogout={onLogout}
+        onMove={(id, parentId) => updateDocument.mutate({ id, input: { parentId } })}
         onRename={(id, title) => updateDocument.mutate({ id, input: { title } })}
         onToggleTheme={toggleTheme}
         themeMode={themeMode}

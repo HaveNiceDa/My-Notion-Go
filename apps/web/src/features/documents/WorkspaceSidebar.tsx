@@ -19,6 +19,7 @@ type WorkspaceSidebarProps = {
   onCreateRoot: () => void;
   onCreateChild: (parentId: string) => void;
   onLogout: () => void;
+  onMove: (documentId: string, parentId: string) => void;
   onRename: (documentId: string, title: string) => void;
   onToggleTheme: () => void;
 };
@@ -38,6 +39,7 @@ export function WorkspaceSidebar({
   onCreateRoot,
   onCreateChild,
   onLogout,
+  onMove,
   onRename,
   onToggleTheme,
 }: WorkspaceSidebarProps) {
@@ -84,6 +86,7 @@ export function WorkspaceSidebar({
             actionLoading={actionLoading}
             nodes={tree}
             onCreateChild={onCreateChild}
+            onMove={onMove}
             onRename={onRename}
           />
         ) : null}

@@ -282,11 +282,11 @@ func mapDocuments(documents []Document) []DocumentDTO {
 // 算法分两步：先按 id 建 map，保证 O(1) 找父节点；再遍历一次把节点挂到父节点 children。
 func buildTree(documents []Document) []DocumentTreeDTO {
 	nodes := make(map[string]*DocumentTreeDTO, len(documents))
+	childrenByParent := make(map[string][]string, len(documents))
 	rootIDs := make([]string, 0)
 
 	for _, document := range documents {
 		dto := NewDocumentDTO(document)
-		// 这里存指针是为了第二轮遍历时能直接修改同一个节点的 Children。
 		nodes[document.ID] = &DocumentTreeDTO{
 			DocumentDTO: dto,
 			Children:    []DocumentTreeDTO{},
@@ -294,44 +294,41 @@ func buildTree(documents []Document) []DocumentTreeDTO {
 	}
 
 	for _, document := range documents {
-		node := nodes[document.ID]
 		if document.ParentID == nil {
 			rootIDs = append(rootIDs, document.ID)
 			continue
 		}
 
-		parent, ok := nodes[*document.ParentID]
-		if !ok {
+		if _, ok := nodes[*document.ParentID]; !ok {
 			// 父文档不在当前结果中时，将它作为根节点返回，避免侧边栏完全丢失孤儿节点。
 			rootIDs = append(rootIDs, document.ID)
 			continue
 		}
-		parent.Children = append(parent.Children, *node)
+		childrenByParent[*document.ParentID] = append(childrenByParent[*document.ParentID], document.ID)
 	}
 
 	roots := make([]DocumentTreeDTO, 0, len(rootIDs))
 	for _, rootID := range rootIDs {
-		// cloneTree 在最终返回前做一次深拷贝，避免 roots 里拿到的是“挂子节点前”的旧值。
-		roots = append(roots, cloneTree(nodes[rootID]))
+		roots = append(roots, buildTreeNode(rootID, nodes, childrenByParent))
 	}
 
 	return roots
 }
 
-// cloneTree 递归复制节点和 children。
-// 因为 buildTree 内部既有指针节点又有值类型 children，统一深拷贝可以避免引用和值混用带来的树结构丢失。
-func cloneTree(node *DocumentTreeDTO) DocumentTreeDTO {
+// buildTreeNode 按父子 id 索引递归生成树，避免提前 append 值拷贝导致孙级节点丢失。
+func buildTreeNode(id string, nodes map[string]*DocumentTreeDTO, childrenByParent map[string][]string) DocumentTreeDTO {
+	node := nodes[id]
 	if node == nil {
 		return DocumentTreeDTO{}
 	}
 
-	cloned := DocumentTreeDTO{
+	result := DocumentTreeDTO{
 		DocumentDTO: node.DocumentDTO,
-		Children:    make([]DocumentTreeDTO, 0, len(node.Children)),
+		Children:    make([]DocumentTreeDTO, 0, len(childrenByParent[id])),
 	}
-	for i := range node.Children {
-		cloned.Children = append(cloned.Children, cloneTree(&node.Children[i]))
+	for _, childID := range childrenByParent[id] {
+		result.Children = append(result.Children, buildTreeNode(childID, nodes, childrenByParent))
 	}
 
-	return cloned
+	return result
 }

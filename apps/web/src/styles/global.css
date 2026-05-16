@@ -500,6 +500,15 @@ img {
   color: var(--foreground);
 }
 
+.document-tree-row.dragging {
+  opacity: 0.5;
+}
+
+.document-tree-row.drag-over {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
 .tree-chevron {
   display: grid;
   place-items: center;

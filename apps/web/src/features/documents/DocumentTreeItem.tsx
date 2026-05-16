@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
 import { ChevronDown, ChevronRight, FileIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -11,6 +11,7 @@ type DocumentTreeItemProps = {
   level: number;
   node: DocumentTreeNode;
   onCreateChild: (parentId: string) => void;
+  onMove: (documentId: string, parentId: string) => void;
   onRename: (documentId: string, title: string) => void;
 };
 
@@ -21,17 +22,67 @@ export function DocumentTreeItem({
   level,
   node,
   onCreateChild,
+  onMove,
   onRename,
 }: DocumentTreeItemProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
+  const [dragging, setDragging] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const hasChildren = node.children.length > 0;
   const ChevronIcon = expanded ? ChevronDown : ChevronRight;
+
+  const handleDragStart = (event: DragEvent<HTMLDivElement>) => {
+    if (actionLoading) {
+      event.preventDefault();
+      return;
+    }
+    event.dataTransfer.setData("text/plain", node.id);
+    event.dataTransfer.effectAllowed = "move";
+    setDragging(true);
+  };
+
+  const handleDragEnd = () => {
+    setDragging(false);
+    setDragOver(false);
+  };
+
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (event: DragEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    setDragOver(false);
+  };
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragOver(false);
+
+    const draggedDocumentId = event.dataTransfer.getData("text/plain");
+    if (!draggedDocumentId || draggedDocumentId === node.id) {
+      return;
+    }
+
+    onMove(draggedDocumentId, node.id);
+    setExpanded(true);
+  };
 
   return (
     <div>
       <div
-        className={`document-tree-row ${activeDocumentId === node.id ? "active" : ""}`}
+        className={`document-tree-row ${activeDocumentId === node.id ? "active" : ""} ${dragging ? "dragging" : ""} ${dragOver ? "drag-over" : ""}`}
+        draggable={!actionLoading}
+        onDragEnd={handleDragEnd}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDragStart={handleDragStart}
+        onDrop={handleDrop}
         style={{ paddingLeft: `${level * 12 + 12}px` }}
       >
         <button
@@ -64,6 +115,7 @@ export function DocumentTreeItem({
               level={level + 1}
               node={child}
               onCreateChild={onCreateChild}
+              onMove={onMove}
               onRename={onRename}
             />
           ))}

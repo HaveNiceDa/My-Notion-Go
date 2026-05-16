@@ -1,0 +1,43 @@
+### RAG API 调试文件
+### 使用方式：
+### 1. 先启动数据库并执行迁移：pnpm migrate:api
+### 2. 启动 API：pnpm dev:api
+### 3. 先执行 Login，再执行 Create Document，后续请求会复用 accessToken 和 documentId。
+
+@baseUrl = http://localhost:8080
+@email = demo@example.com
+@password = password123
+@deviceName = Local HTTP Client
+
+### Login
+# @name login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "deviceName": "{{deviceName}}"
+}
+
+### Create Document
+# @name createDocument
+POST {{baseUrl}}/api/v1/documents
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+Content-Type: application/json
+
+{
+  "title": "RAG Manual Test"
+}
+
+### Get RAG Status
+GET {{baseUrl}}/api/v1/rag/documents/{{createDocument.response.body.$.data.id}}/status
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+
+### Disable Knowledge Base
+DELETE {{baseUrl}}/api/v1/rag/documents/{{createDocument.response.body.$.data.id}}/index
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+
+### Enable Knowledge Base
+POST {{baseUrl}}/api/v1/rag/documents/{{createDocument.response.body.$.data.id}}/index
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}

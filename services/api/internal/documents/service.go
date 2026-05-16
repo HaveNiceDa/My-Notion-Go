@@ -82,7 +82,9 @@ func (s *Service) CreateDocument(ctx context.Context, input CreateDocumentInput)
 		Title:      normalizeTitle(input.Title),
 		Icon:       strings.TrimSpace(input.Icon),
 		CoverImage: strings.TrimSpace(input.CoverImage),
-		Position:   position,
+		// M5 起产品规则改为“文档默认进入知识库”，后续用户可通过 RAG API 显式关闭。
+		IsInKnowledgeBase: true,
+		Position:          position,
 	}
 	if err := s.repo.CreateWithContent(ctx, &document); err != nil {
 		return DocumentDTO{}, err

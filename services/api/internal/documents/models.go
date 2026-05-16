@@ -17,7 +17,7 @@ type Document struct {
 	IsArchived        bool    `gorm:"not null;default:false"`
 	IsStarred         bool    `gorm:"not null;default:false"`
 	IsPublished       bool    `gorm:"not null;default:false"`
-	IsInKnowledgeBase bool    `gorm:"not null;default:false"`
+	IsInKnowledgeBase bool    `gorm:"not null;default:true"`
 	Position          float64 `gorm:"not null;default:0"`
 	// Path 是一条用 / 拼接的祖先路径，例如 rootID/childID/grandChildID。
 	// 有了 path 后，归档/删除整棵子树可以通过 path LIKE 'root/%' 一次更新，不需要递归查库。

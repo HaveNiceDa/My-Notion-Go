@@ -137,6 +137,9 @@ func main() {
 	// Qdrant 属于 M5 RAG 能力，当前不作为 Auth/Document/AI Chat 的强依赖。
 	// 本地没有启动 Qdrant 时仅记录 warning，后续真正调用 RAG API 时再返回明确业务错误。
 	initializeQdrant(qdrantClient, cfg.QdrantCollection, ai.DefaultEmbeddingDimension)
+	ragRepo := rag.NewRepository(db)
+	ragService := rag.NewService(ragRepo, documentRepo, qdrantClient)
+	ragHandler := rag.NewHandler(ragService)
 	chatService := chat.NewService(chatRepo, aiClient)
 	chatHandler := chat.NewHandler(chatService)
 
@@ -162,6 +165,12 @@ func main() {
 	documentRoutes.POST("/:id/archive", documentHandler.Archive)
 	documentRoutes.POST("/:id/restore", documentHandler.Restore)
 	documentRoutes.DELETE("/:id", documentHandler.Delete)
+
+	// RAG 接口要求登录。M5.1 先提供知识库开关和索引状态骨架，真正切块/向量化在 M5.2 接入。
+	ragRoutes := api.Group("/rag", middleware.RequireAuth(tokenManager))
+	ragRoutes.POST("/documents/:id/index", ragHandler.EnableDocumentIndex)
+	ragRoutes.DELETE("/documents/:id/index", ragHandler.DisableDocumentIndex)
+	ragRoutes.GET("/documents/:id/status", ragHandler.GetDocumentStatus)
 
 	// AI Chat 接口要求登录；配置 LLM_API_KEY 后走真实 OpenAI Compatible SSE，否则保留 mock fallback。
 	aiRoutes := api.Group("/ai", middleware.RequireAuth(tokenManager))

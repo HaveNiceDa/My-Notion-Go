@@ -13,6 +13,14 @@ type ApiEnvelope<T> = {
   };
 };
 
+export const apiUnauthorizedEventName = "my-notion-go:api-unauthorized";
+
+export type ApiUnauthorizedEventDetail = {
+  path: string;
+  status: number;
+  code: string;
+};
+
 export type User = {
   id: string;
   email: string;
@@ -151,9 +159,9 @@ const baseUrl = viteEnv?.VITE_API_BASE_URL ?? defaultBaseUrl;
 // request 是所有 API 调用的唯一出口，统一处理 baseUrl、JSON header、Bearer token 和错误拆包。
 async function request<T>(
   path: string,
-  options: RequestInit & { accessToken?: string } = {},
+  options: RequestInit & { accessToken?: string; suppressUnauthorizedEvent?: boolean } = {},
 ): Promise<T> {
-  const { accessToken, headers, ...fetchOptions } = options;
+  const { accessToken, headers, suppressUnauthorizedEvent = false, ...fetchOptions } = options;
   const response = await fetch(`${baseUrl}${path}`, {
     ...fetchOptions,
     headers: {
@@ -173,6 +181,13 @@ async function request<T>(
   }))) as ApiEnvelope<T>;
 
   if (!response.ok || !envelope.success) {
+    if (response.status === 401 && accessToken && !suppressUnauthorizedEvent) {
+      notifyUnauthorized({
+        path,
+        status: response.status,
+        code: envelope.error?.code ?? "UNAUTHORIZED",
+      });
+    }
     throw new ApiError(
       envelope.error?.message ?? `HTTP ${response.status}`,
       response.status,
@@ -182,6 +197,13 @@ async function request<T>(
 
   // 后端成功响应必须包含 data；这里集中断言类型，业务组件可以直接拿到强类型结果。
   return envelope.data as T;
+}
+
+export function notifyUnauthorized(detail: ApiUnauthorizedEventDetail) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.dispatchEvent(new CustomEvent<ApiUnauthorizedEventDetail>(apiUnauthorizedEventName, { detail }));
 }
 
 export const authApi = {
@@ -217,6 +239,7 @@ export const authApi = {
     return request<User>("/api/v1/me", {
       method: "GET",
       accessToken,
+      suppressUnauthorizedEvent: true,
     });
   },
 };

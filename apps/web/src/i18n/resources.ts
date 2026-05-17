@@ -46,6 +46,10 @@ export const resources = {
         requiredPassword: "请输入密码。",
         minPassword: "密码至少需要 8 位。",
         requestFailed: "请求失败，请稍后重试。",
+        sessionExpiredTitle: "会话已过期",
+        sessionExpiredDescription: "为了保护你的账号安全，请重新登录后继续使用。",
+        sessionExpiredReload: "刷新页面",
+        sessionExpiredRelogin: "重新登录",
       },
       workspace: {
         search: "搜索",
@@ -214,6 +218,10 @@ export const resources = {
         requiredPassword: "Please enter your password.",
         minPassword: "Password must be at least 8 characters.",
         requestFailed: "Request failed. Please try again later.",
+        sessionExpiredTitle: "Session expired",
+        sessionExpiredDescription: "For your account security, please sign in again to continue.",
+        sessionExpiredReload: "Reload page",
+        sessionExpiredRelogin: "Sign in again",
       },
       workspace: {
         search: "Search",

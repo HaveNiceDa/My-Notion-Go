@@ -1,4 +1,4 @@
-import { ApiError, apiClient, type AIConversation, type AIMessage, type StreamAIChatRequest } from "@my-notion-go/api-client";
+import { ApiError, apiClient, notifyUnauthorized, type AIConversation, type AIMessage, type StreamAIChatRequest } from "@my-notion-go/api-client";
 import { createSSEParser } from "./sse";
 import type { AIChatMode, AIChatStreamEvent, RAGCitation } from "./types";
 
@@ -29,6 +29,13 @@ async function streamChat({ accessToken, input, mode, signal, onEvent }: StreamA
 
   if (!response.ok || !response.body) {
     const errorMessage = await readErrorMessage(response);
+    if (response.status === 401) {
+      notifyUnauthorized({
+        path: endpoint,
+        status: response.status,
+        code: "UNAUTHORIZED",
+      });
+    }
     throw new ApiError(errorMessage, response.status);
   }
 

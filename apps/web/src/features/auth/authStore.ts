@@ -22,6 +22,8 @@ type AuthState = {
   applyAuthResult: (result: AuthResult) => void;
   // clearSession 是所有退出和恢复失败路径的统一清理入口。
   clearSession: () => void;
+  // refreshSession 用于业务请求收到 401 后尝试静默续期；失败时由调用方决定是否展示会话过期弹窗。
+  refreshSession: () => Promise<AuthStatus>;
   // restoreSession 在应用启动时从持久化 token 恢复用户态，并在 access token 失效时尝试刷新。
   restoreSession: () => Promise<AuthStatus>;
   // logout 负责调用后端撤销 refresh token，并保证本地状态最终被清理。
@@ -57,6 +59,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       accessToken: "",
       refreshToken: "",
     });
+  },
+
+  async refreshSession() {
+    const refreshToken = get().refreshToken || authStorage.getTokens()?.refreshToken;
+    if (!refreshToken) {
+      get().clearSession();
+      return "unauthenticated";
+    }
+
+    try {
+      const result = await authApi.refresh(refreshToken);
+      get().applyAuthResult(result);
+      return "authenticated";
+    } catch {
+      get().clearSession();
+      return "unauthenticated";
+    }
   },
 
   restoreSession() {

@@ -58,6 +58,19 @@ M7 用于把当前单页 Notion-like MVP 推进到更完整的工程闭环：实
   - 检查依赖启动顺序和 healthcheck。
   - 保证本地环境可一键启动核心服务。
 
+## M7.1 当前状态
+
+- 已新增 `.dockerignore`，避免把本地依赖、构建产物和 `.env` 打进镜像。
+- 已新增 `deployments/docker/api.Dockerfile`，同一镜像产出 `api`、`worker`、`migrate` 三个 Go 二进制。
+- 已新增 `deployments/docker/web.Dockerfile` 和 `deployments/docker/web.nginx.conf`，用于构建并托管 Web 静态产物，支持 SPA fallback 和 `/health`。
+- 已扩展 `docker-compose.yml`：
+  - 基础设施保留 PostgreSQL、RabbitMQ、Qdrant。
+  - PostgreSQL、RabbitMQ、Qdrant、API 增加 healthcheck。
+  - 新增 `app` profile，支持 `migrate`、`api`、`worker`、`web` 容器化演示链路。
+- 已更新 `.env.example`，补充 smoke 变量和 AI/基础设施分组说明。
+- 已新增 `docs/deployment-readiness.md`，覆盖环境变量、Docker Compose 演示、生产部署拆分、健康检查和验证命令。
+- 已更新 `README.md`，补充本地快速开始、Docker Compose 可复现演示和关键验证命令。
+
 ## M7.2 范围
 
 - 测试补强：

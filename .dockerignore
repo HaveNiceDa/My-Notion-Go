@@ -1,0 +1,14 @@
+.git
+.trae
+node_modules
+**/node_modules
+apps/web/dist
+services/api/bin
+tmp
+.env
+.env.*
+!.env.example
+*.log
+coverage
+playwright-report
+test-results

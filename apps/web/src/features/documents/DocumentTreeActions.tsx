@@ -1,4 +1,4 @@
-import { MoreHorizontal, Pencil, Plus } from "lucide-react";
+import { MoreHorizontal, Pencil, Plus, Star, StarOff } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DocumentTreeNode } from "@my-notion-go/api-client";
@@ -11,10 +11,11 @@ type DocumentTreeActionsProps = {
   node: DocumentTreeNode;
   onCreateChild: (parentId: string) => void;
   onRename: (documentId: string, title: string) => void;
+  onToggleStar: (documentId: string, starred: boolean) => void;
 };
 
 // DocumentTreeActions 对齐原 My-Notion Item：hover 后右侧只露出更多菜单和加号，重命名放进菜单弹窗。
-export function DocumentTreeActions({ disabled, node, onCreateChild, onRename }: DocumentTreeActionsProps) {
+export function DocumentTreeActions({ disabled, node, onCreateChild, onRename, onToggleStar }: DocumentTreeActionsProps) {
   const { t } = useTranslation();
   const [renameOpen, setRenameOpen] = useState(false);
   const actionButtonClass = "h-[22px] w-5 rounded p-0 text-muted-foreground opacity-0 hover:bg-[var(--secondary-hover)] group-hover:opacity-100 group-focus-within:opacity-100";
@@ -38,6 +39,17 @@ export function DocumentTreeActions({ disabled, node, onCreateChild, onRename }:
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" side="right">
           <DropdownMenuItem
+            disabled={disabled}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleStar(node.id, node.isStarred);
+            }}
+          >
+            {node.isStarred ? <StarOff size={14} /> : <Star size={14} />}
+            <span>{node.isStarred ? t("documents.unstarPage") : t("documents.starPage")}</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={disabled}
             onClick={(event) => {
               event.stopPropagation();
               setRenameOpen(true);

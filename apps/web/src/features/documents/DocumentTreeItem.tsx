@@ -16,6 +16,7 @@ type DocumentTreeItemProps = {
   onOpenDocument: () => void;
   onMove: (documentId: string, parentId: string) => void;
   onRename: (documentId: string, title: string) => void;
+  onToggleStar: (documentId: string, starred: boolean) => void;
 };
 
 // DocumentTreeItem 对齐原 Item.tsx：负责单行缩进、展开折叠、当前态和 hover 新建子页按钮。
@@ -28,6 +29,7 @@ export function DocumentTreeItem({
   onOpenDocument,
   onMove,
   onRename,
+  onToggleStar,
 }: DocumentTreeItemProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
@@ -114,6 +116,7 @@ export function DocumentTreeItem({
           node={node}
           onCreateChild={onCreateChild}
           onRename={onRename}
+          onToggleStar={onToggleStar}
         />
       </div>
       {expanded && hasChildren ? (
@@ -129,6 +132,7 @@ export function DocumentTreeItem({
               onOpenDocument={onOpenDocument}
               onMove={onMove}
               onRename={onRename}
+              onToggleStar={onToggleStar}
             />
           ))}
         </div>

@@ -1,4 +1,4 @@
-import { Archive, Bot, Database, Loader2, MenuIcon, Moon, Sun } from "lucide-react";
+import { Archive, Bot, Database, Loader2, MenuIcon, Moon, Star, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Document } from "@my-notion-go/api-client";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,13 @@ type DocumentNavbarProps = {
   hasActiveDocument: boolean;
   loading: boolean;
   ragActionLoading: boolean;
+  starActionLoading: boolean;
   sidebarCollapsed: boolean;
   themeMode: "light" | "dark";
   onArchive: () => void;
   onToggleAIChat: () => void;
   onToggleKnowledgeBase: () => void;
+  onToggleStar: () => void;
   onExpandSidebar: () => void;
   onToggleTheme: () => void;
 };
@@ -27,11 +29,13 @@ export function DocumentNavbar({
   hasActiveDocument,
   loading,
   ragActionLoading,
+  starActionLoading,
   sidebarCollapsed,
   themeMode,
   onArchive,
   onToggleAIChat,
   onToggleKnowledgeBase,
+  onToggleStar,
   onExpandSidebar,
   onToggleTheme,
 }: DocumentNavbarProps) {
@@ -47,6 +51,24 @@ export function DocumentNavbar({
       ) : null}
       <DocumentNavbarTitle document={document} loading={loading} />
       <div className="flex items-center gap-2">
+        {hasActiveDocument ? (
+          <Button
+            aria-pressed={Boolean(document?.isStarred)}
+            className={cn(
+              "h-8 rounded-full px-2.5 text-xs transition-colors",
+              document?.isStarred ? "border-primary/30 bg-secondary text-foreground hover:bg-secondary/80" : "border-border bg-background text-muted-foreground hover:text-foreground",
+            )}
+            disabled={starActionLoading}
+            onClick={onToggleStar}
+            size="sm"
+            title={document?.isStarred ? t("documents.unstarPage") : t("documents.starPage")}
+            type="button"
+            variant="outline"
+          >
+            {starActionLoading ? <Loader2 className="animate-spin" size={14} /> : <Star size={14} />}
+            <span className="font-medium">{t("documents.favorite")}</span>
+          </Button>
+        ) : null}
         {hasActiveDocument ? (
           <Button
             aria-checked={knowledgeBaseEnabled}

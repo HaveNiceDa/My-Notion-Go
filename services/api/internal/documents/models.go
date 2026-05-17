@@ -19,6 +19,7 @@ type Document struct {
 	IsPublished       bool    `gorm:"not null;default:false"`
 	IsInKnowledgeBase bool    `gorm:"not null;default:true"`
 	Position          float64 `gorm:"not null;default:0"`
+	StarredPosition   *float64
 	// Path 是一条用 / 拼接的祖先路径，例如 rootID/childID/grandChildID。
 	// 有了 path 后，归档/删除整棵子树可以通过 path LIKE 'root/%' 一次更新，不需要递归查库。
 	Path string `gorm:"not null;default:''"`
@@ -73,6 +74,7 @@ type DocumentDTO struct {
 	IsPublished       bool      `json:"isPublished"`
 	IsInKnowledgeBase bool      `json:"isInKnowledgeBase"`
 	Position          float64   `json:"position"`
+	StarredPosition   *float64  `json:"starredPosition"`
 	Path              string    `json:"path"`
 	CreatedAt         time.Time `json:"createdAt"`
 	UpdatedAt         time.Time `json:"updatedAt"`
@@ -107,6 +109,7 @@ func NewDocumentDTO(document Document) DocumentDTO {
 		IsPublished:       document.IsPublished,
 		IsInKnowledgeBase: document.IsInKnowledgeBase,
 		Position:          document.Position,
+		StarredPosition:   document.StarredPosition,
 		Path:              document.Path,
 		CreatedAt:         document.CreatedAt,
 		UpdatedAt:         document.UpdatedAt,

@@ -65,6 +65,7 @@ export type Document = {
 	isPublished: boolean;
 	isInKnowledgeBase: boolean;
 	position: number;
+	starredPosition: number | null;
 	path: string;
 	createdAt: string;
 	updatedAt: string;
@@ -306,6 +307,14 @@ export const documentApi = {
 			method: "PATCH",
 			accessToken,
 			body: JSON.stringify(input),
+		});
+	},
+
+	updateFavoritesOrder(orderedIds: string[], accessToken: string) {
+		return request<{ message: string }>("/api/v1/documents/favorites/order", {
+			method: "PUT",
+			accessToken,
+			body: JSON.stringify({ orderedIds }),
 		});
 	},
 

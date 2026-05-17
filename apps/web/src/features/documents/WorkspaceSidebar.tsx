@@ -1,5 +1,5 @@
-import { LogOut, Moon, PanelLeftClose, Plus, Search, Settings, Sun, Trash2 } from "lucide-react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import { FileIcon, LogOut, Moon, PanelLeftClose, Plus, Search, Settings, Sun, Trash2 } from "lucide-react";
+import { useState, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { User, DocumentTreeNode } from "@my-notion-go/api-client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ type WorkspaceSidebarProps = {
   actionLoading: boolean;
   collapsed: boolean;
   createLoading: boolean;
+  favoriteDocuments: DocumentTreeNode[];
   logoutLoading: boolean;
   themeMode: "light" | "dark";
   tree: DocumentTreeNode[] | undefined;
@@ -25,9 +26,12 @@ type WorkspaceSidebarProps = {
   onLogout: () => void;
   onMove: (documentId: string, parentId: string) => void;
   onOpenDocument: () => void;
+  onOpenFavorite: (documentId: string) => void;
   onOpenSearch: () => void;
   onOpenTrash: () => void;
+  onReorderFavorites: (sourceDocumentId: string, targetDocumentId: string) => void;
   onRename: (documentId: string, title: string) => void;
+  onToggleStar: (documentId: string, starred: boolean) => void;
   onResizeStart: (event: ReactPointerEvent<HTMLElement>) => void;
   onToggleTheme: () => void;
 };
@@ -39,6 +43,7 @@ export function WorkspaceSidebar({
   actionLoading,
   collapsed,
   createLoading,
+  favoriteDocuments,
   logoutLoading,
   themeMode,
   tree,
@@ -51,15 +56,39 @@ export function WorkspaceSidebar({
   onLogout,
   onMove,
   onOpenDocument,
+  onOpenFavorite,
   onOpenSearch,
   onOpenTrash,
+  onReorderFavorites,
   onRename,
+  onToggleStar,
   onResizeStart,
   onToggleTheme,
 }: WorkspaceSidebarProps) {
   const { t } = useTranslation();
+  const [draggingFavoriteId, setDraggingFavoriteId] = useState<string | null>(null);
+  const [dragOverFavoriteId, setDragOverFavoriteId] = useState<string | null>(null);
   const sidebarRowClass = "min-h-[30px] w-full justify-start gap-2 rounded px-2.5 text-left text-sm font-medium text-muted-foreground hover:bg-[var(--secondary-hover)] hover:text-muted-foreground";
   const activeSidebarRowClass = "bg-[color-mix(in_srgb,var(--primary)_8%,transparent)] text-foreground";
+
+  const handleFavoriteDragStart = (event: ReactDragEvent<HTMLDivElement>, documentId: string) => {
+    event.stopPropagation();
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("application/x-my-notion-go-favorite-id", documentId);
+    setDraggingFavoriteId(documentId);
+  };
+
+  const handleFavoriteDrop = (event: ReactDragEvent<HTMLDivElement>, targetDocumentId: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const sourceDocumentId = event.dataTransfer.getData("application/x-my-notion-go-favorite-id");
+    setDraggingFavoriteId(null);
+    setDragOverFavoriteId(null);
+    if (!sourceDocumentId || sourceDocumentId === targetDocumentId) {
+      return;
+    }
+    onReorderFavorites(sourceDocumentId, targetDocumentId);
+  };
 
   return (
     <aside
@@ -96,8 +125,53 @@ export function WorkspaceSidebar({
         </Button>
       </nav>
 
+      {favoriteDocuments.length ? (
+        <section className="mt-4">
+          <div className="flex min-h-[32px] items-center px-2 pl-3 text-sm font-semibold text-muted-foreground">
+            <span>{t("workspace.favorites")}</span>
+          </div>
+          <div className="grid gap-px">
+            {favoriteDocuments.map((document) => (
+              <div
+                className={`rounded ${
+                  activeDocumentId === document.id ? "bg-[color-mix(in_srgb,var(--primary)_8%,transparent)] text-foreground" : ""
+                } ${draggingFavoriteId === document.id ? "opacity-50" : ""} ${
+                  dragOverFavoriteId === document.id ? "bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] shadow-[inset_2px_0_0_var(--primary)]" : ""
+                }`}
+                draggable
+                key={document.id}
+                onDragEnd={() => {
+                  setDraggingFavoriteId(null);
+                  setDragOverFavoriteId(null);
+                }}
+                onDragLeave={() => setDragOverFavoriteId(null)}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  if (draggingFavoriteId && draggingFavoriteId !== document.id) {
+                    setDragOverFavoriteId(document.id);
+                  }
+                }}
+                onDragStart={(event) => handleFavoriteDragStart(event, document.id)}
+                onDrop={(event) => handleFavoriteDrop(event, document.id)}
+              >
+                <Button
+                  className="h-[30px] w-full justify-start gap-[7px] rounded px-3 text-sm font-medium text-muted-foreground hover:bg-[var(--secondary-hover)] hover:text-muted-foreground"
+                  onClick={() => onOpenFavorite(document.id)}
+                  type="button"
+                  variant="ghost"
+                >
+                  {document.icon ? <span className="text-[17px]">{document.icon}</span> : <FileIcon size={18} />}
+                  <span className="truncate">{document.title}</span>
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section className="mt-4">
-        <div className="flex min-h-[30px] items-center justify-between px-2 pl-3 text-xs font-semibold text-muted-foreground">
+        <div className="flex min-h-[32px] items-center justify-between px-2 pl-3 text-sm font-semibold text-muted-foreground">
           <span>{t("workspace.private")}</span>
           <Button aria-label={t("workspace.newPage")} className="size-7" disabled={createLoading} onClick={onCreateRoot} size="icon" type="button" variant="ghost">
             <Plus size={16} />
@@ -114,6 +188,7 @@ export function WorkspaceSidebar({
             onOpenDocument={onOpenDocument}
             onMove={onMove}
             onRename={onRename}
+            onToggleStar={onToggleStar}
           />
         ) : null}
         {tree && tree.length === 0 ? <p className="mx-3 my-1.5 text-[13px] text-muted-foreground">{t("workspace.noPages")}</p> : null}

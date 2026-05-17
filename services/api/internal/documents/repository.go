@@ -143,6 +143,23 @@ func (r *Repository) NextPosition(ctx context.Context, userID string, parentID *
 	return r.nextPosition(ctx, r.db.WithContext(ctx), userID, parentID)
 }
 
+func (r *Repository) NextStarredPosition(ctx context.Context, userID string) (float64, error) {
+	var maxPosition sql.NullFloat64
+	if err := r.db.WithContext(ctx).
+		Model(&Document{}).
+		Where("user_id = ? AND is_starred = TRUE AND is_archived = FALSE AND deleted_at IS NULL", userID).
+		Select("MAX(starred_position)").
+		Scan(&maxPosition).
+		Error; err != nil {
+		return 0, err
+	}
+	if !maxPosition.Valid {
+		return 1, nil
+	}
+
+	return maxPosition.Float64 + 1, nil
+}
+
 func (r *Repository) nextPosition(ctx context.Context, db *gorm.DB, userID string, parentID *string) (float64, error) {
 	var maxPosition sql.NullFloat64
 	query := db.WithContext(ctx).
@@ -180,6 +197,23 @@ func (r *Repository) UpdateMetadata(ctx context.Context, userID string, document
 	}
 
 	return r.FindByID(ctx, userID, documentID)
+}
+
+func (r *Repository) UpdateStarredPositions(ctx context.Context, userID string, orderedIDs []string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for index, documentID := range orderedIDs {
+			result := tx.Model(&Document{}).
+				Where("id = ? AND user_id = ? AND is_starred = TRUE AND is_archived = FALSE AND deleted_at IS NULL", documentID, userID).
+				Update("starred_position", float64(index+1))
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected == 0 {
+				return ErrInvalidInput
+			}
+		}
+		return nil
+	})
 }
 
 // Move 把文档移动到新的父文档下，并同步更新整棵子树的 path。

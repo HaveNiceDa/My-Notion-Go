@@ -59,6 +59,11 @@ type SearchDocumentsInput struct {
 	Limit           int
 }
 
+type UpdateFavoritesOrderInput struct {
+	UserID     string
+	OrderedIDs []string
+}
+
 // NewService 注入 Repository。
 // 这样 Service 可以专注业务规则，具体数据库实现仍然被 Repository 隔离。
 func NewService(repo *Repository) *Service {
@@ -199,6 +204,15 @@ func (s *Service) UpdateDocument(ctx context.Context, input UpdateDocumentInput)
 	}
 	if input.IsStarred != nil {
 		updates["is_starred"] = *input.IsStarred
+		if *input.IsStarred {
+			starredPosition, err := s.repo.NextStarredPosition(ctx, input.UserID)
+			if err != nil {
+				return DocumentDTO{}, err
+			}
+			updates["starred_position"] = starredPosition
+		} else {
+			updates["starred_position"] = nil
+		}
 	}
 	if input.ParentID != nil {
 		parentID := normalizeOptionalID(input.ParentID)
@@ -226,6 +240,29 @@ func (s *Service) UpdateDocument(ctx context.Context, input UpdateDocumentInput)
 	}
 
 	return NewDocumentDTO(document), nil
+}
+
+func (s *Service) UpdateFavoritesOrder(ctx context.Context, input UpdateFavoritesOrderInput) error {
+	userID := strings.TrimSpace(input.UserID)
+	if userID == "" || len(input.OrderedIDs) == 0 {
+		return ErrInvalidInput
+	}
+
+	seen := make(map[string]struct{}, len(input.OrderedIDs))
+	orderedIDs := make([]string, 0, len(input.OrderedIDs))
+	for _, id := range input.OrderedIDs {
+		id = strings.TrimSpace(id)
+		if !isValidUUID(id) {
+			return ErrInvalidInput
+		}
+		if _, ok := seen[id]; ok {
+			return ErrInvalidInput
+		}
+		seen[id] = struct{}{}
+		orderedIDs = append(orderedIDs, id)
+	}
+
+	return s.repo.UpdateStarredPositions(ctx, userID, orderedIDs)
 }
 
 // ArchiveDocument 把根文档和所有后代文档移动到回收站。

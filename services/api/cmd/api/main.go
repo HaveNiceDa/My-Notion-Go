@@ -163,6 +163,7 @@ func main() {
 	documentRoutes.GET("/search", documentHandler.Search)
 	documentRoutes.GET("/tree", documentHandler.Tree)
 	documentRoutes.GET("/trash", documentHandler.Trash)
+	documentRoutes.PUT("/favorites/order", documentHandler.UpdateFavoritesOrder)
 	documentRoutes.GET("/:id/content", documentHandler.GetContent)
 	documentRoutes.PUT("/:id/content", documentHandler.UpdateContent)
 	documentRoutes.GET("/:id", documentHandler.Get)

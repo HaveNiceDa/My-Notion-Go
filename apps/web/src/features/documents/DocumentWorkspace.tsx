@@ -4,7 +4,7 @@ import { useMemoizedFn } from "ahooks";
 import { Bot } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { documentApi, ragApi, type UpdateDocumentRequest } from "@my-notion-go/api-client";
+import { documentApi, ragApi, type DocumentTreeNode, type UpdateDocumentRequest } from "@my-notion-go/api-client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useResizableWidth } from "@/hooks/useResizableWidth";
@@ -65,6 +65,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
     queryFn: () => documentApi.get(documentId!, accessToken),
     enabled: Boolean(accessToken && documentId),
   });
+  const favoriteDocuments = useMemo(() => orderFavoriteDocuments(collectFavoriteDocuments(treeQuery.data ?? [])), [treeQuery.data]);
   const createDocument = useMutation({
     mutationFn: (parentId?: string) =>
       documentApi.create(
@@ -83,6 +84,35 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
     mutationFn: ({ id, input }: { id: string; input: UpdateDocumentRequest }) => documentApi.update(id, input, accessToken),
     onSuccess(document) {
       queryClient.setQueryData(documentQueryKey(document.id), document);
+      void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
+    },
+  });
+  const toggleStarDocument = useMutation({
+    mutationFn: ({ id, starred }: { id: string; starred: boolean }) => documentApi.update(id, { isStarred: !starred }, accessToken),
+    onSuccess(document) {
+      queryClient.setQueryData(documentQueryKey(document.id), document);
+      void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
+      toast.success(document.isStarred ? t("favorites.starSuccess") : t("favorites.unstarSuccess"));
+    },
+    onError() {
+      toast.error(t("favorites.updateFailed"));
+    },
+  });
+  const reorderFavoritesMutation = useMutation({
+    mutationFn: (orderedIds: string[]) => documentApi.updateFavoritesOrder(orderedIds, accessToken),
+    async onMutate(orderedIds) {
+      await queryClient.cancelQueries({ queryKey: documentsQueryKey });
+      const previousTree = queryClient.getQueryData<DocumentTreeNode[]>(documentsQueryKey);
+      queryClient.setQueryData<DocumentTreeNode[]>(documentsQueryKey, (tree) => (tree ? applyStarredPositions(tree, orderedIds) : tree));
+      return { previousTree };
+    },
+    onError(_error, _orderedIds, context) {
+      if (context?.previousTree) {
+        queryClient.setQueryData(documentsQueryKey, context.previousTree);
+      }
+      toast.error(t("favorites.updateFailed"));
+    },
+    onSettled() {
       void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
     },
   });
@@ -148,8 +178,21 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
     const enabled = currentDocumentQuery.data.isInKnowledgeBase;
     toggleKnowledgeBase.mutate({ id: documentId, enabled });
   });
+  const toggleCurrentStar = useMemoizedFn(() => {
+    if (!documentId || !currentDocumentQuery.data) {
+      return;
+    }
+    toggleStarDocument.mutate({ id: documentId, starred: currentDocumentQuery.data.isStarred });
+  });
   const openDocumentView = useMemoizedFn(() => {
     setViewMode("documents");
+  });
+  const openFavoriteDocument = useMemoizedFn((id: string) => {
+    setViewMode("documents");
+    navigate(`/documents/${id}`);
+  });
+  const reorderFavorites = useMemoizedFn((sourceDocumentId: string, targetDocumentId: string) => {
+    reorderFavoritesMutation.mutate(reorderFavoriteOrder(favoriteDocuments, sourceDocumentId, targetDocumentId));
   });
   const openTrashView = useMemoizedFn(() => {
     setViewMode("trash");
@@ -167,9 +210,10 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
       <WorkspaceSidebar
         activeDocumentId={documentId}
         activeView={viewMode}
-        actionLoading={createDocument.isPending || updateDocument.isPending}
+        actionLoading={createDocument.isPending || updateDocument.isPending || toggleStarDocument.isPending || reorderFavoritesMutation.isPending}
         collapsed={sidebarCollapsed}
         createLoading={createDocument.isPending}
+        favoriteDocuments={favoriteDocuments}
         logoutLoading={logoutLoading}
         onCollapse={() => setSidebarCollapsed(true)}
         onCreateChild={(parentId) => createDocument.mutate(parentId)}
@@ -177,9 +221,12 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
         onLogout={onLogout}
         onMove={(id, parentId) => updateDocument.mutate({ id, input: { parentId } })}
         onOpenDocument={openDocumentView}
+        onOpenFavorite={openFavoriteDocument}
         onOpenSearch={openSearchCommand}
         onOpenTrash={openTrashView}
+        onReorderFavorites={reorderFavorites}
         onRename={(id, title) => updateDocument.mutate({ id, input: { title } })}
+        onToggleStar={(id, starred) => toggleStarDocument.mutate({ id, starred })}
         onToggleTheme={toggleTheme}
         themeMode={themeMode}
         tree={treeQuery.data}
@@ -199,8 +246,10 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
           onExpandSidebar={() => setSidebarCollapsed(false)}
           onToggleAIChat={() => setAIChatOpen((open) => !open)}
           onToggleKnowledgeBase={toggleCurrentKnowledgeBase}
+          onToggleStar={toggleCurrentStar}
           onToggleTheme={toggleTheme}
           ragActionLoading={toggleKnowledgeBase.isPending}
+          starActionLoading={toggleStarDocument.isPending}
           sidebarCollapsed={sidebarCollapsed}
           themeMode={themeMode}
         />
@@ -268,4 +317,54 @@ function getCitationTarget(searchParams: URLSearchParams) {
     chunkId,
     position: Number.isFinite(position) ? position : undefined,
   };
+}
+
+function collectFavoriteDocuments(nodes: DocumentTreeNode[]): DocumentTreeNode[] {
+  const result: DocumentTreeNode[] = [];
+  for (const node of nodes) {
+    if (node.isStarred && !node.isArchived) {
+      result.push({ ...node, children: [] });
+    }
+    result.push(...collectFavoriteDocuments(node.children));
+  }
+
+  return result;
+}
+
+function orderFavoriteDocuments(documents: DocumentTreeNode[]) {
+  return [...documents].sort((a, b) => {
+    const aPosition = a.starredPosition;
+    const bPosition = b.starredPosition;
+    if (aPosition != null && bPosition != null && aPosition !== bPosition) {
+      return aPosition - bPosition;
+    }
+    if (aPosition != null && bPosition == null) {
+      return -1;
+    }
+    if (aPosition == null && bPosition != null) {
+      return 1;
+    }
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+}
+
+function reorderFavoriteOrder(documents: DocumentTreeNode[], sourceDocumentId: string, targetDocumentId: string) {
+  const ids = documents.map((document) => document.id);
+  const sourceIndex = ids.indexOf(sourceDocumentId);
+  const targetIndex = ids.indexOf(targetDocumentId);
+  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+    return ids;
+  }
+  const [sourceId] = ids.splice(sourceIndex, 1);
+  ids.splice(targetIndex, 0, sourceId);
+  return ids;
+}
+
+function applyStarredPositions(nodes: DocumentTreeNode[], orderedIds: string[]): DocumentTreeNode[] {
+  const positionByID = new Map(orderedIds.map((id, index) => [id, index + 1]));
+  return nodes.map((node) => ({
+    ...node,
+    starredPosition: positionByID.get(node.id) ?? node.starredPosition,
+    children: applyStarredPositions(node.children, orderedIds),
+  }));
 }

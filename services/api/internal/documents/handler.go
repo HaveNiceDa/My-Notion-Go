@@ -40,6 +40,10 @@ type updateDocumentRequest struct {
 	ParentID   *string `json:"parentId"`
 }
 
+type updateFavoritesOrderRequest struct {
+	OrderedIDs []string `json:"orderedIds" binding:"required"`
+}
+
 // NewHandler 注入 Service。
 // Handler 只处理 HTTP 细节：绑定参数、读取登录用户、把业务结果写成统一响应。
 func NewHandler(service *Service) *Handler {
@@ -196,6 +200,31 @@ func (h *Handler) Update(c *gin.Context) {
 	}
 
 	response.OK(c, document)
+}
+
+// UpdateFavoritesOrder 处理 PUT /api/v1/documents/favorites/order。
+// 收藏排序独立于文档树 position，只更新当前用户收藏区的展示顺序。
+func (h *Handler) UpdateFavoritesOrder(c *gin.Context) {
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	var req updateFavoritesOrderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, "BAD_REQUEST", "Invalid favorites order request.")
+		return
+	}
+
+	if err := h.service.UpdateFavoritesOrder(c.Request.Context(), UpdateFavoritesOrderInput{
+		UserID:     userID,
+		OrderedIDs: req.OrderedIDs,
+	}); err != nil {
+		writeDocumentError(c, err)
+		return
+	}
+
+	response.OK(c, gin.H{"message": "Favorites order updated."})
 }
 
 // Archive 处理 POST /api/v1/documents/:id/archive。

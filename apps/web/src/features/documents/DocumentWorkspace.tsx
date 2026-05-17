@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemoizedFn } from "ahooks";
 import { Bot } from "lucide-react";
@@ -16,8 +16,9 @@ import { useThemeStore } from "../theme/themeStore";
 import { DocumentDetail } from "./DocumentDetail";
 import { DocumentNavbar } from "./DocumentNavbar";
 import { EmptyDocuments } from "./EmptyDocuments";
+import { TrashView } from "./TrashView";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
-import { documentQueryKey, documentsQueryKey } from "./queryKeys";
+import { documentQueryKey, documentsQueryKey, documentsTrashQueryKey } from "./queryKeys";
 
 type DocumentWorkspaceProps = {
   onLogout: () => void;
@@ -38,6 +39,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
   const toggleTheme = useThemeStore((state) => state.toggle);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [aiChatOpen, setAIChatOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"documents" | "trash">("documents");
   const citationTarget = useMemo(() => getCitationTarget(searchParams), [searchParams]);
   // sidebar 宽度属于整体工作区布局状态，放在容器层可避免侧边栏内部重渲染时丢失宽度。
   const sidebarResize = useResizableWidth({
@@ -52,6 +54,11 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
     queryKey: documentsQueryKey,
     queryFn: () => documentApi.tree(accessToken),
     enabled: Boolean(accessToken),
+  });
+  const trashQuery = useQuery({
+    queryKey: documentsTrashQueryKey,
+    queryFn: () => documentApi.trash(accessToken),
+    enabled: Boolean(accessToken && viewMode === "trash"),
   });
   const currentDocumentQuery = useQuery({
     queryKey: documentQueryKey(documentId),
@@ -83,7 +90,30 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
     mutationFn: (id: string) => documentApi.archive(id, accessToken),
     onSuccess() {
       void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: documentsTrashQueryKey });
       navigate("/app");
+    },
+  });
+  const restoreDocument = useMutation({
+    mutationFn: (id: string) => documentApi.restore(id, accessToken),
+    onSuccess() {
+      void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: documentsTrashQueryKey });
+      toast.success(t("trash.restoreSuccess"));
+    },
+    onError() {
+      toast.error(t("trash.restoreFailed"));
+    },
+  });
+  const deleteDocument = useMutation({
+    mutationFn: (id: string) => documentApi.delete(id, accessToken),
+    onSuccess() {
+      void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: documentsTrashQueryKey });
+      toast.success(t("trash.deleteSuccess"));
+    },
+    onError() {
+      toast.error(t("trash.deleteFailed"));
     },
   });
   const toggleKnowledgeBase = useMutation({
@@ -118,11 +148,25 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
     const enabled = currentDocumentQuery.data.isInKnowledgeBase;
     toggleKnowledgeBase.mutate({ id: documentId, enabled });
   });
+  const openDocumentView = useMemoizedFn(() => {
+    setViewMode("documents");
+  });
+  const openTrashView = useMemoizedFn(() => {
+    setViewMode("trash");
+    navigate("/app");
+  });
+
+  useEffect(() => {
+    if (documentId) {
+      setViewMode("documents");
+    }
+  }, [documentId]);
 
   return (
     <main className="flex h-screen w-screen overflow-hidden bg-background">
       <WorkspaceSidebar
         activeDocumentId={documentId}
+        activeView={viewMode}
         actionLoading={createDocument.isPending || updateDocument.isPending}
         collapsed={sidebarCollapsed}
         createLoading={createDocument.isPending}
@@ -132,7 +176,9 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
         onCreateRoot={createRootDocument}
         onLogout={onLogout}
         onMove={(id, parentId) => updateDocument.mutate({ id, input: { parentId } })}
+        onOpenDocument={openDocumentView}
         onOpenSearch={openSearchCommand}
+        onOpenTrash={openTrashView}
         onRename={(id, title) => updateDocument.mutate({ id, input: { title } })}
         onToggleTheme={toggleTheme}
         themeMode={themeMode}
@@ -160,7 +206,16 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
         />
 
         <div className="min-h-0 flex-1 overflow-auto">
-          {documentId ? (
+          {viewMode === "trash" ? (
+            <TrashView
+              deletingId={deleteDocument.isPending ? deleteDocument.variables : undefined}
+              documents={trashQuery.data}
+              loading={trashQuery.isLoading}
+              onDelete={(id) => deleteDocument.mutate(id)}
+              onRestore={(id) => restoreDocument.mutate(id)}
+              restoringId={restoreDocument.isPending ? restoreDocument.variables : undefined}
+            />
+          ) : documentId ? (
             <DocumentDetail
               citationTarget={citationTarget}
               document={currentDocumentQuery.data}

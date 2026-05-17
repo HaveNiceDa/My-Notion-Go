@@ -272,6 +272,13 @@ export const documentApi = {
 		});
 	},
 
+	trash(accessToken: string) {
+		return request<Document[]>("/api/v1/documents/trash", {
+			method: "GET",
+			accessToken,
+		});
+	},
+
 	search(query: string, accessToken: string, options: SearchDocumentsOptions = {}) {
 		const params = new URLSearchParams({
 			q: query,
@@ -305,6 +312,20 @@ export const documentApi = {
 	archive(documentId: string, accessToken: string) {
 		return request<{ message: string }>(`/api/v1/documents/${documentId}/archive`, {
 			method: "POST",
+			accessToken,
+		});
+	},
+
+	restore(documentId: string, accessToken: string) {
+		return request<{ message: string }>(`/api/v1/documents/${documentId}/restore`, {
+			method: "POST",
+			accessToken,
+		});
+	},
+
+	delete(documentId: string, accessToken: string) {
+		return request<{ message: string }>(`/api/v1/documents/${documentId}`, {
+			method: "DELETE",
 			accessToken,
 		});
 	},

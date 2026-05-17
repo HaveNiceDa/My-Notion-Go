@@ -1,4 +1,4 @@
-import { LogOut, Moon, PanelLeftClose, Plus, Search, Settings, Sun } from "lucide-react";
+import { LogOut, Moon, PanelLeftClose, Plus, Search, Settings, Sun, Trash2 } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { User, DocumentTreeNode } from "@my-notion-go/api-client";
@@ -9,6 +9,7 @@ import { TreeSkeleton } from "./TreeSkeleton";
 
 type WorkspaceSidebarProps = {
   activeDocumentId?: string;
+  activeView: "documents" | "trash";
   actionLoading: boolean;
   collapsed: boolean;
   createLoading: boolean;
@@ -23,7 +24,9 @@ type WorkspaceSidebarProps = {
   onCreateChild: (parentId: string) => void;
   onLogout: () => void;
   onMove: (documentId: string, parentId: string) => void;
+  onOpenDocument: () => void;
   onOpenSearch: () => void;
+  onOpenTrash: () => void;
   onRename: (documentId: string, title: string) => void;
   onResizeStart: (event: ReactPointerEvent<HTMLElement>) => void;
   onToggleTheme: () => void;
@@ -32,6 +35,7 @@ type WorkspaceSidebarProps = {
 // WorkspaceSidebar 对齐原 Navigation：集中负责用户区、基础入口、文档树和底部操作。
 export function WorkspaceSidebar({
   activeDocumentId,
+  activeView,
   actionLoading,
   collapsed,
   createLoading,
@@ -46,13 +50,16 @@ export function WorkspaceSidebar({
   onCreateChild,
   onLogout,
   onMove,
+  onOpenDocument,
   onOpenSearch,
+  onOpenTrash,
   onRename,
   onResizeStart,
   onToggleTheme,
 }: WorkspaceSidebarProps) {
   const { t } = useTranslation();
   const sidebarRowClass = "min-h-[30px] w-full justify-start gap-2 rounded px-2.5 text-left text-sm font-medium text-muted-foreground hover:bg-[var(--secondary-hover)] hover:text-muted-foreground";
+  const activeSidebarRowClass = "bg-[color-mix(in_srgb,var(--primary)_8%,transparent)] text-foreground";
 
   return (
     <aside
@@ -83,6 +90,10 @@ export function WorkspaceSidebar({
           <Settings size={18} />
           <span>{t("workspace.settings")}</span>
         </Button>
+        <Button className={`${sidebarRowClass} ${activeView === "trash" ? activeSidebarRowClass : ""}`} onClick={onOpenTrash} type="button" variant="ghost">
+          <Trash2 size={18} />
+          <span>{t("workspace.trash")}</span>
+        </Button>
       </nav>
 
       <section className="mt-4">
@@ -100,6 +111,7 @@ export function WorkspaceSidebar({
             actionLoading={actionLoading}
             nodes={tree}
             onCreateChild={onCreateChild}
+            onOpenDocument={onOpenDocument}
             onMove={onMove}
             onRename={onRename}
           />

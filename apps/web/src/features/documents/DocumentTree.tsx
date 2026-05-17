@@ -6,12 +6,13 @@ type DocumentTreeProps = {
   actionLoading: boolean;
   nodes: DocumentTreeNode[];
   onCreateChild: (parentId: string) => void;
+  onOpenDocument: () => void;
   onMove: (documentId: string, parentId: string) => void;
   onRename: (documentId: string, title: string) => void;
 };
 
 // DocumentTree 只负责渲染根文档列表；递归行逻辑交给 DocumentTreeItem，避免树容器过重。
-export function DocumentTree({ activeDocumentId, actionLoading, nodes, onCreateChild, onMove, onRename }: DocumentTreeProps) {
+export function DocumentTree({ activeDocumentId, actionLoading, nodes, onCreateChild, onOpenDocument, onMove, onRename }: DocumentTreeProps) {
   return (
     <div className="grid gap-px">
       {nodes.map((node) => (
@@ -22,6 +23,7 @@ export function DocumentTree({ activeDocumentId, actionLoading, nodes, onCreateC
           level={0}
           node={node}
           onCreateChild={onCreateChild}
+          onOpenDocument={onOpenDocument}
           onMove={onMove}
           onRename={onRename}
         />

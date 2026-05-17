@@ -13,6 +13,7 @@ type DocumentTreeItemProps = {
   level: number;
   node: DocumentTreeNode;
   onCreateChild: (parentId: string) => void;
+  onOpenDocument: () => void;
   onMove: (documentId: string, parentId: string) => void;
   onRename: (documentId: string, title: string) => void;
 };
@@ -24,6 +25,7 @@ export function DocumentTreeItem({
   level,
   node,
   onCreateChild,
+  onOpenDocument,
   onMove,
   onRename,
 }: DocumentTreeItemProps) {
@@ -103,7 +105,7 @@ export function DocumentTreeItem({
         >
           {hasChildren ? <ChevronIcon size={14} /> : <span />}
         </Button>
-        <Link className="flex h-[30px] min-w-0 flex-1 items-center gap-[7px]" draggable={false} to={`/documents/${node.id}`}>
+        <Link className="flex h-[30px] min-w-0 flex-1 items-center gap-[7px]" draggable={false} onClick={onOpenDocument} to={`/documents/${node.id}`}>
           {node.icon ? <span className="text-[17px]">{node.icon}</span> : <FileIcon size={18} />}
           <span className="truncate">{node.title}</span>
         </Link>
@@ -124,6 +126,7 @@ export function DocumentTreeItem({
               level={level + 1}
               node={child}
               onCreateChild={onCreateChild}
+              onOpenDocument={onOpenDocument}
               onMove={onMove}
               onRename={onRename}
             />

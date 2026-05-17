@@ -23,6 +23,7 @@ type WorkspaceSidebarProps = {
   onCreateChild: (parentId: string) => void;
   onLogout: () => void;
   onMove: (documentId: string, parentId: string) => void;
+  onOpenSearch: () => void;
   onRename: (documentId: string, title: string) => void;
   onResizeStart: (event: ReactPointerEvent<HTMLElement>) => void;
   onToggleTheme: () => void;
@@ -45,6 +46,7 @@ export function WorkspaceSidebar({
   onCreateChild,
   onLogout,
   onMove,
+  onOpenSearch,
   onRename,
   onResizeStart,
   onToggleTheme,
@@ -73,7 +75,7 @@ export function WorkspaceSidebar({
       </div>
 
       <nav className="grid gap-0.5">
-        <Button className={sidebarRowClass} type="button" variant="ghost">
+        <Button className={sidebarRowClass} onClick={onOpenSearch} type="button" variant="ghost">
           <Search size={18} />
           <span>{t("workspace.search")}</span>
         </Button>

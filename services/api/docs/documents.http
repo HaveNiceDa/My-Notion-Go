@@ -91,6 +91,14 @@ Content-Type: application/json
   "isStarred": true
 }
 
+### Search Documents
+GET {{baseUrl}}/api/v1/documents/search?q=Updated%20Document&limit=20
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+
+### Search Documents Including Archived
+GET {{baseUrl}}/api/v1/documents/search?q=Updated%20Document&includeArchived=true&limit=20
+Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}
+
 ### Move Child Document To Root
 PATCH {{baseUrl}}/api/v1/documents/{{createChild.response.body.$.data.id}}
 Authorization: Bearer {{login.response.body.$.data.tokens.accessToken}}

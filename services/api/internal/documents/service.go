@@ -13,6 +13,10 @@ var (
 )
 
 const defaultDocumentTitle = "Untitled"
+const (
+	defaultSearchLimit = 20
+	maxSearchLimit     = 50
+)
 
 // uuidPattern 只做格式层面的快速校验。
 // 真正的“是否存在、是否属于当前用户”仍然要去数据库按 user_id 查询。
@@ -46,6 +50,13 @@ type UpdateDocumentInput struct {
 	CoverImage *string
 	IsStarred  *bool
 	ParentID   *string
+}
+
+type SearchDocumentsInput struct {
+	UserID          string
+	Query           string
+	IncludeArchived bool
+	Limit           int
 }
 
 // NewService 注入 Repository。
@@ -137,6 +148,30 @@ func (s *Service) GetTrash(ctx context.Context, userID string) ([]DocumentDTO, e
 	}
 
 	return mapDocuments(documents), nil
+}
+
+// SearchDocuments 是 M6.0 的搜索入口。当前使用 PostgreSQL，后续接 ES 时保持 DTO 不变即可替换底层实现。
+func (s *Service) SearchDocuments(ctx context.Context, input SearchDocumentsInput) ([]DocumentSearchResultDTO, error) {
+	userID := strings.TrimSpace(input.UserID)
+	query := normalizeSearchQuery(input.Query)
+	if userID == "" || query == "" {
+		return nil, ErrInvalidInput
+	}
+
+	limit := input.Limit
+	if limit <= 0 {
+		limit = defaultSearchLimit
+	}
+	if limit > maxSearchLimit {
+		limit = maxSearchLimit
+	}
+
+	documents, err := s.repo.SearchDocuments(ctx, userID, query, input.IncludeArchived, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapSearchResults(documents, query), nil
 }
 
 // UpdateDocument 只允许更新白名单字段。
@@ -270,6 +305,10 @@ func normalizeTitle(title string) string {
 	return title
 }
 
+func normalizeSearchQuery(query string) string {
+	return strings.Join(strings.Fields(query), " ")
+}
+
 // isValidUUID 避免明显无效的 id 进入 PostgreSQL UUID 查询。
 // 如果直接把 "abc" 传给 uuid 字段查询，数据库会报类型转换错误，最终变成 500。
 func isValidUUID(id string) bool {
@@ -282,6 +321,25 @@ func mapDocuments(documents []Document) []DocumentDTO {
 	result := make([]DocumentDTO, 0, len(documents))
 	for _, document := range documents {
 		result = append(result, NewDocumentDTO(document))
+	}
+
+	return result
+}
+
+func mapSearchResults(documents []Document, query string) []DocumentSearchResultDTO {
+	result := make([]DocumentSearchResultDTO, 0, len(documents))
+	normalizedQuery := strings.ToLower(strings.TrimSpace(query))
+	for _, document := range documents {
+		matchType := "content"
+		preview := document.Title
+		if strings.Contains(strings.ToLower(document.Title), normalizedQuery) {
+			matchType = "title"
+		}
+		result = append(result, DocumentSearchResultDTO{
+			Document:  NewDocumentDTO(document),
+			MatchType: matchType,
+			Preview:   preview,
+		})
 	}
 
 	return result

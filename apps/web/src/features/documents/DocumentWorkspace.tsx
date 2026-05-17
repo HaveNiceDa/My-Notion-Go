@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { useResizableWidth } from "@/hooks/useResizableWidth";
 import { AIChatPanel } from "../ai-chat/AIChatPanel";
 import { useAuthStore } from "../auth/authStore";
+import { SearchCommand } from "../search/SearchCommand";
+import { useSearchCommandStore } from "../search/searchStore";
 import { useThemeStore } from "../theme/themeStore";
 import { DocumentDetail } from "./DocumentDetail";
 import { DocumentNavbar } from "./DocumentNavbar";
@@ -31,6 +33,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const openSearchCommand = useSearchCommandStore((state) => state.openCommand);
   const themeMode = useThemeStore((state) => state.mode);
   const toggleTheme = useThemeStore((state) => state.toggle);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -129,6 +132,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
         onCreateRoot={createRootDocument}
         onLogout={onLogout}
         onMove={(id, parentId) => updateDocument.mutate({ id, input: { parentId } })}
+        onOpenSearch={openSearchCommand}
         onRename={(id, title) => updateDocument.mutate({ id, input: { title } })}
         onToggleTheme={toggleTheme}
         themeMode={themeMode}
@@ -185,6 +189,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
       ) : null}
 
       <AIChatPanel accessToken={accessToken} onClose={() => setAIChatOpen(false)} open={aiChatOpen} />
+      <SearchCommand />
     </main>
   );
 }

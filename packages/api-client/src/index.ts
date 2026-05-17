@@ -74,6 +74,18 @@ export type DocumentTreeNode = Document & {
 	children: DocumentTreeNode[];
 };
 
+export type DocumentSearchResult = {
+	document: Document;
+	matchType: "title" | "content";
+	preview: string;
+};
+
+export type SearchDocumentsOptions = {
+	includeArchived?: boolean;
+	limit?: number;
+	signal?: AbortSignal;
+};
+
 export type CreateDocumentRequest = {
 	parentId?: string;
 	title?: string;
@@ -257,6 +269,21 @@ export const documentApi = {
 		return request<DocumentTreeNode[]>("/api/v1/documents/tree", {
 			method: "GET",
 			accessToken,
+		});
+	},
+
+	search(query: string, accessToken: string, options: SearchDocumentsOptions = {}) {
+		const params = new URLSearchParams({
+			q: query,
+			limit: String(options.limit ?? 20),
+		});
+		if (options.includeArchived) {
+			params.set("includeArchived", "true");
+		}
+		return request<DocumentSearchResult[]>(`/api/v1/documents/search?${params.toString()}`, {
+			method: "GET",
+			accessToken,
+			signal: options.signal,
 		});
 	},
 

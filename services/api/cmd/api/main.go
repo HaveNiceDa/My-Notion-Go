@@ -160,6 +160,7 @@ func main() {
 	// Document 接口全部要求登录，Service 层会继续按 user_id 做数据归属隔离。
 	documentRoutes := api.Group("/documents", middleware.RequireAuth(tokenManager))
 	documentRoutes.POST("", documentHandler.Create)
+	documentRoutes.GET("/search", documentHandler.Search)
 	documentRoutes.GET("/tree", documentHandler.Tree)
 	documentRoutes.GET("/trash", documentHandler.Trash)
 	documentRoutes.GET("/:id/content", documentHandler.GetContent)

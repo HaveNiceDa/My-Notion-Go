@@ -98,6 +98,14 @@ const updated = await request(`/api/v1/documents/${root.id}`, {
 assert(updated.title === "Smoke Updated Title", "updated title should match");
 console.log("metadata update ok");
 
+const titleSearch = await request(`/api/v1/documents/search?q=${encodeURIComponent("Updated Title")}`, { token });
+assert(titleSearch.some((result) => result.document.id === root.id && result.matchType === "title"), "search should match updated title");
+console.log("title search ok");
+
+const contentSearch = await request(`/api/v1/documents/search?q=${encodeURIComponent("Hello from smoke")}`, { token });
+assert(contentSearch.some((result) => result.document.id === root.id), "search should match document content");
+console.log("content search ok");
+
 await request(`/api/v1/documents/${root.id}/archive`, { method: "POST", token });
 console.log("archive ok");
 

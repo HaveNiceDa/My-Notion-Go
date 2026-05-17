@@ -85,6 +85,14 @@ type DocumentTreeDTO struct {
 	Children []DocumentTreeDTO `json:"children"`
 }
 
+// DocumentSearchResultDTO 给命令面板使用，保留命中文档和最小匹配信息。
+// 未来替换为 ES 时可以继续维持这个 API 形状，避免前端感知底层搜索引擎变化。
+type DocumentSearchResultDTO struct {
+	Document  DocumentDTO `json:"document"`
+	MatchType string      `json:"matchType"`
+	Preview   string      `json:"preview"`
+}
+
 // NewDocumentDTO 把数据库模型转换成 API 响应模型。
 // 这层转换看起来有点“多”，但后续数据库字段变多时，可以避免意外暴露内部状态。
 func NewDocumentDTO(document Document) DocumentDTO {

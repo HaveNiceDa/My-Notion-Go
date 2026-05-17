@@ -3,6 +3,7 @@ package documents
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/bytel/my-notion-go/services/api/internal/auth"
 	"github.com/bytel/my-notion-go/services/api/internal/response"
@@ -105,6 +106,38 @@ func (h *Handler) Trash(c *gin.Context) {
 	}
 
 	response.OK(c, documents)
+}
+
+// Search 处理 GET /api/v1/documents/search，用于 Command Palette 的轻量文档检索。
+func (h *Handler) Search(c *gin.Context) {
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	includeArchived, err := parseOptionalBool(c.Query("includeArchived"))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "BAD_REQUEST", "Invalid includeArchived value.")
+		return
+	}
+	limit, err := parseOptionalInt(c.Query("limit"))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "BAD_REQUEST", "Invalid limit value.")
+		return
+	}
+
+	results, err := h.service.SearchDocuments(c.Request.Context(), SearchDocumentsInput{
+		UserID:          userID,
+		Query:           c.Query("q"),
+		IncludeArchived: includeArchived,
+		Limit:           limit,
+	})
+	if err != nil {
+		writeDocumentError(c, err)
+		return
+	}
+
+	response.OK(c, results)
 }
 
 // Get 处理 GET /api/v1/documents/:id。
@@ -250,6 +283,22 @@ func bindDocumentID(c *gin.Context) (string, bool) {
 	}
 
 	return uri.ID, true
+}
+
+func parseOptionalBool(value string) (bool, error) {
+	if value == "" {
+		return false, nil
+	}
+
+	return strconv.ParseBool(value)
+}
+
+func parseOptionalInt(value string) (int, error) {
+	if value == "" {
+		return 0, nil
+	}
+
+	return strconv.Atoi(value)
 }
 
 // writeDocumentError 把 Service/Repository 返回的业务错误映射成稳定的 HTTP 响应。

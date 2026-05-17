@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var ErrNotFound = errors.New("document not found")
@@ -104,6 +105,33 @@ func (r *Repository) ListArchived(ctx context.Context, userID string) ([]Documen
 	err := r.db.WithContext(ctx).
 		Where("user_id = ? AND is_archived = TRUE AND deleted_at IS NULL", userID).
 		Order("updated_at DESC").
+		Find(&documents).
+		Error
+	return documents, err
+}
+
+// SearchDocuments 提供 M6.0 的最小搜索实现：标题优先，正文 JSONB 文本弱匹配兜底。
+// 查询必须带 user_id，避免未来替换为 ES 前先在 PostgreSQL 路径里破坏数据隔离约束。
+func (r *Repository) SearchDocuments(ctx context.Context, userID string, query string, includeArchived bool, limit int) ([]Document, error) {
+	var documents []Document
+	likeQuery := "%" + escapePostgresLike(query) + "%"
+	db := r.db.WithContext(ctx).
+		Model(&Document{}).
+		Select("documents.*").
+		Joins("LEFT JOIN document_contents ON document_contents.document_id = documents.id").
+		Where("documents.user_id = ? AND documents.deleted_at IS NULL", userID).
+		Where("(documents.title ILIKE ? ESCAPE '\\' OR document_contents.content::text ILIKE ? ESCAPE '\\')", likeQuery, likeQuery)
+	if !includeArchived {
+		db = db.Where("documents.is_archived = FALSE")
+	}
+
+	err := db.
+		Order(clause.Expr{
+			SQL:  "CASE WHEN documents.title ILIKE ? ESCAPE '\\' THEN 0 ELSE 1 END",
+			Vars: []any{likeQuery},
+		}).
+		Order("documents.updated_at DESC").
+		Limit(limit).
 		Find(&documents).
 		Error
 	return documents, err
@@ -272,4 +300,11 @@ func joinPath(parentPath string, id string) string {
 	}
 
 	return parentPath + "/" + id
+}
+
+func escapePostgresLike(value string) string {
+	value = strings.ReplaceAll(value, `\`, `\\`)
+	value = strings.ReplaceAll(value, `%`, `\%`)
+	value = strings.ReplaceAll(value, `_`, `\_`)
+	return value
 }

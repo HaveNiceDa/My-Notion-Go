@@ -19,6 +19,7 @@
     "format:go": "gofmt -w ./services/api",
     "test:go": "go test ./services/api/...",
     "smoke:api:documents": "node ./scripts/smoke-documents-api.mjs",
+    "smoke:api:realtime": "node ./scripts/smoke-realtime-api.mjs",
     "smoke:api:ai-chat": "node ./scripts/smoke-ai-chat-api.mjs",
     "smoke:api:embedding": "node ./scripts/smoke-embedding-qdrant.mjs",
     "smoke:api:rag": "node ./scripts/smoke-rag-api.mjs"

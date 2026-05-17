@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useResizableWidth } from "@/hooks/useResizableWidth";
 import { AIChatPanel } from "../ai-chat/AIChatPanel";
 import { useAuthStore } from "../auth/authStore";
+import { useRealtimeEvents } from "../realtime/useRealtimeEvents";
 import { SearchCommand } from "../search/SearchCommand";
 import { useSearchCommandStore } from "../search/searchStore";
 import { useThemeStore } from "../theme/themeStore";
@@ -41,6 +42,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
   const [aiChatOpen, setAIChatOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"documents" | "trash">("documents");
   const citationTarget = useMemo(() => getCitationTarget(searchParams), [searchParams]);
+  useRealtimeEvents(accessToken, Boolean(accessToken));
   // sidebar 宽度属于整体工作区布局状态，放在容器层可避免侧边栏内部重渲染时丢失宽度。
   const sidebarResize = useResizableWidth({
     defaultWidth: 240,

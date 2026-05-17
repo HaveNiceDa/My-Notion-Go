@@ -34,11 +34,13 @@ export function DocumentEditor({ accessToken, citationTarget, documentId }: Docu
   }
 
   const initialContent = toBlockNoteContent(contentQuery.data.content);
+  const contentSyncKey = `${documentId}:${contentQuery.data.version}:${contentQuery.data.contentHash}`;
 
   return (
     <BlockNoteEditorSurface
       accessToken={accessToken}
       citationTarget={citationTarget}
+      contentSyncKey={contentSyncKey}
       documentId={documentId}
       key={documentId}
       initialContent={initialContent}
@@ -72,6 +74,7 @@ export function ReadonlyDocumentContent({ content }: ReadonlyDocumentContentProp
 type BlockNoteEditorSurfaceProps = {
   accessToken: string;
   citationTarget: CitationHighlightTarget | null;
+  contentSyncKey: string;
   documentId: string;
   initialContent: PartialBlock[] | undefined;
 };
@@ -79,11 +82,13 @@ type BlockNoteEditorSurfaceProps = {
 type BlockNoteDictionary = NonNullable<Parameters<typeof useCreateBlockNote>[0]>["dictionary"];
 
 // BlockNoteEditorSurface 按 documentId 重新挂载，确保切换文档时编辑器不会复用上一篇文档的本地状态。
-function BlockNoteEditorSurface({ accessToken, citationTarget, documentId, initialContent }: BlockNoteEditorSurfaceProps) {
+function BlockNoteEditorSurface({ accessToken, citationTarget, contentSyncKey, documentId, initialContent }: BlockNoteEditorSurfaceProps) {
   const { i18n, t } = useTranslation();
   const themeMode = useThemeStore((state) => state.mode);
   const autosave = useAutosaveDocumentContent({ accessToken, documentId });
   const editorRootRef = useRef<HTMLElement | null>(null);
+  const applyingRemoteContentRef = useRef(false);
+  const lastAppliedContentSyncKeyRef = useRef(contentSyncKey);
   const blockNoteDictionary = useMemo(
     () => createBlockNoteDictionary(i18n.language, t("editor.placeholder")),
     [i18n.language, t],
@@ -92,6 +97,23 @@ function BlockNoteEditorSurface({ accessToken, citationTarget, documentId, initi
     dictionary: blockNoteDictionary,
     initialContent,
   }, [blockNoteDictionary]);
+
+  useEffect(() => {
+    if (lastAppliedContentSyncKeyRef.current === contentSyncKey) {
+      return;
+    }
+    lastAppliedContentSyncKeyRef.current = contentSyncKey;
+    if (isSameBlockNoteDocument(editor.document, initialContent)) {
+      return;
+    }
+
+    // React Query 已经拿到远端最终态，但 BlockNote 不会自动消费新的 initialContent，需要显式替换当前 blocks。
+    applyingRemoteContentRef.current = true;
+    editor.replaceBlocks(editor.document, initialContent ?? createEmptyBlockNoteContent());
+    window.setTimeout(() => {
+      applyingRemoteContentRef.current = false;
+    }, 0);
+  }, [contentSyncKey, editor, initialContent]);
 
   useEffect(() => {
     if (!citationTarget) {
@@ -112,7 +134,12 @@ function BlockNoteEditorSurface({ accessToken, citationTarget, documentId, initi
       </div>
       <BlockNoteView
         editor={editor}
-        onChange={() => autosave.scheduleSave(editor.document)}
+        onChange={() => {
+          if (applyingRemoteContentRef.current) {
+            return;
+          }
+          autosave.scheduleSave(editor.document);
+        }}
         theme={themeMode}
       />
     </section>
@@ -199,6 +226,14 @@ export function toBlockNoteContent(content: unknown[]): PartialBlock[] | undefin
   const blocks = content.filter(isSafePartialBlock).map(sanitizeBlockNoteBlock);
 
   return blocks.length > 0 ? blocks : undefined;
+}
+
+function createEmptyBlockNoteContent(): PartialBlock[] {
+  return [{ type: "paragraph" }];
+}
+
+function isSameBlockNoteDocument(currentContent: unknown[], nextContent: PartialBlock[] | undefined) {
+  return JSON.stringify(currentContent) === JSON.stringify(nextContent ?? createEmptyBlockNoteContent());
 }
 
 function isSafePartialBlock(value: unknown): value is PartialBlock {

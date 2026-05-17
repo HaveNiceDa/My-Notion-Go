@@ -15,6 +15,7 @@ import (
 	"github.com/bytel/my-notion-go/services/api/internal/jobs"
 	"github.com/bytel/my-notion-go/services/api/internal/middleware"
 	"github.com/bytel/my-notion-go/services/api/internal/rag"
+	"github.com/bytel/my-notion-go/services/api/internal/realtime"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -112,8 +113,11 @@ func main() {
 		time.Duration(cfg.RefreshTokenDays)*24*time.Hour,
 	)
 	authHandler := auth.NewHandler(authService)
+	realtimeHub := realtime.NewHub()
+	realtimeHandler := realtime.NewHandler(realtimeHub)
 	documentRepo := documents.NewRepository(db)
 	documentService := documents.NewService(documentRepo)
+	documentService.SetEventPublisher(realtimeHub)
 	documentHandler := documents.NewHandler(documentService)
 	chatRepo := chat.NewRepository(db)
 	aiClient := ai.NewClient(ai.Config{
@@ -177,6 +181,10 @@ func main() {
 	documentRoutes.POST("/:id/archive", documentHandler.Archive)
 	documentRoutes.POST("/:id/restore", documentHandler.Restore)
 	documentRoutes.DELETE("/:id", documentHandler.Delete)
+
+	// Realtime 接口要求登录。M7.0 先使用单进程 SSE Hub，后续多实例再在 Hub 后接 Redis Pub/Sub。
+	realtimeRoutes := api.Group("/realtime", middleware.RequireAuth(tokenManager))
+	realtimeRoutes.GET("/events", realtimeHandler.StreamEvents)
 
 	// RAG 接口要求登录。M5.1 先提供知识库开关和索引状态骨架，真正切块/向量化在 M5.2 接入。
 	ragRoutes := api.Group("/rag", middleware.RequireAuth(tokenManager))

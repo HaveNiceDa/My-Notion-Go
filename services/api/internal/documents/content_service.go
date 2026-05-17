@@ -48,6 +48,7 @@ func (s *Service) UpdateDocumentContent(ctx context.Context, input UpdateDocumen
 		return DocumentContentDTO{}, err
 	}
 
+	s.publishDocumentEvent(ctx, input.UserID, documentEventContentUpdated, input.DocumentID)
 	s.scheduleContentIndexRefresh(input.UserID, input.DocumentID)
 	return NewDocumentContentDTO(updated), nil
 }

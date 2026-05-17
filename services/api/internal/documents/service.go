@@ -26,9 +26,26 @@ var uuidPattern = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[
 type Service struct {
 	repo               *Repository
 	contentUpdatedHook ContentUpdatedHook
+	eventPublisher     DocumentEventPublisher
 }
 
 type ContentUpdatedHook func(ctx context.Context, userID string, documentID string) error
+
+type DocumentEventPublisher interface {
+	PublishDocumentEvent(ctx context.Context, userID string, eventType string, documentID string)
+}
+
+const (
+	documentEventCreated        = "document.created"
+	documentEventUpdated        = "document.updated"
+	documentEventContentUpdated = "document.content_updated"
+	documentEventFavoritesOrder = "document.favorites_order_updated"
+	documentEventPublished      = "document.published"
+	documentEventUnpublished    = "document.unpublished"
+	documentEventArchived       = "document.archived"
+	documentEventRestored       = "document.restored"
+	documentEventDeleted        = "document.deleted"
+)
 
 // CreateDocumentInput 是创建文档用例的内部入参。
 // Handler 负责从 HTTP JSON 解析请求，Service 使用这个结构表达业务所需字段，避免直接依赖 Gin。
@@ -74,6 +91,10 @@ func (s *Service) SetContentUpdatedHook(hook ContentUpdatedHook) {
 	s.contentUpdatedHook = hook
 }
 
+func (s *Service) SetEventPublisher(publisher DocumentEventPublisher) {
+	s.eventPublisher = publisher
+}
+
 // CreateDocument 创建一个属于当前用户的文档。
 // 核心流程：校验用户和父文档 -> 计算同级排序位置 -> 创建文档和空正文 -> 返回 DTO。
 func (s *Service) CreateDocument(ctx context.Context, input CreateDocumentInput) (DocumentDTO, error) {
@@ -113,6 +134,7 @@ func (s *Service) CreateDocument(ctx context.Context, input CreateDocumentInput)
 		return DocumentDTO{}, err
 	}
 
+	s.publishDocumentEvent(ctx, userID, documentEventCreated, document.ID)
 	return NewDocumentDTO(document), nil
 }
 
@@ -241,6 +263,7 @@ func (s *Service) UpdateDocument(ctx context.Context, input UpdateDocumentInput)
 			return DocumentDTO{}, err
 		}
 
+		s.publishDocumentEvent(ctx, input.UserID, documentEventUpdated, document.ID)
 		return NewDocumentDTO(document), nil
 	}
 	if len(updates) == 0 {
@@ -253,6 +276,7 @@ func (s *Service) UpdateDocument(ctx context.Context, input UpdateDocumentInput)
 		return DocumentDTO{}, err
 	}
 
+	s.publishDocumentEvent(ctx, input.UserID, documentEventUpdated, document.ID)
 	return NewDocumentDTO(document), nil
 }
 
@@ -276,7 +300,12 @@ func (s *Service) UpdateFavoritesOrder(ctx context.Context, input UpdateFavorite
 		orderedIDs = append(orderedIDs, id)
 	}
 
-	return s.repo.UpdateStarredPositions(ctx, userID, orderedIDs)
+	if err := s.repo.UpdateStarredPositions(ctx, userID, orderedIDs); err != nil {
+		return err
+	}
+
+	s.publishDocumentEvent(ctx, userID, documentEventFavoritesOrder, "")
+	return nil
 }
 
 func (s *Service) SetPublished(ctx context.Context, userID string, documentID string, published bool) (DocumentDTO, error) {
@@ -293,6 +322,11 @@ func (s *Service) SetPublished(ctx context.Context, userID string, documentID st
 		return DocumentDTO{}, err
 	}
 
+	eventType := documentEventUnpublished
+	if published {
+		eventType = documentEventPublished
+	}
+	s.publishDocumentEvent(ctx, userID, eventType, document.ID)
 	return NewDocumentDTO(document), nil
 }
 
@@ -310,7 +344,12 @@ func (s *Service) ArchiveDocument(ctx context.Context, userID string, documentID
 		return err
 	}
 
-	return s.repo.SetArchivedByPath(ctx, userID, root, true)
+	if err := s.repo.SetArchivedByPath(ctx, userID, root, true); err != nil {
+		return err
+	}
+
+	s.publishDocumentEvent(ctx, userID, documentEventArchived, documentID)
+	return nil
 }
 
 // RestoreDocument 从回收站恢复根文档和所有后代文档。
@@ -327,7 +366,12 @@ func (s *Service) RestoreDocument(ctx context.Context, userID string, documentID
 		return err
 	}
 
-	return s.repo.SetArchivedByPath(ctx, userID, root, false)
+	if err := s.repo.SetArchivedByPath(ctx, userID, root, false); err != nil {
+		return err
+	}
+
+	s.publishDocumentEvent(ctx, userID, documentEventRestored, documentID)
+	return nil
 }
 
 // DeleteDocument 永久删除根文档和所有后代文档。
@@ -344,7 +388,20 @@ func (s *Service) DeleteDocument(ctx context.Context, userID string, documentID 
 		return err
 	}
 
-	return s.repo.HardDeleteByPath(ctx, userID, root)
+	if err := s.repo.HardDeleteByPath(ctx, userID, root); err != nil {
+		return err
+	}
+
+	s.publishDocumentEvent(ctx, userID, documentEventDeleted, documentID)
+	return nil
+}
+
+func (s *Service) publishDocumentEvent(ctx context.Context, userID string, eventType string, documentID string) {
+	if s.eventPublisher == nil {
+		return
+	}
+
+	s.eventPublisher.PublishDocumentEvent(ctx, userID, eventType, documentID)
 }
 
 // normalizeOptionalID 把空字符串 parentId 视为 nil。

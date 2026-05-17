@@ -303,8 +303,14 @@ RAG Chat 请求体草案：
   - `go test ./services/api/...`
   - `pnpm build:api`
   - `pnpm build:web`
-- 尚未实现真实异步 job/worker。
-- 下一步建议继续 M5.5：补 RAG query intent 降级，或把后台索引任务迁移到 job/worker abstraction，并补充引用来源 chunk 高亮或滚动定位。
+- M5.5 RAG 异步索引 worker 已落地：
+  - 新增 `internal/jobs` DB-backed 任务队列，复用既有 `jobs` 表记录 `rag.index` 任务。
+  - RAG 开启知识库和正文保存后的重建不再直接执行 embedding/Qdrant，而是创建 pending job。
+  - 新增 `internal/rag.IndexWorker`，通过 `FOR UPDATE SKIP LOCKED` 领取 pending job，执行切块、embedding、Qdrant upsert 并更新 `rag_documents`。
+  - `cmd/worker` 已从占位入口升级为真实 worker 进程，`pnpm dev` 会同时启动 web/api/worker。
+  - `pnpm smoke:api:rag` 已兼容 pending/indexing 状态，并轮询等待最终 indexed。
+  - 已运行 `go test ./services/api/...`、`pnpm build:api`、`pnpm build:worker`、`node --check ./scripts/smoke-rag-api.mjs`。
+- 下一步建议继续 M5.6：补 RAG query intent 降级，或补充引用来源 chunk 高亮/滚动定位。
 
 ## 来源日志
 
@@ -316,3 +322,4 @@ RAG Chat 请求体草案：
 - `progress/20260516-222300.md`
 - `progress/20260516-230500.md`
 - `progress/20260516-222454.md`
+- `progress/20260517-151000.md`

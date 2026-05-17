@@ -12,6 +12,7 @@ import (
 	"github.com/bytel/my-notion-go/services/api/internal/config"
 	"github.com/bytel/my-notion-go/services/api/internal/database"
 	"github.com/bytel/my-notion-go/services/api/internal/documents"
+	"github.com/bytel/my-notion-go/services/api/internal/jobs"
 	"github.com/bytel/my-notion-go/services/api/internal/middleware"
 	"github.com/bytel/my-notion-go/services/api/internal/rag"
 	"github.com/gin-contrib/cors"
@@ -140,7 +141,9 @@ func main() {
 	chatService := chat.NewService(chatRepo, aiClient)
 	chatHandler := chat.NewHandler(chatService)
 	ragRepo := rag.NewRepository(db)
+	jobRepo := jobs.NewRepository(db)
 	ragService := rag.NewService(ragRepo, documentRepo, chatService, embeddingClient, qdrantClient, cfg.QdrantCollection)
+	ragService.SetJobRepository(jobRepo)
 	ragHandler := rag.NewHandler(ragService)
 	documentService.SetContentUpdatedHook(ragService.ReindexDocumentIfEnabled)
 

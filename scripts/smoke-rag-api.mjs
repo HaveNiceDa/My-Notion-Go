@@ -103,6 +103,27 @@ function assert(condition, message) {
   }
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForIndexed(token, documentId, label) {
+  const deadline = Date.now() + 120_000;
+  let lastStatus = null;
+  while (Date.now() < deadline) {
+    lastStatus = await request(`/api/v1/rag/documents/${documentId}/status`, { token });
+    if (lastStatus.status === "indexed") {
+      assert(lastStatus.chunkCount > 0, `${label} should include chunks`);
+      return lastStatus;
+    }
+    if (lastStatus.status === "failed") {
+      throw new Error(`${label} failed: ${lastStatus.lastError}`);
+    }
+    await sleep(2_000);
+  }
+  throw new Error(`${label} timed out, last status=${JSON.stringify(lastStatus)}. Make sure pnpm dev:worker is running.`);
+}
+
 function findEvent(events, eventName) {
   return events.find((event) => event.event === eventName);
 }
@@ -157,9 +178,9 @@ const indexed = await request(`/api/v1/rag/documents/${document.id}/index`, {
   token,
 });
 assert(indexed.isInKnowledgeBase === true, "indexed RAG status should stay in knowledge base");
-assert(indexed.status === "indexed", `indexed RAG status should be indexed, got ${indexed.status}`);
-assert(indexed.chunkCount > 0, "indexed RAG status should include chunks");
-console.log(`index ok, chunks=${indexed.chunkCount}`);
+assert(["pending", "indexing", "indexed"].includes(indexed.status), `indexed RAG status should be pending/indexing/indexed, got ${indexed.status}`);
+const indexedStatus = indexed.status === "indexed" ? indexed : await waitForIndexed(token, document.id, "manual index");
+console.log(`index ok, chunks=${indexedStatus.chunkCount}`);
 
 // 关闭知识库会同步清理 rag_chunks 和 Qdrant points，避免后续检索命中已排除文档。
 const disabled = await request(`/api/v1/rag/documents/${document.id}/index`, {
@@ -176,14 +197,14 @@ assert(disabledStatus.isInKnowledgeBase === false, "status after disable should 
 assert(disabledStatus.status === "disabled", `status after disable should be disabled, got ${disabledStatus.status}`);
 console.log("disabled status ok");
 
-// 重新开启会再次执行同步索引；后续如切 worker，只需要保持最终状态语义一致。
+// 重新开启会投递异步索引任务；最终状态由 worker 落到 rag_documents。
 const enabled = await request(`/api/v1/rag/documents/${document.id}/index`, {
   method: "POST",
   token,
 });
 assert(enabled.isInKnowledgeBase === true, "enabled RAG status should enter knowledge base");
-assert(enabled.status === "indexed", `enabled RAG status should be indexed, got ${enabled.status}`);
-assert(enabled.chunkCount > 0, "re-enabled RAG status should rebuild chunks");
+assert(["pending", "indexing", "indexed"].includes(enabled.status), `enabled RAG status should be pending/indexing/indexed, got ${enabled.status}`);
+await waitForIndexed(token, document.id, "re-enabled index");
 console.log("re-enable and re-index knowledge base ok");
 
 // RAG Chat 先做 query embedding 和 Qdrant search，再复用 AI Chat 的 SSE/落库协议。

@@ -15,6 +15,7 @@ import (
 	"github.com/bytel/my-notion-go/services/api/internal/ai"
 	"github.com/bytel/my-notion-go/services/api/internal/chat"
 	"github.com/bytel/my-notion-go/services/api/internal/documents"
+	"github.com/bytel/my-notion-go/services/api/internal/jobs"
 )
 
 var (
@@ -43,6 +44,7 @@ type Service struct {
 	embedding  *ai.EmbeddingClient
 	qdrant     *QdrantClient
 	collection string
+	jobRepo    *jobs.Repository
 }
 
 func NewService(repo *Repository, docRepo *documents.Repository, chatService *chat.Service, embedding *ai.EmbeddingClient, qdrant *QdrantClient, collection string) *Service {
@@ -56,8 +58,12 @@ func NewService(repo *Repository, docRepo *documents.Repository, chatService *ch
 	}
 }
 
+func (s *Service) SetJobRepository(jobRepo *jobs.Repository) {
+	s.jobRepo = jobRepo
+}
+
 // EnableDocumentIndex 是“把文档重新纳入知识库”的入口。
-// M5.2 先同步执行索引，便于 smoke 验证完整闭环；后续可以把 indexDocument 搬到 worker。
+// M5.5 起优先创建异步 job，避免 HTTP 请求被 embedding/Qdrant 慢调用阻塞；未注入 jobs 时保留同步兜底。
 func (s *Service) EnableDocumentIndex(ctx context.Context, userID string, documentID string) (DocumentStatusDTO, error) {
 	if _, err := s.findDocument(ctx, userID, documentID); err != nil {
 		return DocumentStatusDTO{}, err
@@ -70,7 +76,15 @@ func (s *Service) EnableDocumentIndex(ctx context.Context, userID string, docume
 		return DocumentStatusDTO{}, err
 	}
 
-	status, err := s.indexDocument(ctx, userID, updated)
+	if s.jobRepo == nil {
+		status, err := s.indexDocument(ctx, userID, updated)
+		if err != nil {
+			return DocumentStatusDTO{}, err
+		}
+		return NewDocumentStatusDTO(updated.ID, updated.IsInKnowledgeBase, &status), nil
+	}
+
+	status, err := s.enqueueIndexJob(ctx, userID, updated.ID, "manual")
 	if err != nil {
 		return DocumentStatusDTO{}, err
 	}
@@ -228,7 +242,7 @@ func (s *Service) SaveRAGAssistantMessage(ctx context.Context, userID string, co
 }
 
 // ReindexDocumentIfEnabled 用于正文保存后的自动索引更新。
-// 它复用用户维度归属校验，只在文档知识库开关开启时重建当前文档的 chunks 和 Qdrant points。
+// 它复用用户维度归属校验，只在文档知识库开关开启时投递重建任务；未注入 jobs 时保留旧同步路径。
 func (s *Service) ReindexDocumentIfEnabled(ctx context.Context, userID string, documentID string) error {
 	document, err := s.findDocument(ctx, userID, documentID)
 	if err != nil {
@@ -237,8 +251,37 @@ func (s *Service) ReindexDocumentIfEnabled(ctx context.Context, userID string, d
 	if !document.IsInKnowledgeBase {
 		return nil
 	}
-	_, err = s.indexDocument(ctx, userID, document)
+	if s.jobRepo == nil {
+		_, err = s.indexDocument(ctx, userID, document)
+		return err
+	}
+
+	_, err = s.enqueueIndexJob(ctx, userID, document.ID, "content_updated")
 	return err
+}
+
+func (s *Service) ExecuteIndexJob(ctx context.Context, userID string, documentID string) (Document, error) {
+	document, err := s.findDocument(ctx, userID, documentID)
+	if err != nil {
+		return Document{}, err
+	}
+	if !document.IsInKnowledgeBase {
+		return s.repo.UpsertDocumentStatus(ctx, userID, document.ID, StatusDisabled)
+	}
+	return s.indexDocument(ctx, userID, document)
+}
+
+func (s *Service) enqueueIndexJob(ctx context.Context, userID string, documentID string, reason string) (Document, error) {
+	job, err := s.jobRepo.EnqueueRAGIndex(ctx, userID, documentID, reason)
+	if err != nil {
+		return Document{}, err
+	}
+	// job 已入队后立即同步 RAG 状态，前端可以观察到任务已被接收或正在执行。
+	status := StatusPending
+	if job.Status == jobs.StatusRunning {
+		status = StatusIndexing
+	}
+	return s.repo.UpsertDocumentStatus(ctx, userID, documentID, status)
 }
 
 // findDocument 是所有 RAG 操作的归属校验入口。

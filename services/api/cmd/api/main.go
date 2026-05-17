@@ -157,6 +157,10 @@ func main() {
 	// /me 是受保护接口，必须先通过 RequireAuth 解析 Bearer token。
 	api.GET("/me", middleware.RequireAuth(tokenManager), authHandler.Me)
 
+	// Public 接口不要求登录，但只返回显式发布的只读文档。
+	publicRoutes := api.Group("/public")
+	publicRoutes.GET("/documents/:publicId", documentHandler.GetPublished)
+
 	// Document 接口全部要求登录，Service 层会继续按 user_id 做数据归属隔离。
 	documentRoutes := api.Group("/documents", middleware.RequireAuth(tokenManager))
 	documentRoutes.POST("", documentHandler.Create)
@@ -168,6 +172,8 @@ func main() {
 	documentRoutes.PUT("/:id/content", documentHandler.UpdateContent)
 	documentRoutes.GET("/:id", documentHandler.Get)
 	documentRoutes.PATCH("/:id", documentHandler.Update)
+	documentRoutes.POST("/:id/publish", documentHandler.Publish)
+	documentRoutes.DELETE("/:id/publish", documentHandler.Unpublish)
 	documentRoutes.POST("/:id/archive", documentHandler.Archive)
 	documentRoutes.POST("/:id/restore", documentHandler.Restore)
 	documentRoutes.DELETE("/:id", documentHandler.Delete)

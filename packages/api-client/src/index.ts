@@ -56,6 +56,7 @@ export type LoginRequest = {
 
 export type Document = {
 	id: string;
+	publicId: string;
 	parentId: string | null;
 	title: string;
 	icon: string;
@@ -79,6 +80,15 @@ export type DocumentSearchResult = {
 	document: Document;
 	matchType: "title" | "content";
 	preview: string;
+};
+
+export type PublicDocument = {
+	publicId: string;
+	title: string;
+	icon: string;
+	coverImage: string;
+	content: unknown[];
+	updatedAt: string;
 };
 
 export type SearchDocumentsOptions = {
@@ -318,6 +328,20 @@ export const documentApi = {
 		});
 	},
 
+	publish(documentId: string, accessToken: string) {
+		return request<Document>(`/api/v1/documents/${documentId}/publish`, {
+			method: "POST",
+			accessToken,
+		});
+	},
+
+	unpublish(documentId: string, accessToken: string) {
+		return request<Document>(`/api/v1/documents/${documentId}/publish`, {
+			method: "DELETE",
+			accessToken,
+		});
+	},
+
 	archive(documentId: string, accessToken: string) {
 		return request<{ message: string }>(`/api/v1/documents/${documentId}/archive`, {
 			method: "POST",
@@ -352,6 +376,14 @@ export const documentApi = {
 			method: "PUT",
 			accessToken,
 			body: JSON.stringify(input),
+		});
+	},
+};
+
+export const publicDocumentApi = {
+	get(publicId: string) {
+		return request<PublicDocument>(`/api/v1/public/documents/${publicId}`, {
+			method: "GET",
 		});
 	},
 };

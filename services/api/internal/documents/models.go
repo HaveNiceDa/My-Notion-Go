@@ -9,6 +9,7 @@ import (
 // 它只保存文档元信息和树结构，正文 JSON 独立放在 document_contents 表，避免侧边栏树查询加载大字段。
 type Document struct {
 	ID                string  `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	PublicID          string  `gorm:"type:uuid;default:gen_random_uuid();not null;uniqueIndex"`
 	UserID            string  `gorm:"type:uuid;not null;index"`
 	ParentID          *string `gorm:"type:uuid;index"`
 	Title             string  `gorm:"not null"`
@@ -65,6 +66,7 @@ type DocumentContentDTO struct {
 // DTO 的作用是隔离数据库模型：API 只暴露前端需要的字段，不直接把 GORM model 原样返回。
 type DocumentDTO struct {
 	ID                string    `json:"id"`
+	PublicID          string    `json:"publicId"`
 	ParentID          *string   `json:"parentId"`
 	Title             string    `json:"title"`
 	Icon              string    `json:"icon"`
@@ -78,6 +80,16 @@ type DocumentDTO struct {
 	Path              string    `json:"path"`
 	CreatedAt         time.Time `json:"createdAt"`
 	UpdatedAt         time.Time `json:"updatedAt"`
+}
+
+// PublicDocumentDTO 是公开页面专用响应，只暴露只读页面渲染所需字段。
+type PublicDocumentDTO struct {
+	PublicID   string          `json:"publicId"`
+	Title      string          `json:"title"`
+	Icon       string          `json:"icon"`
+	CoverImage string          `json:"coverImage"`
+	Content    json.RawMessage `json:"content"`
+	UpdatedAt  time.Time       `json:"updatedAt"`
 }
 
 // DocumentTreeDTO 在 DocumentDTO 基础上递归携带子文档，用于侧边栏文档树。
@@ -100,6 +112,7 @@ type DocumentSearchResultDTO struct {
 func NewDocumentDTO(document Document) DocumentDTO {
 	return DocumentDTO{
 		ID:                document.ID,
+		PublicID:          document.PublicID,
 		ParentID:          document.ParentID,
 		Title:             document.Title,
 		Icon:              document.Icon,
@@ -113,6 +126,17 @@ func NewDocumentDTO(document Document) DocumentDTO {
 		Path:              document.Path,
 		CreatedAt:         document.CreatedAt,
 		UpdatedAt:         document.UpdatedAt,
+	}
+}
+
+func NewPublicDocumentDTO(document Document, content DocumentContent) PublicDocumentDTO {
+	return PublicDocumentDTO{
+		PublicID:   document.PublicID,
+		Title:      document.Title,
+		Icon:       document.Icon,
+		CoverImage: document.CoverImage,
+		Content:    json.RawMessage(content.Content),
+		UpdatedAt:  content.UpdatedAt,
 	}
 }
 

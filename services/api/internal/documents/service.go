@@ -133,6 +133,20 @@ func (s *Service) GetDocument(ctx context.Context, userID string, documentID str
 	return NewDocumentDTO(document), nil
 }
 
+func (s *Service) GetPublishedDocument(ctx context.Context, publicID string) (PublicDocumentDTO, error) {
+	publicID = strings.TrimSpace(publicID)
+	if !isValidUUID(publicID) {
+		return PublicDocumentDTO{}, ErrInvalidInput
+	}
+
+	document, content, err := s.repo.FindPublishedDocumentByPublicID(ctx, publicID)
+	if err != nil {
+		return PublicDocumentDTO{}, err
+	}
+
+	return NewPublicDocumentDTO(document, content), nil
+}
+
 // GetTree 返回当前用户未归档的文档树。
 // Repository 返回扁平列表，Service 在内存中组树，适合 MVP 阶段的数据规模和实现复杂度。
 func (s *Service) GetTree(ctx context.Context, userID string) ([]DocumentTreeDTO, error) {
@@ -263,6 +277,23 @@ func (s *Service) UpdateFavoritesOrder(ctx context.Context, input UpdateFavorite
 	}
 
 	return s.repo.UpdateStarredPositions(ctx, userID, orderedIDs)
+}
+
+func (s *Service) SetPublished(ctx context.Context, userID string, documentID string, published bool) (DocumentDTO, error) {
+	userID = strings.TrimSpace(userID)
+	documentID = strings.TrimSpace(documentID)
+	if userID == "" || !isValidUUID(documentID) {
+		return DocumentDTO{}, ErrInvalidInput
+	}
+
+	document, err := s.repo.UpdateMetadata(ctx, userID, documentID, map[string]any{
+		"is_published": published,
+	})
+	if err != nil {
+		return DocumentDTO{}, err
+	}
+
+	return NewDocumentDTO(document), nil
 }
 
 // ArchiveDocument 把根文档和所有后代文档移动到回收站。

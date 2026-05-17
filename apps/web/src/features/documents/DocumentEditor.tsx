@@ -46,6 +46,29 @@ export function DocumentEditor({ accessToken, citationTarget, documentId }: Docu
   );
 }
 
+type ReadonlyDocumentContentProps = {
+  content: unknown[];
+};
+
+export function ReadonlyDocumentContent({ content }: ReadonlyDocumentContentProps) {
+  const { i18n, t } = useTranslation();
+  const themeMode = useThemeStore((state) => state.mode);
+  const blockNoteDictionary = useMemo(
+    () => createBlockNoteDictionary(i18n.language, t("editor.placeholder")),
+    [i18n.language, t],
+  );
+  const editor = useCreateBlockNote({
+    dictionary: blockNoteDictionary,
+    initialContent: toBlockNoteContent(content),
+  }, [blockNoteDictionary]);
+
+  return (
+    <section className="document-editor mt-4">
+      <BlockNoteView editable={false} editor={editor} theme={themeMode} />
+    </section>
+  );
+}
+
 type BlockNoteEditorSurfaceProps = {
   accessToken: string;
   citationTarget: CitationHighlightTarget | null;
@@ -168,7 +191,7 @@ function statusLabel(status: AutosaveStatus, t: ReturnType<typeof useTranslation
 
 // BlockNote 没有正文时可以自己创建默认空段落，所以后端空数组直接交给编辑器默认逻辑。
 // 只有后端返回非空 blocks 时才作为 initialContent 传入，避免把历史异常数据带进编辑器。
-function toBlockNoteContent(content: unknown[]): PartialBlock[] | undefined {
+export function toBlockNoteContent(content: unknown[]): PartialBlock[] | undefined {
   if (!Array.isArray(content) || content.length === 0) {
     return undefined;
   }

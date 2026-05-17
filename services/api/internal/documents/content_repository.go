@@ -28,6 +28,31 @@ func (r *Repository) FindContentByDocumentID(ctx context.Context, userID string,
 	return content, err
 }
 
+func (r *Repository) FindPublishedDocumentByPublicID(ctx context.Context, publicID string) (Document, DocumentContent, error) {
+	var document Document
+	err := r.db.WithContext(ctx).
+		Where("public_id = ? AND is_published = TRUE AND is_archived = FALSE AND deleted_at IS NULL", publicID).
+		First(&document).
+		Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return Document{}, DocumentContent{}, ErrNotFound
+	}
+	if err != nil {
+		return Document{}, DocumentContent{}, err
+	}
+
+	var content DocumentContent
+	err = r.db.WithContext(ctx).
+		Where("document_id = ?", document.ID).
+		First(&content).
+		Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return Document{}, DocumentContent{}, ErrNotFound
+	}
+
+	return document, content, err
+}
+
 // UpdateContent 覆盖保存编辑器 JSON，并递增 version。
 // ContentHash 用于后续做冲突检测、去重或同步调试；当前 MVP 先随保存一起生成。
 func (r *Repository) UpdateContent(ctx context.Context, userID string, documentID string, rawContent []byte) (DocumentContent, error) {

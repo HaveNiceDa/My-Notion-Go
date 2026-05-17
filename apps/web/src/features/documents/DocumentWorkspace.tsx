@@ -98,6 +98,18 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
       toast.error(t("favorites.updateFailed"));
     },
   });
+  const publishDocument = useMutation({
+    mutationFn: ({ id, published }: { id: string; published: boolean }) =>
+      published ? documentApi.unpublish(id, accessToken) : documentApi.publish(id, accessToken),
+    onSuccess(document) {
+      queryClient.setQueryData(documentQueryKey(document.id), document);
+      void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
+      toast.success(document.isPublished ? t("publish.publishSuccess") : t("publish.unpublishSuccess"));
+    },
+    onError() {
+      toast.error(t("publish.updateFailed"));
+    },
+  });
   const reorderFavoritesMutation = useMutation({
     mutationFn: (orderedIds: string[]) => documentApi.updateFavoritesOrder(orderedIds, accessToken),
     async onMutate(orderedIds) {
@@ -184,6 +196,18 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
     }
     toggleStarDocument.mutate({ id: documentId, starred: currentDocumentQuery.data.isStarred });
   });
+  const publishCurrentDocument = useMemoizedFn(() => {
+    if (!documentId || !currentDocumentQuery.data) {
+      return;
+    }
+    publishDocument.mutate({ id: documentId, published: false });
+  });
+  const unpublishCurrentDocument = useMemoizedFn(() => {
+    if (!documentId || !currentDocumentQuery.data) {
+      return;
+    }
+    publishDocument.mutate({ id: documentId, published: true });
+  });
   const openDocumentView = useMemoizedFn(() => {
     setViewMode("documents");
   });
@@ -246,8 +270,11 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
           onExpandSidebar={() => setSidebarCollapsed(false)}
           onToggleAIChat={() => setAIChatOpen((open) => !open)}
           onToggleKnowledgeBase={toggleCurrentKnowledgeBase}
+          onPublish={publishCurrentDocument}
           onToggleStar={toggleCurrentStar}
           onToggleTheme={toggleTheme}
+          onUnpublish={unpublishCurrentDocument}
+          publishActionLoading={publishDocument.isPending}
           ragActionLoading={toggleKnowledgeBase.isPending}
           starActionLoading={toggleStarDocument.isPending}
           sidebarCollapsed={sidebarCollapsed}

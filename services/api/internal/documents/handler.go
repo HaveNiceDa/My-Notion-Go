@@ -166,6 +166,19 @@ func (h *Handler) Get(c *gin.Context) {
 	response.OK(c, document)
 }
 
+// GetPublished 处理 GET /api/v1/public/documents/:publicId。
+// 公开接口不读取登录态，只允许返回已发布且未归档/未删除的只读文档。
+func (h *Handler) GetPublished(c *gin.Context) {
+	publicID := c.Param("publicId")
+	document, err := h.service.GetPublishedDocument(c.Request.Context(), publicID)
+	if err != nil {
+		writeDocumentError(c, err)
+		return
+	}
+
+	response.OK(c, document)
+}
+
 // Update 处理 PATCH /api/v1/documents/:id。
 // PATCH 语义是局部更新，因此请求体字段使用指针来表示是否更新。
 func (h *Handler) Update(c *gin.Context) {
@@ -225,6 +238,48 @@ func (h *Handler) UpdateFavoritesOrder(c *gin.Context) {
 	}
 
 	response.OK(c, gin.H{"message": "Favorites order updated."})
+}
+
+// Publish 处理 POST /api/v1/documents/:id/publish。
+func (h *Handler) Publish(c *gin.Context) {
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	id, ok := bindDocumentID(c)
+	if !ok {
+		return
+	}
+
+	document, err := h.service.SetPublished(c.Request.Context(), userID, id, true)
+	if err != nil {
+		writeDocumentError(c, err)
+		return
+	}
+
+	response.OK(c, document)
+}
+
+// Unpublish 处理 DELETE /api/v1/documents/:id/publish。
+func (h *Handler) Unpublish(c *gin.Context) {
+	userID, ok := currentUserID(c)
+	if !ok {
+		return
+	}
+
+	id, ok := bindDocumentID(c)
+	if !ok {
+		return
+	}
+
+	document, err := h.service.SetPublished(c.Request.Context(), userID, id, false)
+	if err != nil {
+		writeDocumentError(c, err)
+		return
+	}
+
+	response.OK(c, document)
 }
 
 // Archive 处理 POST /api/v1/documents/:id/archive。

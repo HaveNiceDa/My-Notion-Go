@@ -228,6 +228,10 @@ assert(
   citationsEvent.data.items.some((item) => item.documentId === document.id),
   "RAG citations should reference the indexed document",
 );
+assert(
+  citationsEvent.data.items.some((item) => Array.isArray(item.blockIds) && item.blockIds.includes("rag-smoke-block-1")),
+  "RAG citations should include source block ids",
+);
 assert(deltas.length > 0, "RAG stream should include message deltas");
 assert(assistantMessageEvent?.data?.role === "assistant", "RAG stream should include assistant_message event");
 assert(assistantMessageEvent?.data?.metadata?.rag?.enabled === true, "assistant metadata should enable RAG");

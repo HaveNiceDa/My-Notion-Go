@@ -96,6 +96,7 @@ type SearchResult struct {
 	DocumentID    string
 	DocumentTitle string
 	ChunkID       string
+	BlockIDs      []string
 	Position      int
 	Text          string
 }

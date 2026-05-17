@@ -310,7 +310,18 @@ RAG Chat 请求体草案：
   - `cmd/worker` 已从占位入口升级为真实 worker 进程，`pnpm dev` 会同时启动 web/api/worker。
   - `pnpm smoke:api:rag` 已兼容 pending/indexing 状态，并轮询等待最终 indexed。
   - 已运行 `go test ./services/api/...`、`pnpm build:api`、`pnpm build:worker`、`node --check ./scripts/smoke-rag-api.mjs`。
-- 下一步建议继续 M5.6：补 RAG query intent 降级，或补充引用来源 chunk 高亮/滚动定位。
+- Agent 方向规划已确认：
+  - RAG 后续不再作为长期独立问答章节，而是收敛为 Agent 的 `knowledge_base.search` tool。
+  - 后续联网搜索、文档操作、任务创建等能力也应通过 tool registry 接入 Agent。
+  - 当前不再推进人工 query intent 前置规则，避免把是否调用 RAG 写死在启发式判断里。
+  - 当前 `/api/v1/rag/chat/stream` 保留为过渡入口和 smoke 验证入口，未来可由统一 Agent 编排复用底层检索能力。
+- M5.7 引用来源定位与高亮已落地：
+  - 后端 citation DTO 新增 `blockIds`，从 `rag_chunks.block_ids` 解析来源 BlockNote block。
+  - AI 面板 citation 链接会携带 `citationChunkId`、`citationBlockId` 和 `citationPosition`。
+  - 文档页读取 citation query 参数后传入编辑器，BlockNote 挂载后滚动到来源 block 并做短暂高亮。
+  - `pnpm smoke:api:rag` 已补充 `blockIds` 断言，确保 RAG tool result 保留可定位元数据。
+  - 已运行 `go test ./services/api/...`、`pnpm --filter @my-notion-go/web typecheck`、`node --check ./scripts/smoke-rag-api.mjs`。
+- 下一步建议：M5 可收口；后续可以进入 Agent 模块设计，或切到 M6 搜索/回收站/收藏/发布页面。
 
 ## 来源日志
 
@@ -323,3 +334,5 @@ RAG Chat 请求体草案：
 - `progress/20260516-230500.md`
 - `progress/20260516-222454.md`
 - `progress/20260517-151000.md`
+- `progress/20260517-154500.md`
+- `progress/20260517-161500.md`

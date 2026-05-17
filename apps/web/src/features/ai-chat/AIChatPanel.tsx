@@ -171,7 +171,7 @@ export function AIChatPanel({ accessToken, open, onClose }: AIChatPanelProps) {
                       title={t("aiChat.openCitationDocument")}
                       variant="ghost"
                     >
-                      <a href={`/documents/${citation.documentId}`} rel="noopener noreferrer" target="_blank">
+                      <a href={buildCitationHref(citation)} rel="noopener noreferrer" target="_blank">
                         <span className="mt-0.5 grid size-5 flex-none place-items-center rounded-full bg-secondary text-[10px] font-semibold text-foreground">
                           {index + 1}
                         </span>
@@ -317,4 +317,16 @@ function formatCitationScore(score: number) {
     return "0%";
   }
   return `${Math.round(score * 100)}%`;
+}
+
+function buildCitationHref(citation: RAGCitation) {
+  const params = new URLSearchParams({
+    citationChunkId: citation.chunkId,
+    citationPosition: String(citation.position),
+  });
+  const firstBlockID = citation.blockIds?.find((blockID) => blockID.trim() !== "");
+  if (firstBlockID) {
+    params.set("citationBlockId", firstBlockID);
+  }
+  return `/documents/${citation.documentId}?${params.toString()}`;
 }

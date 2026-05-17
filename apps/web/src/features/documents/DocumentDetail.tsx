@@ -4,10 +4,11 @@ import { useTranslation } from "react-i18next";
 import type { Document } from "@my-notion-go/api-client";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "../auth/authStore";
-import { DocumentEditor } from "./DocumentEditor";
+import { DocumentEditor, type CitationHighlightTarget } from "./DocumentEditor";
 import { EmptyDocuments } from "./EmptyDocuments";
 
 type DocumentDetailProps = {
+  citationTarget: CitationHighlightTarget | null;
   document?: Document;
   loading: boolean;
   onRename: (title: string) => void;
@@ -15,9 +16,9 @@ type DocumentDetailProps = {
 };
 
 // DocumentDetail 是文档详情 MVP：只负责 metadata 层的标题编辑，正文编辑器留给下一阶段。
-export function DocumentDetail({ document, loading, onRename, renaming }: DocumentDetailProps) {
+export function DocumentDetail({ citationTarget, document, loading, onRename, renaming }: DocumentDetailProps) {
   const { i18n, t } = useTranslation();
-	const accessToken = useAuthStore((state) => state.accessToken);
+  const accessToken = useAuthStore((state) => state.accessToken);
   const [title, setTitle] = useState(document?.title || "");
 
   useEffect(() => {
@@ -66,7 +67,7 @@ export function DocumentDetail({ document, loading, onRename, renaming }: Docume
         value={title}
       />
       <p className="mb-7 mt-2.5 text-[13px] text-muted-foreground">{t("documents.lastEdited", { time: updatedAt })}</p>
-			<DocumentEditor accessToken={accessToken} documentId={document.id} />
+      <DocumentEditor accessToken={accessToken} citationTarget={citationTarget} documentId={document.id} />
     </article>
   );
 }

@@ -344,6 +344,7 @@ func (s *Service) filterSearchResults(ctx context.Context, userID string, result
 		result.DocumentID = chunk.DocumentID
 		result.DocumentTitle = chunk.DocumentTitle
 		result.ChunkID = chunk.ID
+		result.BlockIDs = chunk.BlockIDsList
 		result.Position = chunk.Position
 		result.Text = chunk.Content
 		filtered = append(filtered, result)
@@ -374,6 +375,7 @@ func buildRAGContext(results []SearchResult) (string, []CitationDTO) {
 			ChunkID:       result.ChunkID,
 			DocumentID:    result.DocumentID,
 			DocumentTitle: result.DocumentTitle,
+			BlockIDs:      result.BlockIDs,
 			Position:      result.Position,
 			Score:         result.Score,
 			Preview:       trimRunes(text, ragCitationMaxRunes),

@@ -6,6 +6,7 @@ export type RAGCitation = {
   chunkId: string;
   documentId: string;
   documentTitle?: string;
+  blockIds?: string[];
   position: number;
   score: number;
   preview: string;

@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemoizedFn } from "ahooks";
 import { Bot } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { documentApi, ragApi, type UpdateDocumentRequest } from "@my-notion-go/api-client";
 import { toast } from "sonner";
@@ -27,6 +27,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { documentId } = useParams();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -34,6 +35,7 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
   const toggleTheme = useThemeStore((state) => state.toggle);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [aiChatOpen, setAIChatOpen] = useState(false);
+  const citationTarget = useMemo(() => getCitationTarget(searchParams), [searchParams]);
   // sidebar 宽度属于整体工作区布局状态，放在容器层可避免侧边栏内部重渲染时丢失宽度。
   const sidebarResize = useResizableWidth({
     defaultWidth: 240,
@@ -153,16 +155,19 @@ export function DocumentWorkspace({ onLogout, logoutLoading }: DocumentWorkspace
           themeMode={themeMode}
         />
 
-        {documentId ? (
-          <DocumentDetail
-            document={currentDocumentQuery.data}
-            loading={currentDocumentQuery.isLoading}
-            onRename={(title) => updateDocument.mutate({ id: documentId, input: { title } })}
-            renaming={updateDocument.isPending}
-          />
-        ) : (
-          <EmptyDocuments creating={createDocument.isPending} onCreate={createRootDocument} userName={user?.name || ""} />
-        )}
+        <div className="min-h-0 flex-1 overflow-auto">
+          {documentId ? (
+            <DocumentDetail
+              citationTarget={citationTarget}
+              document={currentDocumentQuery.data}
+              loading={currentDocumentQuery.isLoading}
+              onRename={(title) => updateDocument.mutate({ id: documentId, input: { title } })}
+              renaming={updateDocument.isPending}
+            />
+          ) : (
+            <EmptyDocuments creating={createDocument.isPending} onCreate={createRootDocument} userName={user?.name || ""} />
+          )}
+        </div>
       </section>
 
       {!aiChatOpen ? (
@@ -189,4 +194,18 @@ function syncKnowledgeBaseFlag(queryClient: ReturnType<typeof useQueryClient>, s
     document ? { ...document, isInKnowledgeBase: status.isInKnowledgeBase } : document,
   );
   void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
+}
+
+function getCitationTarget(searchParams: URLSearchParams) {
+  const chunkId = searchParams.get("citationChunkId")?.trim();
+  if (!chunkId) {
+    return null;
+  }
+
+  const position = Number(searchParams.get("citationPosition"));
+  return {
+    blockId: searchParams.get("citationBlockId")?.trim() || undefined,
+    chunkId,
+    position: Number.isFinite(position) ? position : undefined,
+  };
 }

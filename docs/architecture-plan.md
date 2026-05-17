@@ -412,11 +412,37 @@ sequenceDiagram
 | Documents | 创建、重命名、删除、归档、恢复、收藏 | 拖拽排序、发布分享、权限协作 |
 | Editor | 富文本编辑、自动保存、JSONB 存储 | 图片、代码块、表格、版本历史 |
 | Sidebar | 文档树、最近文档、搜索 | 实时刷新、批量操作 |
-| AI Chat | 普通对话、SSE 流式输出、会话历史 | Thinking Steps、Tool Call、模型切换 |
-| RAG | 文档加入知识库、向量化、基于文档问答 | 异步索引、增量更新、重建索引 |
+| AI Chat | 普通对话、SSE 流式输出、会话历史 | Agent、Tool Call、模型切换、联网搜索 |
+| RAG | 文档加入知识库、向量化、基于文档问答 | 作为 Agent 的知识库 tool，支持增量更新和引用定位 |
 | Realtime | AI SSE、任务状态 SSE | WebSocket 文档状态同步 |
 | Files | 本地/对象存储上传图片 | S3/R2、图片压缩、权限控制 |
 | Admin | 健康检查、任务列表 | 监控、审计日志 |
+
+## 12.1 AI Agent 与 Tool 架构方向
+
+M5 完成的 RAG 能力不应长期作为独立的“问答章节”存在，而应沉淀为 AI Agent 可自主调用的一个 tool。
+
+长期目标：
+
+1. AI 对话入口统一升级为 Agent 入口。
+2. RAG 检索作为 `knowledge_base.search` tool，由 Agent 根据上下文自主决定是否调用。
+3. 后续新增联网搜索、文档写入、任务创建、代码解释等能力时，也都以 tool 形式接入。
+4. UI 层保留“知识库模式/普通模式”的轻量入口，但不在后端做大量人工 query intent 前置规则。
+5. 后端保留 tool 调用过程、引用来源和 thinking steps，方便用户理解回答依据。
+
+推荐演进路径：
+
+1. 保留当前 `/api/v1/rag/chat/stream` 作为 RAG tool 的过渡入口，继续保证现有 smoke 和产品闭环。
+2. 新增 `internal/agent` 模块，负责规划、tool registry、tool execution、stream event 编排和消息落库。
+3. 把当前 RAG 检索逻辑拆成可复用的 `KnowledgeBaseSearchTool`，输入为用户问题和可选文档范围，输出为 chunks 与 citations。
+4. 联网搜索后续作为 `web.search` tool 接入，避免和知识库检索耦合。
+5. Agent SSE 协议需要表达 `thinking`、`tool_call`、`tool_result`、`message`、`citations`、`done`，前端再逐步展示工具调用过程。
+
+近期不做：
+
+1. 不做人工作 query intent 分类规则来决定是否检索知识库。
+2. 不把 RAG 逻辑和联网搜索逻辑混在一个 service 内。
+3. 不让 Redis 或 RabbitMQ 承载核心 tool 结果；最终可追溯状态仍落 PostgreSQL。
 
 ## 13. 学习路径
 

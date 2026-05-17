@@ -2,6 +2,7 @@ package rag
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -13,6 +14,7 @@ var ErrStatusNotFound = errors.New("rag document status not found")
 type EnabledChunk struct {
 	Chunk         `gorm:"embedded"`
 	DocumentTitle string `gorm:"column:document_title"`
+	BlockIDsList  []string
 }
 
 type Repository struct {
@@ -140,6 +142,8 @@ func (r *Repository) ListEnabledChunksByIDs(ctx context.Context, userID string, 
 
 	result := make(map[string]EnabledChunk, len(chunks))
 	for _, chunk := range chunks {
+		// block_ids 是 citation 定位到 BlockNote 来源块的关键元数据；解析失败时保留空数组，不影响检索回答。
+		_ = json.Unmarshal(chunk.BlockIDs, &chunk.BlockIDsList)
 		result[chunk.ID] = chunk
 	}
 	return result, nil

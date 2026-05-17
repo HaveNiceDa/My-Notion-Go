@@ -1,0 +1,99 @@
+# M8 Native Mobile App
+
+## 阶段目标
+
+M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `my-notion-go` 的原生移动端实现。
+
+移动端不复用现有 My-Notion 主工程的 Expo 代码，也不把 Web 页面简单包成 WebView。第一版采用 React Native / Expo 新建 `apps/mobile`，复用 Go API、共享类型和 API client，逐步补齐 Notion-like 的移动端阅读、搜索、AI 和轻编辑体验。
+
+## 设计原则
+
+- Web 先行：M8 不阻塞 M7 的部署、测试和稳定性收口。
+- 原生优先：主导航、登录态、列表、搜索、AI 对话和设置页使用 React Native 原生组件实现。
+- 后端复用：移动端连接同一套 Go API，继续遵守 `userId` 数据隔离、JWT 鉴权、RAG 阈值和 SSE 鉴权约束。
+- 客户端共享：优先复用 `packages/api-client` 和 `packages/shared`，避免 Web/Mobile 各自维护重复 DTO。
+- 富文本分阶段：BlockNote 不直接适配 React Native，移动端先做只读和轻编辑，再评估原生 block editor 或受控 WebView editor。
+- 持久化优先：移动端排序、收藏、发布状态等仍以后端数据库为准，不把业务状态仅保存在本地缓存。
+
+## 技术选型
+
+- App 框架：React Native + Expo。
+- 路由：Expo Router。
+- 语言：TypeScript。
+- 服务端状态：TanStack Query。
+- 本地状态：Zustand。
+- 样式：NativeWind 或同等 Tailwind-like 原生样式方案。
+- 安全存储：使用系统安全存储保存 refresh token，access token 优先内存态和短期恢复。
+- API：复用 OpenAPI 生成 client 或封装移动端 adapter。
+- 流式响应：优先验证 React Native 环境下 `fetch` + streaming；如运行时不稳定，提供降级策略。
+
+## M8.0 App Foundation
+
+- 新增 `apps/mobile` workspace。
+- 初始化 Expo Router、TypeScript、Lint/Typecheck、基础环境变量。
+- 打通 `EXPO_PUBLIC_API_BASE_URL`。
+- 接入共享 API client 和 shared types。
+- 建立移动端主题、基础布局、错误边界和 loading/empty/error 状态。
+
+## M8.1 Auth + Session
+
+- 实现登录、注册、退出登录。
+- 实现 access token 注入、refresh token 刷新和登录态恢复。
+- 使用安全存储保存敏感 token，避免把 token 明文放入普通持久化 store。
+- 处理 401、网络不可用、API 地址错误等基础异常。
+
+## M8.2 Documents Mobile Read Path
+
+- 实现文档列表、文档树、最近文档和收藏入口。
+- 实现文档详情只读页，支持标题、icon、cover、更新时间和正文渲染。
+- 实现搜索入口，复用 `GET /api/v1/documents/search`。
+- 实现回收站基础查看、恢复和永久删除确认。
+- 实现公开链接打开和 deep link 预留。
+
+## M8.3 Mobile Editor MVP
+
+- 第一版支持标题、icon、收藏、发布状态等文档元信息编辑。
+- 正文编辑先做轻编辑能力，避免一次性实现完整 BlockNote 兼容。
+- 保存正文仍走 `PUT /api/v1/documents/:id/content`，并保留 `content_hash` / `version` 冲突检测扩展点。
+- 若采用 WebView editor，必须明确边界：只承载编辑器内核，不把整个 App 退化成 WebView。
+
+## M8.4 AI + RAG Mobile
+
+- 实现 AI Chat 移动端入口和会话列表。
+- 支持普通 AI 对话、RAG 问答和引用来源展示。
+- 流式响应需继续支持 Bearer Token；如果 React Native streaming 能力不足，提供非流式或轮询降级方案。
+- 后续 Agent + Tool 架构落地后，移动端只消费统一 Agent SSE / event 协议。
+
+## M8.5 Mobile Polish
+
+- 支持离线弱提示和网络恢复后的 query invalidation。
+- 支持系统分享、复制公开链接和打开公开页。
+- 支持基础 deep link。
+- 评估 push notification，用于任务完成、共享邀请或未来协作通知。
+- 补充 EAS build / iOS / Android 构建说明。
+
+## 验证命令
+
+```bash
+pnpm --filter @my-notion-go/mobile typecheck
+pnpm --filter @my-notion-go/mobile lint
+pnpm --filter @my-notion-go/mobile test
+```
+
+如果移动端包尚未建立，上述命令作为 M8.0 的目标命令；落地前不要求当前仓库通过。
+
+## 当前不做
+
+- 不复用旧 My-Notion Expo 工程。
+- 不在 M8.0 直接实现完整富文本协同编辑。
+- 不把文档排序、收藏排序等业务状态仅保存在本地缓存。
+- 不在移动端绕过 Go API 直连 PostgreSQL、Qdrant 或 LLM。
+- 不在第一版移动端引入多人协同编辑、在线光标或 CRDT。
+
+## 剩余待办
+
+- 确认 `apps/mobile` 的包名、bundle identifier 和 EAS project 配置。
+- 确认移动端 editor 方案：原生 block editor、轻编辑或受控 WebView editor。
+- 确认 React Native 运行时对 SSE / streaming fetch 的支持情况。
+- 设计移动端 token 生命周期、安全存储和多设备退出策略。
+- 设计移动端离线缓存边界，避免与后端持久化状态冲突。

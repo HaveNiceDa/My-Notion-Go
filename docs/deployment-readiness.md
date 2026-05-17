@@ -2,13 +2,14 @@
 
 ## 目标
 
-本文档用于把 `my-notion-go` 整理成可部署、可展示、可复现的状态。当前推荐先使用 Docker Compose 做本地完整演示，再按目标平台拆分 Web、API、Worker 和基础设施。
+本文档用于把 `my-notion-go` 整理成可部署、可展示、可复现的状态。当前推荐先使用 Docker Compose 做本地完整演示，再按目标平台拆分 Web、API、Worker 和基础设施；后续新增原生移动端时，移动端以独立 App 构建和分发，不进入 Docker Compose 演示链路。
 
 ## 组件
 
 | 组件 | 说明 | 默认端口 |
 | --- | --- | --- |
 | Web | React + Vite 静态站点，Nginx 托管 | `8081` |
+| Mobile | React Native / Expo 原生移动端，连接公网 API | 无固定端口 |
 | API | Go + Gin REST/SSE 服务 | `8080` |
 | Worker | Go RAG 索引 worker | 无 HTTP 端口 |
 | PostgreSQL | 主业务数据库 | `5432` |
@@ -32,6 +33,7 @@ cp .env.example .env
 | `JWT_REFRESH_SECRET` | 是 | Refresh token 签名密钥，生产必须替换 |
 | `CORS_ALLOWED_ORIGINS` | 是 | Web 访问 API 的 origin 白名单，多个值用逗号分隔 |
 | `VITE_API_BASE_URL` | 是 | Web 构建时写入的 API 地址 |
+| `EXPO_PUBLIC_API_BASE_URL` | 移动端阶段必填 | Mobile 构建时写入的 API 地址，只能放公开 API 地址 |
 | `QDRANT_URL` | 否 | Qdrant 地址；缺失时 RAG 能力不可用 |
 | `QDRANT_COLLECTION` | 否 | Qdrant collection 名称 |
 | `LLM_API_KEY` / `DASHSCOPE_API_KEY` | 否 | AI Chat、Embedding、RAG 需要 |
@@ -40,7 +42,7 @@ cp .env.example .env
 
 - 生产环境禁止使用 `.env.example` 中的默认 JWT secret。
 - `DATABASE_URL`、JWT secret、LLM API key 不应提交到 Git。
-- `VITE_API_BASE_URL` 会进入前端产物，只能放公开 API 地址，不能放密钥。
+- `VITE_API_BASE_URL` 和 `EXPO_PUBLIC_API_BASE_URL` 会进入客户端产物，只能放公开 API 地址，不能放密钥。
 
 ## 本地开发
 
@@ -104,6 +106,7 @@ docker compose --profile app up --build web api worker
 推荐拆分为四类服务：
 
 - Web 静态站点：使用 `deployments/docker/web.Dockerfile` 构建，部署到静态托管或容器平台。
+- Mobile 原生 App：使用 Expo / EAS 或 Xcode / Gradle 构建，配置 `EXPO_PUBLIC_API_BASE_URL` 指向 API 公网地址。
 - API 服务：使用 `deployments/docker/api.Dockerfile`，启动命令 `./api`。
 - Worker 服务：使用同一个 API 镜像，启动命令 `./worker`。
 - Migration Job：使用同一个 API 镜像，启动命令 `./migrate`，部署时先于 API/Worker 执行。
@@ -116,6 +119,7 @@ docker compose --profile app up --build web api worker
 4. 启动 API，并确认 `/health` 返回 200。
 5. 启动 Worker。
 6. 构建并发布 Web，确保 `VITE_API_BASE_URL` 指向 API 公网地址。
+7. 构建并分发 Mobile，确保 `EXPO_PUBLIC_API_BASE_URL` 指向同一个 API 公网地址。
 
 ## 健康检查
 
@@ -178,3 +182,4 @@ pnpm smoke:api:rag
 - RabbitMQ 当前在 Compose 中作为预留基础设施，RAG 索引实际使用 `jobs` 表轮询 worker。
 - 正文编辑仍是整篇 JSON 覆盖保存，未解决多人同时编辑冲突。
 - Web Docker 镜像的 `VITE_API_BASE_URL` 是构建时注入，部署到不同 API 地址需要重新构建。
+- Mobile 客户端同样依赖构建时 API 地址，后续如果需要多环境动态切换，应单独设计环境选择和安全边界。

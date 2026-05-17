@@ -2,29 +2,30 @@
 
 ## 1. 项目定位
 
-`my-notion-go` 是一个完全独立于现有 My-Notion 主工程的新项目，用于从零实现一个 React + Go 技术栈的 Notion 类知识管理系统。
+`my-notion-go` 是一个完全独立于现有 My-Notion 主工程的新项目，用于从零实现一个 React / React Native + Go 技术栈的 Notion 类知识管理系统。
 
-本项目不以兼容现有 Convex / Expo / Next.js 链路为目标，而是作为一个独立工程重新设计 Web 端、Go 后端、数据库、实时通信、异步任务、AI 与 RAG 能力。
+本项目不以兼容现有 Convex / Expo / Next.js 链路为目标，而是作为一个独立工程重新设计 Web 端、原生移动端、Go 后端、数据库、实时通信、异步任务、AI 与 RAG 能力。
 
 核心目标：
 
 1. 系统学习并实践 Go 后端工程能力。
-2. 使用 React 重新实现 My-Notion Web 端核心功能。
+2. 使用 React 重新实现 My-Notion Web 端核心功能，并在 Web 稳定后使用 React Native / Expo 新增原生移动端。
 3. 通过 monorepo 组织前端、后端、共享 SDK、部署与文档。
-4. 覆盖一个相对完整的全栈项目链路：鉴权、CRUD、富文本、AI、RAG、消息队列、实时通信、部署。
+4. 覆盖一个相对完整的全栈项目链路：鉴权、CRUD、富文本、AI、RAG、消息队列、实时通信、部署、移动端分发。
 
 非目标：
 
 1. 不追求与当前 My-Notion 主工程无缝迁移。
 2. 不复用 Convex 作为后端数据源。
 3. 第一阶段不实现多人协同编辑。
-4. 第一阶段不追求移动端复刻，只聚焦 Web 端完整实现。
+4. 第一阶段不追求移动端复刻，先聚焦 Web 端完整实现；第二阶段新增独立原生移动端，不直接复用旧 Expo 工程。
 
 ## 2. 总体架构
 
 ```mermaid
 flowchart TD
     Web[React Web App] --> API[Go API - Gin]
+    Mobile[React Native Mobile App] --> API
     API --> Auth[Auth Module]
     API --> Doc[Document Module]
     API --> Editor[Content Module]
@@ -53,7 +54,7 @@ flowchart TD
     classDef frontend fill:#e3f2fd,color:#0d47a1
     classDef backend fill:#e8f5e9,color:#1b5e20
     classDef infra fill:#fff3e0,color:#e65100
-    class Web frontend
+    class Web,Mobile frontend
     class API,Auth,Doc,Editor,Chat,Search,Realtime,Worker backend
     class PG,QD,Redis,MQ,LLM,SSE,WS infra
 ```
@@ -507,7 +508,7 @@ M5 完成的 RAG 能力不应长期作为独立的“问答章节”存在，而
 
 1. 不复用 Convex。
 2. 不复用 Next.js 服务端 API。
-3. 不复用 Expo 移动端。
+3. 不复用现有 Expo 移动端工程，但允许在本项目内新建 `apps/mobile` 作为原生移动端实现。
 4. 可以参考原项目的产品交互和数据概念。
 5. 可以在成熟后反向沉淀经验到主工程。
 
@@ -517,4 +518,4 @@ M5 完成的 RAG 能力不应长期作为独立的“问答章节”存在，而
 2. 可以从零设计真正的 Go 后端。
 3. 项目边界清晰，适合作品集展示。
 4. 现有主项目不受实验性重构影响。
-5. 学习路径完整，覆盖前端、后端、数据库、缓存、队列、实时、AI、部署。
+5. 学习路径完整，覆盖 Web、原生移动端、后端、数据库、缓存、队列、实时、AI、部署。

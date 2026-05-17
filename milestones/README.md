@@ -20,7 +20,7 @@
 
 - M0、M1、M2、M3 已形成可运行闭环。
 - M4 已完成 AI Chat SSE 的后端和前端闭环，并已接入 OpenAI Compatible streaming client；模型选择、会话标题生成、错误提示和自动滚动体验已收尾。
-- M5 已完成 RAG 最小闭环和前端体验收口：文档默认进入知识库、切块、embedding、Qdrant 检索、RAG SSE 问答、引用展示、相似度阈值、AI 面板入口、异步索引 worker 和引用来源定位/高亮均已落地。
+- M5 已收口完成：文档默认进入知识库、切块、embedding、Qdrant 检索、RAG SSE 问答、引用展示、相似度阈值、AI 面板入口、异步索引 worker 和引用来源定位/高亮均已落地，并通过 RAG smoke、Web build 和 Go tests 验证。
 - 后续 AI 方向已调整为 Agent + Tool 架构：RAG 将作为 `knowledge_base.search` tool，而不是长期独立问答章节；暂不做人工作 query intent 前置规则。
 - 规则与工程约束已迁移到项目内 `.trae/rules/`，后续应优先读取项目 rules，而不是依赖全局 memory。
 

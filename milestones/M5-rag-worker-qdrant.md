@@ -321,7 +321,12 @@ RAG Chat 请求体草案：
   - 文档页读取 citation query 参数后传入编辑器，BlockNote 挂载后滚动到来源 block 并做短暂高亮。
   - `pnpm smoke:api:rag` 已补充 `blockIds` 断言，确保 RAG tool result 保留可定位元数据。
   - 已运行 `go test ./services/api/...`、`pnpm --filter @my-notion-go/web typecheck`、`node --check ./scripts/smoke-rag-api.mjs`。
-- 下一步建议：M5 可收口；后续可以进入 Agent 模块设计，或切到 M6 搜索/回收站/收藏/发布页面。
+- M5 收口验证已完成：
+  - `go test ./services/api/...` 通过。
+  - `pnpm --filter @my-notion-go/web build` 通过。
+  - `API_BASE_URL=http://localhost:18080 pnpm smoke:api:rag` 通过。
+  - 本次 smoke 使用临时启动的最新 API 进程，避免被本地 `:8080` 上旧 API 进程影响。
+- M5 已收口完成；下一阶段建议进入 M6 搜索/回收站/收藏/发布页面，或按 Agent + Tool 规划启动 Agent 模块设计。
 
 ## 来源日志
 
@@ -336,3 +341,4 @@ RAG Chat 请求体草案：
 - `progress/20260517-151000.md`
 - `progress/20260517-154500.md`
 - `progress/20260517-161500.md`
+- `progress/20260517-164000.md`

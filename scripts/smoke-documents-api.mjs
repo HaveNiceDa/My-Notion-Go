@@ -19,6 +19,22 @@ async function request(path, options = {}) {
   return body?.data;
 }
 
+async function requestFailure(path, options = {}) {
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+      ...options.headers,
+    },
+  });
+  const body = await response.json().catch(() => null);
+  if (response.ok && body?.success !== false) {
+    throw new Error(`${options.method ?? "GET"} ${path} should fail but succeeded: ${JSON.stringify(body)}`);
+  }
+  return { body, status: response.status };
+}
+
 async function loginOrRegister() {
   try {
     return await request("/api/v1/auth/login", {
@@ -89,6 +105,35 @@ const updatedContent = await request(`/api/v1/documents/${root.id}/content`, {
 });
 assert(updatedContent.version >= initialContent.version + 1, "content version should increase");
 console.log(`update content ok, version=${updatedContent.version}`);
+
+const published = await request(`/api/v1/documents/${root.id}/publish`, {
+  method: "POST",
+  token,
+});
+assert(published.isPublished === true, "published document should be marked as published");
+assert(typeof published.publicId === "string" && published.publicId.length > 0, "published document should include publicId");
+console.log(`publish ok, publicId=${published.publicId}`);
+
+const publicDocument = await request(`/api/v1/public/documents/${published.publicId}`);
+assert(publicDocument.publicId === published.publicId, "public document id should match publicId");
+assert(publicDocument.title === root.title, "public document title should match current title before rename");
+assert(Array.isArray(publicDocument.content), "public document content should be an array");
+assert(JSON.stringify(publicDocument.content).includes("Hello from smoke test"), "public document content should include saved block text");
+assert(publicDocument.id === undefined, "public document should not expose internal document id");
+assert(publicDocument.path === undefined, "public document should not expose internal path");
+assert(publicDocument.isInKnowledgeBase === undefined, "public document should not expose RAG state");
+console.log("public read ok");
+
+const unpublished = await request(`/api/v1/documents/${root.id}/publish`, {
+  method: "DELETE",
+  token,
+});
+assert(unpublished.isPublished === false, "unpublished document should not be marked as published");
+console.log("unpublish ok");
+
+const publicAfterUnpublish = await requestFailure(`/api/v1/public/documents/${published.publicId}`);
+assert(publicAfterUnpublish.status === 404, "public document should be inaccessible after unpublish");
+console.log("public read after unpublish rejected ok");
 
 const updated = await request(`/api/v1/documents/${root.id}`, {
   method: "PATCH",

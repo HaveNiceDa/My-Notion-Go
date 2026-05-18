@@ -1,8 +1,10 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardEyebrow, CardTitle, InfoCard } from "@/components/ui/card";
 import { mobileApiBaseUrl } from "@/lib/api-config";
 import { useAuthStore } from "@/stores/auth-store";
+import { Text, View } from "@/tw";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, Text, View } from "react-native";
 
 export function WorkspaceHome() {
   const { t } = useTranslation();
@@ -20,84 +22,34 @@ export function WorkspaceHome() {
   }
 
   return (
-    <View style={{ gap: 20 }}>
-      <View
-        style={{
-          gap: 12,
-          borderRadius: 28,
-          borderCurve: "continuous",
-          backgroundColor: "#FFFFFF",
-          padding: 24,
-          boxShadow: "0 12px 30px rgba(15, 23, 42, 0.08)",
-        }}
-      >
-        <Text selectable style={{ color: "#78716C", fontSize: 13, fontWeight: "600", letterSpacing: 0.4 }}>
-          {t("App.phaseLabel")}
-        </Text>
-        <Text selectable style={{ color: "#1C1917", fontSize: 30, fontWeight: "700", lineHeight: 36 }}>
-          {t("App.signedInTitle", { name: user?.name || user?.email })}
-        </Text>
-        <Text selectable style={{ color: "#57534E", fontSize: 16, lineHeight: 24 }}>
-          {t("App.signedInSubtitle")}
-        </Text>
-      </View>
+    <View className="gap-5">
+      <Card>
+        <CardEyebrow selectable>{t("App.phaseLabel")}</CardEyebrow>
+        <CardTitle selectable>{t("App.signedInTitle", { name: user?.name || user?.email })}</CardTitle>
+        <CardDescription selectable>{t("App.signedInSubtitle")}</CardDescription>
+      </Card>
 
-      <View
-        style={{
-          gap: 8,
-          borderRadius: 20,
-          borderCurve: "continuous",
-          backgroundColor: "#EDE9E3",
-          padding: 16,
-        }}
-      >
-        <Text selectable style={{ color: "#78716C", fontSize: 13, fontWeight: "600" }}>
-          {t("auth.email")}
-        </Text>
-        <Text selectable style={{ color: "#292524", fontSize: 15 }}>
-          {user?.email}
-        </Text>
-      </View>
+      <InfoCard>
+        <CardEyebrow selectable>{t("auth.email")}</CardEyebrow>
+        <Text selectable className="text-[15px] text-stone-800">{user?.email}</Text>
+      </InfoCard>
 
-      <View
-        style={{
-          gap: 8,
-          borderRadius: 20,
-          borderCurve: "continuous",
-          backgroundColor: "#EDE9E3",
-          padding: 16,
-        }}
-      >
-        <Text selectable style={{ color: "#78716C", fontSize: 13, fontWeight: "600" }}>
-          {t("App.apiLabel")}
-        </Text>
-        <Text selectable style={{ color: "#292524", fontSize: 15, fontVariant: ["tabular-nums"] }}>
-          {mobileApiBaseUrl}
-        </Text>
-      </View>
+      <InfoCard>
+        <CardEyebrow selectable>{t("App.apiLabel")}</CardEyebrow>
+        <Text selectable className="text-[15px] text-stone-800 tabular-nums">{mobileApiBaseUrl}</Text>
+      </InfoCard>
 
-      <Text selectable style={{ color: "#78716C", fontSize: 14, lineHeight: 20, textAlign: "center" }}>
+      <Text selectable className="text-center text-sm leading-5 text-notion-faint">
         {t("App.documentsNext")}
       </Text>
 
-      <Pressable
-        accessibilityRole="button"
+      <Button
         accessibilityLabel={isLoggingOut ? t("workspace.loggingOut") : t("workspace.logout")}
-        disabled={isLoggingOut}
+        isLoading={isLoggingOut}
+        label={t("workspace.logout")}
+        loadingLabel={t("workspace.loggingOut")}
         onPress={handleLogout}
-        style={{
-          alignItems: "center",
-          borderRadius: 999,
-          backgroundColor: "#1C1917",
-          opacity: isLoggingOut ? 0.7 : 1,
-          paddingHorizontal: 18,
-          paddingVertical: 14,
-        }}
-      >
-        <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700" }}>
-          {isLoggingOut ? t("workspace.loggingOut") : t("workspace.logout")}
-        </Text>
-      </Pressable>
+      />
     </View>
   );
 }

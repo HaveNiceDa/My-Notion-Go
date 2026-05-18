@@ -1,10 +1,11 @@
 import { AuthScreen } from "@/components/auth-screen";
+import { LoadingCard, ScreenScrollView } from "@/components/ui/screen";
 import { WorkspaceHome } from "@/components/workspace-home";
 import { useAuthStore } from "@/stores/auth-store";
+import { Text } from "@/tw";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, Text, View } from "react-native";
 
 export default function HomeScreen() {
   const { t } = useTranslation();
@@ -16,33 +17,19 @@ export default function HomeScreen() {
   }, [restoreSession]);
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      style={{ flex: 1, backgroundColor: "#F7F5F2" }}
-      contentContainerStyle={{ gap: 20, padding: 20 }}
-    >
+    <ScreenScrollView>
       <StatusBar style="auto" />
       {status === "restoring" ? (
-        <View
-          style={{
-            alignItems: "center",
-            borderRadius: 28,
-            borderCurve: "continuous",
-            backgroundColor: "#FFFFFF",
-            justifyContent: "center",
-            minHeight: 240,
-            padding: 24,
-          }}
-        >
-          <Text selectable style={{ color: "#57534E", fontSize: 16, lineHeight: 24 }}>
+        <LoadingCard>
+          <Text selectable className="text-base leading-6 text-notion-subtle">
             {t("common.loadingSession")}
           </Text>
-        </View>
+        </LoadingCard>
       ) : status === "authenticated" ? (
         <WorkspaceHome />
       ) : (
         <AuthScreen />
       )}
-    </ScrollView>
+    </ScreenScrollView>
   );
 }

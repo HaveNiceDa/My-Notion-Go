@@ -1,4 +1,5 @@
 import "@/i18n";
+import "@/global.css";
 
 import { AppQueryProvider } from "@/providers/query-provider";
 import { Stack } from "expo-router/stack";

@@ -1,8 +1,12 @@
+import { Button } from "@/components/ui/button";
+import { CardDescription, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth-store";
 import { ApiError } from "@my-notion-go/api-client";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { Platform } from "react-native";
+import { KeyboardAvoidingView, Pressable, Text, View } from "@/tw";
 
 type AuthMode = "login" | "register";
 
@@ -70,29 +74,24 @@ export function AuthScreen() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ gap: 18 }}>
-      <View style={{ gap: 8 }}>
-        <Text selectable style={{ color: "#1C1917", fontSize: 30, fontWeight: "700", lineHeight: 36 }}>
-          {title}
-        </Text>
-        <Text selectable style={{ color: "#57534E", fontSize: 16, lineHeight: 23 }}>
-          {subtitle}
-        </Text>
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="gap-4.5">
+      <View className="gap-2">
+        <CardTitle selectable>{title}</CardTitle>
+        <CardDescription selectable>{subtitle}</CardDescription>
       </View>
 
-      <View style={{ gap: 12 }}>
+      <View className="gap-3">
         {isRegister ? (
-          <TextInput
+          <Input
             accessibilityLabel={t("auth.name")}
             autoCapitalize="words"
             editable={!isSubmitting}
             onChangeText={setName}
             placeholder={t("auth.namePlaceholder")}
-            style={inputStyle}
             value={name}
           />
         ) : null}
-        <TextInput
+        <Input
           accessibilityLabel={t("auth.email")}
           autoCapitalize="none"
           autoComplete="email"
@@ -101,42 +100,31 @@ export function AuthScreen() {
           keyboardType="email-address"
           onChangeText={setEmail}
           placeholder={t("auth.emailPlaceholder")}
-          style={inputStyle}
           value={email}
         />
-        <TextInput
+        <Input
           accessibilityLabel={t("auth.password")}
           autoCapitalize="none"
           editable={!isSubmitting}
           onChangeText={setPassword}
           placeholder={passwordPlaceholder}
           secureTextEntry
-          style={inputStyle}
           value={password}
         />
       </View>
 
       {errorKey ? (
-        <Text accessibilityRole="alert" style={{ color: "#B91C1C", fontSize: 14, lineHeight: 20 }}>
+        <Text accessibilityRole="alert" className="text-sm leading-5 text-notion-danger">
           {t(errorKey)}
         </Text>
       ) : null}
 
-      <Pressable
-        accessibilityRole="button"
+      <Button
         accessibilityLabel={submitLabel}
-        disabled={isSubmitting}
+        isLoading={isSubmitting}
+        label={submitLabel}
         onPress={handleSubmit}
-        style={{
-          alignItems: "center",
-          borderRadius: 999,
-          backgroundColor: isSubmitting ? "#78716C" : "#1C1917",
-          paddingHorizontal: 18,
-          paddingVertical: 14,
-        }}
-      >
-        <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700" }}>{submitLabel}</Text>
-      </Pressable>
+      />
 
       <Pressable
         accessibilityRole="button"
@@ -146,21 +134,11 @@ export function AuthScreen() {
           setErrorKey(null);
           setMode(isRegister ? "login" : "register");
         }}
-        style={{ alignItems: "center", flexDirection: "row", gap: 6, justifyContent: "center" }}
+        className="flex-row items-center justify-center gap-1.5"
       >
-        <Text style={{ color: "#78716C", fontSize: 14 }}>{switchPrompt}</Text>
-        <Text style={{ color: "#1C1917", fontSize: 14, fontWeight: "700" }}>{switchLabel}</Text>
+        <Text className="text-sm text-notion-faint">{switchPrompt}</Text>
+        <Text className="text-sm font-bold text-notion-text">{switchLabel}</Text>
       </Pressable>
     </KeyboardAvoidingView>
   );
 }
-
-const inputStyle = {
-  borderColor: "#D6D3D1",
-  borderRadius: 16,
-  borderWidth: 1,
-  color: "#1C1917",
-  fontSize: 16,
-  paddingHorizontal: 14,
-  paddingVertical: 13,
-} as const;

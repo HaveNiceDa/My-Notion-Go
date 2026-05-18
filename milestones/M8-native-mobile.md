@@ -67,6 +67,30 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 已通过：
   - `pnpm typecheck:mobile`
 
+## M8.1.5 Mobile UI Foundation
+
+### 目标
+
+- 在 M8.2 文档阅读路径前建立移动端 UI 基线，避免后续文档列表、阅读页、搜索入口和确认弹层继续手写零散组件。
+- 采用 `NativeWind` + `react-native-css` + Tailwind CSS v4，保持与 Web 端 Tailwind/shadcn 心智一致。
+- 建立移动端自己的 `components/ui` 基础组件层，业务页面优先复用 UI primitive，不直接堆叠 `Pressable`、`TextInput` 和大段 inline style。
+
+### 任务卡片
+
+- 配置 Tailwind CSS v4、NativeWind Metro transformer、PostCSS 和全局 CSS 入口。
+- 建立 `src/tw` CSS-enabled React Native primitives，集中导出 `View`、`Text`、`Pressable`、`TextInput`、`ScrollView` 等基础元素。
+- 建立 `src/components/ui` 基础组件：`Button`、`Input`、`Card`、`ScreenScrollView` 和 `LoadingCard`。
+- 抽取 Notion-like 移动端设计 token，包括背景、卡片、弱底色、边框、正文、次级文本和危险色。
+- 将 M8.1 登录页和工作区占位页迁移到新 UI 基线，作为 M8.2 继续开发的样例。
+
+### 验收标准
+
+- `apps/mobile` 可以通过 `className` 使用 Tailwind utility。
+- 登录、注册、会话恢复、已登录首页仍保持现有行为。
+- `pnpm --filter @my-notion-go/mobile typecheck` 通过。
+- `pnpm --filter @my-notion-go/mobile lint` 通过或记录明确的阻塞原因。
+- Expo Go 与 Expo Web 均能启动；Web 预览继续使用 `8081`。
+
 ## M8.2 Documents Mobile Read Path
 
 - 实现文档列表、文档树、最近文档和收藏入口。

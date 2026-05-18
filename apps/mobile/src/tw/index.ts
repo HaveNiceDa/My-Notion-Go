@@ -1,4 +1,5 @@
 export {
+  Image,
   KeyboardAvoidingView,
   Pressable,
   ScrollView,

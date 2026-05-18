@@ -99,6 +99,17 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 实现回收站基础查看、恢复和永久删除确认。
 - 实现公开链接打开和 deep link 预留。
 
+## M8.2 当前状态
+
+- 已新增移动端文档列表 UI 结构，包含阶段头图、快捷入口、最近文档、收藏文档、全部文档树、空态、错误态和加载态。
+- 已新增 `useMobileDocumentTree`，通过 React Query + `runWithAuth` 复用 M8.1 的 access token 注入、401 refresh 和单次重试逻辑。
+- 已将登录后的移动端入口从 M8.1 占位页切换到文档列表页，同时保留账号、API 地址和退出登录入口。
+- 已复用 `packages/shared/src/i18n/resources.ts` 新增移动端文档列表文案，继续只维护 `zh` / `en`。
+- 已新增 `/documents/[documentId]` 移动端动态路由，列表项可跳转到文档详情只读页。
+- 已新增文档详情 metadata 和正文 content 查询，继续复用 React Query + `runWithAuth` 的鉴权刷新链路。
+- 已实现 BlockNote JSON 的移动端只读降级渲染，支持段落、标题、列表、引用、代码块和子块缩进；未知 block 显示安全占位文案。
+- 下一步接入搜索入口、回收站基础查看和公开链接/deep link 预留。
+
 ## M8.3 Mobile Editor MVP
 
 - 第一版支持标题、icon、收藏、发布状态等文档元信息编辑。

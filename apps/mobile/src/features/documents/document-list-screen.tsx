@@ -17,6 +17,7 @@ type FlatDocumentNode = DocumentTreeNode & {
 
 export function DocumentListScreen() {
   const { i18n, t } = useTranslation();
+  const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const documentsQuery = useMobileDocumentTree();
@@ -70,9 +71,9 @@ export function DocumentListScreen() {
       </Card>
 
       <View className="flex-row gap-2">
-        <QuickAction label={t("workspace.search")} />
+        <QuickAction label={t("workspace.search")} onPress={() => router.push("/search")} />
         <QuickAction label={t("workspace.favorites")} />
-        <QuickAction label={t("workspace.trash")} />
+        <QuickAction label={t("workspace.trash")} onPress={() => router.push("/trash")} />
       </View>
 
       <DocumentSection
@@ -224,13 +225,23 @@ function MetricPill({ label }: { label: string }) {
   );
 }
 
-function QuickAction({ label }: { label: string }) {
+function QuickAction({ label, onPress }: { label: string; onPress?: () => void }) {
+  if (!onPress) {
+    return (
+      <View className="flex-1 items-center rounded-2xl bg-notion-surface px-3 py-3">
+        <Text selectable className="text-sm font-semibold text-notion-text">
+          {label}
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <View className="flex-1 items-center rounded-2xl bg-notion-surface px-3 py-3">
+    <Pressable accessibilityLabel={label} accessibilityRole="button" className="flex-1 items-center rounded-2xl bg-notion-surface px-3 py-3" onPress={onPress}>
       <Text selectable className="text-sm font-semibold text-notion-text">
         {label}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 

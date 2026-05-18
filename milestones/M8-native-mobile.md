@@ -108,7 +108,10 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 已新增 `/documents/[documentId]` 移动端动态路由，列表项可跳转到文档详情只读页。
 - 已新增文档详情 metadata 和正文 content 查询，继续复用 React Query + `runWithAuth` 的鉴权刷新链路。
 - 已实现 BlockNote JSON 的移动端只读降级渲染，支持段落、标题、列表、引用、代码块和子块缩进；未知 block 显示安全占位文案。
-- 下一步接入搜索入口、回收站基础查看和公开链接/deep link 预留。
+- 已新增 `/search` 移动端搜索入口，复用 `GET /api/v1/documents/search` 并支持结果跳转详情页。
+- 已新增 `/trash` 移动端回收站基础查看，复用 `GET /api/v1/documents/trash` 展示归档文档列表。
+- 已新增 `/public/[publicId]` 公开页面预留路由，复用公开文档 API 并支持后续 `mynotiongo://public/:publicId` deep link 映射。
+- 下一步进入 M8.3 Mobile Editor MVP 前，可补充回收站恢复/永久删除动作和更完整的公开链接分享入口。
 
 ## M8.3 Mobile Editor MVP
 

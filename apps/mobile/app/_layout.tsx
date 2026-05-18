@@ -18,6 +18,9 @@ export default function RootLayout() {
       >
         <Stack.Screen name="index" options={{ title: t("App.homeTitle") }} />
         <Stack.Screen name="documents/[documentId]" options={{ title: t("mobileDocuments.detailTitle") }} />
+        <Stack.Screen name="public/[publicId]" options={{ title: t("mobileDocuments.publicTitle") }} />
+        <Stack.Screen name="search" options={{ title: t("search.title") }} />
+        <Stack.Screen name="trash" options={{ title: t("trash.title") }} />
       </Stack>
     </AppQueryProvider>
   );

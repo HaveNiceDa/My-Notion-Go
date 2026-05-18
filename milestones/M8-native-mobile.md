@@ -57,6 +57,16 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 使用安全存储保存敏感 token，避免把 token 明文放入普通持久化 store。
 - 处理 401、网络不可用、API 地址错误等基础异常。
 
+## M8.1 当前状态
+
+- 已接入 `expo-secure-store`，移动端 refresh token 使用系统安全存储；当运行环境不支持 SecureStore 时，仅使用内存降级，不做普通持久化。
+- 已新增移动端 auth store，集中处理登录、注册、退出登录、启动恢复、refresh token 续期和 401 后一次刷新重试。
+- 已将 access token 保持在内存态，并提供 `runWithAuth`，后续 M8.2 Documents 和 M8.4 AI 请求可复用同一个鉴权入口。
+- 已将移动端首页从 M8.0 欢迎页升级为 M8.1 会话入口：启动恢复中、未登录表单、已登录工作区占位三态切换。
+- 已复用 `packages/shared/src/i18n/resources.ts` 管理移动端新增文案，继续不引入 `zh-TW`。
+- 已通过：
+  - `pnpm typecheck:mobile`
+
 ## M8.2 Documents Mobile Read Path
 
 - 实现文档列表、文档树、最近文档和收藏入口。
@@ -110,5 +120,5 @@ pnpm --filter @my-notion-go/mobile test
 - 确认 `apps/mobile` 的包名、bundle identifier 和 EAS project 配置。
 - 确认移动端 editor 方案：原生 block editor、轻编辑或受控 WebView editor。
 - 确认 React Native 运行时对 SSE / streaming fetch 的支持情况。
-- 设计移动端 token 生命周期、安全存储和多设备退出策略。
+- 设计移动端多设备退出策略和 refresh token 失效后的用户提示细节。
 - 设计移动端离线缓存边界，避免与后端持久化状态冲突。

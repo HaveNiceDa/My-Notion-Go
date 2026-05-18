@@ -1,7 +1,4 @@
 const defaultBaseUrl = "http://localhost:8080";
-const viteEnv = (import.meta as unknown as {
-  env?: Record<string, string | undefined>;
-}).env;
 const processEnv = (globalThis as unknown as {
   process?: {
     env?: Record<string, string | undefined>;
@@ -182,7 +179,7 @@ export class ApiError extends Error {
   }
 }
 
-const baseUrl = processEnv?.EXPO_PUBLIC_API_BASE_URL ?? viteEnv?.VITE_API_BASE_URL ?? defaultBaseUrl;
+const baseUrl = processEnv?.EXPO_PUBLIC_API_BASE_URL ?? processEnv?.VITE_API_BASE_URL ?? defaultBaseUrl;
 
 // request 是所有 API 调用的唯一出口，统一处理 baseUrl、JSON header、Bearer token 和错误拆包。
 async function request<T>(

@@ -8,8 +8,8 @@
 
 | 组件 | 说明 | 默认端口 |
 | --- | --- | --- |
-| Web | React + Vite 静态站点，Nginx 托管 | `8081` |
-| Mobile | React Native / Expo 原生移动端，连接公网 API | 无固定端口 |
+| Web | React + Vite 静态站点，本地开发使用 Vite，Compose 演示使用 Nginx 托管 | 本地开发 `5273`，Compose 演示 `8081` |
+| Mobile | React Native / Expo 原生移动端，连接公网 API；开发服务固定使用 Expo `8081` | `8081`（仅开发服务） |
 | API | Go + Gin REST/SSE 服务 | `8080` |
 | Worker | Go RAG 索引 worker | 无 HTTP 端口 |
 | PostgreSQL | 主业务数据库 | `5432` |

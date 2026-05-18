@@ -3,12 +3,15 @@ export const resources = {
     translation: {
       App: {
         homeTitle: "工作区",
-        phaseLabel: "M8.0 移动端基础",
+        phaseLabel: "M8.1 鉴权与会话",
         heroTitle: "My-Notion Go 移动端",
         heroSubtitle: "原生基础已就绪，后续可接入文档、搜索、AI 和轻编辑。",
         apiLabel: "API 基础地址",
         statusReady: "已准备进入 M8.1 鉴权与会话",
         primaryAction: "使用 Expo Go 启动",
+        signedInTitle: "欢迎回来，{{name}}",
+        signedInSubtitle: "移动端登录态已恢复，access token 保持在内存中，refresh token 已交给系统安全存储。",
+        documentsNext: "下一步进入 M8.2：接入文档列表、最近文档、收藏和只读详情页。",
       },
       common: {
         brand: "My-Notion",
@@ -55,6 +58,9 @@ export const resources = {
         requiredPassword: "请输入密码。",
         minPassword: "密码至少需要 8 位。",
         requestFailed: "请求失败，请稍后重试。",
+        networkFailed: "无法连接 API，请检查网络或 API 地址。",
+        invalidCredentials: "邮箱或密码不正确。",
+        emailExists: "该邮箱已经注册，请直接登录。",
         sessionExpiredTitle: "会话已过期",
         sessionExpiredDescription: "为了保护你的账号安全，请重新登录后继续使用。",
         sessionExpiredReload: "刷新页面",
@@ -249,12 +255,15 @@ export const resources = {
     translation: {
       App: {
         homeTitle: "Workspace",
-        phaseLabel: "M8.0 App Foundation",
+        phaseLabel: "M8.1 Auth + Session",
         heroTitle: "My-Notion Go Mobile",
         heroSubtitle: "Native foundation is ready for documents, search, AI, and light editing.",
         apiLabel: "API base URL",
         statusReady: "Ready for M8.1 Auth + Session",
         primaryAction: "Start with Expo Go",
+        signedInTitle: "Welcome back, {{name}}",
+        signedInSubtitle: "Mobile session is restored. The access token stays in memory and the refresh token is stored in system secure storage.",
+        documentsNext: "Next up in M8.2: document list, recent pages, favorites, and read-only document details.",
       },
       common: {
         brand: "My-Notion",
@@ -301,6 +310,9 @@ export const resources = {
         requiredPassword: "Please enter your password.",
         minPassword: "Password must be at least 8 characters.",
         requestFailed: "Request failed. Please try again later.",
+        networkFailed: "Cannot reach the API. Check your network or API base URL.",
+        invalidCredentials: "Email or password is incorrect.",
+        emailExists: "This email is already registered. Please sign in instead.",
         sessionExpiredTitle: "Session expired",
         sessionExpiredDescription: "For your account security, please sign in again to continue.",
         sessionExpiredReload: "Reload page",

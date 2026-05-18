@@ -7,6 +7,7 @@ node_modules
 # Web
 apps/web/dist
 apps/web/.vite
+apps/mobile/.expo
 *.tsbuildinfo
 
 # Go

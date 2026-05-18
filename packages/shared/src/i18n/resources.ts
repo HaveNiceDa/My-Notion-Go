@@ -1,6 +1,15 @@
 export const resources = {
   zh: {
     translation: {
+      App: {
+        homeTitle: "工作区",
+        phaseLabel: "M8.0 移动端基础",
+        heroTitle: "My-Notion Go 移动端",
+        heroSubtitle: "原生基础已就绪，后续可接入文档、搜索、AI 和轻编辑。",
+        apiLabel: "API 基础地址",
+        statusReady: "已准备进入 M8.1 鉴权与会话",
+        primaryAction: "使用 Expo Go 启动",
+      },
       common: {
         brand: "My-Notion",
         loadingSession: "正在恢复登录态...",
@@ -238,6 +247,15 @@ export const resources = {
   },
   en: {
     translation: {
+      App: {
+        homeTitle: "Workspace",
+        phaseLabel: "M8.0 App Foundation",
+        heroTitle: "My-Notion Go Mobile",
+        heroSubtitle: "Native foundation is ready for documents, search, AI, and light editing.",
+        apiLabel: "API base URL",
+        statusReady: "Ready for M8.1 Auth + Session",
+        primaryAction: "Start with Expo Go",
+      },
       common: {
         brand: "My-Notion",
         loadingSession: "Restoring session...",

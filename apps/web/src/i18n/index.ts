@@ -1,6 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import { resources } from "./resources";
+import { i18nResources } from "@my-notion-go/shared";
 
 const languageStorageKey = "my-notion-go.language";
 export type SupportedLanguage = "zh" | "en";
@@ -16,7 +16,7 @@ function getInitialLanguage(): SupportedLanguage {
 
 // i18n 是前端所有业务文案的统一入口。组件只通过 useTranslation 取文案，不再直接写中英文字符串。
 void i18n.use(initReactI18next).init({
-  resources,
+  resources: i18nResources,
   lng: getInitialLanguage(),
   fallbackLng: "zh",
   interpolation: {

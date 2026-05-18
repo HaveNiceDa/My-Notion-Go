@@ -78,6 +78,19 @@ M7 用于把当前单页 Notion-like MVP 推进到更完整的工程闭环：实
   - 保持 Auth、Document、AI Chat、RAG smoke 脚本可独立运行。
   - 针对关键 repository/service 增加低噪声 Go 单测。
 
+## M7.2 当前状态
+
+- 已新增 `services/api/internal/realtime/hub_test.go`，覆盖用户级事件隔离、同用户多订阅者广播、退订关闭、慢连接缓冲区满时非阻塞丢弃，以及文档事件 payload 生成。
+- 已验证基础工程链路：
+  - `pnpm typecheck`
+  - `pnpm build:web`
+  - `pnpm build:api`
+  - `pnpm test:go`
+- 已验证 API smoke：
+  - `pnpm smoke:api:documents`
+  - `pnpm smoke:api:realtime`
+- 本地 Docker 依赖启动时发现 `RabbitMQ 5672` 端口被占用；documents/realtime smoke 不依赖 RabbitMQ，已使用 PostgreSQL/Qdrant + 本地 API 完成验证。
+
 ## M7.3 移动端前置收口
 
 - 在进入 M8 原生移动端前，先确保 Web + API 能作为稳定后端基线：
@@ -94,6 +107,4 @@ M8 将作为独立阶段新增 `apps/mobile`，采用 React Native / Expo 实现
 - 多实例实时广播：用 Redis Pub/Sub 把单进程 Hub 扩展到多 API 实例。
 - 事件去重与节流：自动保存高频更新时，按文档 ID 合并 content updated 事件。
 - 前端重连策略：增加指数退避和会话过期提示。
-- 事件 smoke：用 Node fetch 流式读取验证 SSE 连接和事件 payload。
-- 部署文档：补充生产环境变量、构建命令和健康检查路径。
 - 移动端前置：为 M8 梳理 API client 复用、安全 token 存储、移动端 SSE/streaming 降级策略和 editor 方案。

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "concurrently -n web,api,worker -c cyan,green,magenta \"pnpm dev:web\" \"pnpm dev:api\" \"pnpm dev:worker\"",
     "dev:web": "pnpm --filter @my-notion-go/web dev",
+    "dev:mobile": "pnpm --filter @my-notion-go/mobile start",
     "dev:api": "go run ./services/api/cmd/api",
     "dev:worker": "go run ./services/api/cmd/worker",
     "build": "pnpm build:web && pnpm build:api && pnpm build:worker",
@@ -14,7 +15,9 @@
     "build:worker": "go build -o ./services/api/bin/worker ./services/api/cmd/worker",
     "migrate:api": "go run ./services/api/cmd/migrate",
     "typecheck": "pnpm --filter @my-notion-go/web typecheck",
+    "typecheck:mobile": "pnpm --filter @my-notion-go/mobile typecheck",
     "lint": "pnpm --filter @my-notion-go/web lint",
+    "lint:mobile": "pnpm --filter @my-notion-go/mobile lint",
     "e2e:web": "playwright test",
     "format:go": "gofmt -w ./services/api",
     "test:go": "go test ./services/api/...",

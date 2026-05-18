@@ -35,6 +35,21 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 接入共享 API client 和 shared types。
 - 建立移动端主题、基础布局、错误边界和 loading/empty/error 状态。
 
+## M8.0 当前状态
+
+- 已新增 `apps/mobile` workspace，使用 Expo + Expo Router + TypeScript。
+- 已新增根脚本：
+  - `pnpm dev:mobile`
+  - `pnpm typecheck:mobile`
+  - `pnpm lint:mobile`
+- 已打通 `EXPO_PUBLIC_API_BASE_URL`，并让 `packages/api-client` 同时兼容 Web 的 `VITE_API_BASE_URL` 与移动端的 `EXPO_PUBLIC_API_BASE_URL`。
+- 已接入 `@tanstack/react-query`，在根布局注入 `QueryClientProvider`，为后续 Auth、Documents 和 AI 请求做准备。
+- 已建立双端共享 i18n 基线，文案资源集中在 `packages/shared/src/i18n/resources.ts`，Web 和 Mobile 均从 `@my-notion-go/shared` 复用。
+- 已建立第一版 Notion-like 移动端欢迎页，展示 API 地址和 M8.1 准备状态。
+- 已通过：
+  - `pnpm typecheck:mobile`
+  - `pnpm lint:mobile`
+
 ## M8.1 Auth + Session
 
 - 实现登录、注册、退出登录。

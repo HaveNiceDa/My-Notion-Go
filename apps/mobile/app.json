@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "My-Notion Go",
+    "slug": "my-notion-go-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "mynotiongo",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mynotiongo.mobile"
+    },
+    "android": {
+      "package": "com.mynotiongo.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#F7F5F2"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

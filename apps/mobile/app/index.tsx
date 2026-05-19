@@ -4,17 +4,11 @@ import { WorkspaceHome } from "@/components/workspace-home";
 import { useAuthStore } from "@/stores/auth-store";
 import { Text } from "@/tw";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function HomeScreen() {
   const { t } = useTranslation();
-  const restoreSession = useAuthStore((state) => state.restoreSession);
   const status = useAuthStore((state) => state.status);
-
-  useEffect(() => {
-    void restoreSession();
-  }, [restoreSession]);
 
   return (
     <ScreenScrollView>

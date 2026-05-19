@@ -330,6 +330,11 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
   - `DocumentSearchScreen` 移除头部大卡片和搜索结果边框容器，搜索框直接融入页面。
   - `TrashScreen` 移除头部大卡片和列表边框容器，保留危险操作按钮的明确视觉。
   - 设计原则更新为：除 recent cards、底部 action bar、空/错误态外，常规内容优先使用 plain page + section + row，不再堆叠卡片。
+- 已完成真实 Web 预览问题修复：
+  - `ScreenScrollView` 底部 padding 从 `pb-28` 降为 `pb-8`，避免首页底部 action bar 后出现过多滚动空白。
+  - 会话恢复从 `app/index.tsx` 上移到 `app/_layout.tsx`，刷新任意路由都能先恢复 session。
+  - `auth-storage` 在 Web 环境下使用 `localStorage` 作为 Expo Web 预览 fallback，解决浏览器刷新后 refreshToken 仅存在内存导致回到登录页的问题。
+  - Native 端仍优先使用 `expo-secure-store` 存储 refreshToken，保持移动端安全约束。
 - 已通过：
   - `pnpm --filter @my-notion-go/mobile typecheck`
   - `pnpm --filter @my-notion-go/mobile lint`

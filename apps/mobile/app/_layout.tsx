@@ -2,11 +2,18 @@ import "@/i18n";
 import "@/global.css";
 
 import { AppQueryProvider } from "@/providers/query-provider";
+import { useAuthStore } from "@/stores/auth-store";
 import { Stack } from "expo-router/stack";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function RootLayout() {
   const { t } = useTranslation();
+  const restoreSession = useAuthStore((state) => state.restoreSession);
+
+  useEffect(() => {
+    void restoreSession();
+  }, [restoreSession]);
 
   return (
     <AppQueryProvider>

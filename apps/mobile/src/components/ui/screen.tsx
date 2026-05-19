@@ -9,7 +9,7 @@ export function ScreenScrollView({ className, contentContainerClassName, ...prop
   return (
     <ScrollView
       className={cn("flex-1 bg-notion-bg", className)}
-      contentContainerClassName={cn("gap-4 px-4 pb-28 pt-3", contentContainerClassName)}
+      contentContainerClassName={cn("gap-4 px-4 pb-8 pt-3", contentContainerClassName)}
       contentInsetAdjustmentBehavior="automatic"
       {...props}
     />

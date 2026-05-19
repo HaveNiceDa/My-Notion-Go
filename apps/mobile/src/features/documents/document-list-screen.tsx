@@ -5,6 +5,7 @@ import { DocumentRow as UIDocumentRow } from "@/components/ui/document-row";
 import { IconTile } from "@/components/ui/icon-tile";
 import { LoadingCard } from "@/components/ui/screen";
 import { Section } from "@/components/ui/section";
+import { AIChatSheet } from "@/features/ai/ai-chat-sheet";
 import { mobileApiBaseUrl } from "@/lib/api-config";
 import { useAuthStore } from "@/stores/auth-store";
 import { Pressable, ScrollView, Text, View } from "@/tw";
@@ -24,6 +25,7 @@ export function DocumentListScreen() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const documentsQuery = useMobileDocumentTree();
+  const [aiSheetOpen, setAiSheetOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const flatDocuments = useMemo(() => flattenDocumentTree(documentsQuery.data ?? []), [documentsQuery.data]);
   const activeDocuments = flatDocuments.filter((document) => !document.isArchived);
@@ -125,9 +127,11 @@ export function DocumentListScreen() {
 
       <BottomActionBar>
         <BottomAction label={t("workspace.search")} onPress={() => router.push("/search")} />
-        <BottomAction label={t("aiChat.open")} />
+        <BottomAction label={t("aiChat.open")} onPress={() => setAiSheetOpen(true)} />
         <BottomAction label={t("workspace.trash")} onPress={() => router.push("/trash")} primary />
       </BottomActionBar>
+
+      <AIChatSheet onOpenChange={setAiSheetOpen} open={aiSheetOpen} />
     </View>
   );
 }

@@ -2,20 +2,32 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { Pressable, Text, View } from "@/tw";
 import type { ReactNode } from "react";
-import { Modal } from "react-native";
+import { Modal, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type BottomSheetProps = {
   children: ReactNode;
   closeLabel: string;
+  contentClassName?: string;
   description?: string;
   onOpenChange: (open: boolean) => void;
   open: boolean;
+  snapPercent?: number;
   title: string;
 };
 
-export function BottomSheet({ children, closeLabel, description, onOpenChange, open, title }: BottomSheetProps) {
+export function BottomSheet({
+  children,
+  closeLabel,
+  contentClassName,
+  description,
+  onOpenChange,
+  open,
+  snapPercent,
+  title,
+}: BottomSheetProps) {
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
 
   return (
     <Modal animationType="fade" onRequestClose={() => onOpenChange(false)} transparent visible={open}>
@@ -27,9 +39,10 @@ export function BottomSheet({ children, closeLabel, description, onOpenChange, o
           onPress={() => onOpenChange(false)}
         />
         <View
-          className="rounded-t-[28px] border border-notion-border bg-notion-surface px-4 pt-3"
+          className="overflow-hidden rounded-t-[28px] border border-notion-border bg-notion-surface px-4 pt-3"
           style={{
             paddingBottom: Math.max(insets.bottom, 14),
+            ...(snapPercent ? { height: height * snapPercent } : {}),
             boxShadow: "0 -10px 40px rgba(15, 23, 42, 0.12)",
           }}
         >
@@ -55,7 +68,7 @@ export function BottomSheet({ children, closeLabel, description, onOpenChange, o
               variant="ghost"
             />
           </View>
-          <View className={cn("gap-3")}>{children}</View>
+          <View className={cn("gap-3", contentClassName)}>{children}</View>
         </View>
       </View>
     </Modal>

@@ -342,7 +342,10 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 已通过：
   - `pnpm --filter @my-notion-go/mobile typecheck`
   - `pnpm --filter @my-notion-go/mobile lint`
-- 下一批建议做 Expo Web/Go 手动视觉验收，并按真实预览继续微调 spacing、列表密度和底部操作栏位置。
+- 已完成 Expo Web / Expo Go 真实视觉验收：
+  - 登录、文档列表、详情、搜索、回收站、发布状态、公开链接和底部弹层链路已完成手动检查。
+  - 当前视觉重构无阻塞问题，M8.3.5 可收口。
+- 下一批进入 M8.4 AI + RAG Mobile，优先验证移动端 SSE / streaming 能力，再落地完整 AI 页面。
 
 ## M8.4 AI + RAG Mobile
 
@@ -350,6 +353,105 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 支持普通 AI 对话、RAG 问答和引用来源展示。
 - 流式响应需继续支持 Bearer Token；如果 React Native streaming 能力不足，提供非流式或轮询降级方案。
 - 后续 Agent + Tool 架构落地后，移动端只消费统一 Agent SSE / event 协议。
+
+## M8.4 具体实施方案
+
+### M8.4.0 AI Mobile Design Spike
+
+- 盘点现有 Web AI Chat / RAG API、`packages/api-client` 可复用能力和移动端鉴权入口。
+- 确认移动端信息架构：
+  - 首页底部 `BottomActionBar` 增加 AI 入口。
+  - AI 助手使用底部弹层承载，不从首页跳转到独立页面。
+  - 弹层内在会话列表和当前会话聊天视图之间切换。
+  - 文档详情页预留“基于当前文档提问”入口。
+- 确认移动端交互边界：
+  - 第一版以普通对话和 RAG 问答为主，不做复杂 Agent 工具编排 UI。
+  - RAG 引用来源以底部引用卡片或消息内 sources 区块展示，点击后跳转文档详情。
+  - 长回答优先保证可读性和中断/错误反馈，不追求复杂动画。
+- 技术验证：
+  - 在 Expo Web 和 Expo Go 中验证 Bearer Token + SSE / streaming fetch 是否可用。
+  - 如果 Native streaming 不稳定，设计 `non-streaming` 或短轮询降级接口，不在 UI 层硬编码运行时差异。
+
+### M8.4.1 AI API Adapter
+
+- 在 `apps/mobile` 中新增 AI 请求适配层，继续通过 `runWithAuth` 注入 access token、处理 401 静默刷新和单次重试。
+- 优先复用 `packages/api-client` 的类型和请求结构，避免移动端重复定义 DTO。
+- 封装会话列表、创建会话、发送消息、RAG 问答和引用来源解析。
+- 对 streaming 响应单独封装解析器，并在注释中说明与普通 JSON envelope 不同的原因。
+- 错误处理需区分鉴权失败、网络不可用、LLM 配置缺失、RAG 未启用和用户主动取消。
+
+### M8.4.2 Conversation List
+
+- 新增移动端 AI 会话列表页：
+  - 使用 `ScreenScrollView`、`Section`、`DocumentRow` / `IconTile` 风格保持 Notion-like 低对比视觉。
+  - 展示最近会话、空态、加载态、错误态。
+  - 支持创建新会话并跳转聊天页。
+- 首页底部操作栏接入 AI 入口，保持文档主路径不被 AI 入口抢占。
+- 会话列表刷新策略使用 React Query，登录态变化或退出登录后清理相关缓存。
+
+### M8.4.3 Chat Detail + Streaming
+
+- 新增移动端聊天详情页：
+  - 支持用户消息、助手消息、流式生成中状态、错误重试和空态引导。
+  - 输入区固定在底部，处理键盘遮挡和安全区。
+  - 长消息使用可滚动正文，避免嵌套滚动造成卡顿。
+- 支持普通 AI 对话：
+  - 发送消息后乐观插入用户消息。
+  - 助手消息流式增量更新；降级模式下使用一次性响应。
+  - 支持取消当前生成，避免离开页面后继续更新卸载组件。
+- 缓存同步：
+  - 成功后刷新会话列表和当前会话详情。
+  - 失败时保留用户输入和错误提示，便于重试。
+
+### M8.4.4 RAG Sources
+
+- 支持移动端 RAG 问答入口：
+  - 可从 AI 首页发起全局知识库问答。
+  - 可从文档详情页带入当前文档上下文发起提问。
+- 展示引用来源：
+  - 消息内展示来源标题、匹配片段和相似度弱提示。
+  - 点击引用来源跳转 `/documents/[documentId]`。
+  - 如果来源文档不可访问或已删除，展示安全占位，不暴露跨用户数据。
+- 数据边界：
+  - 所有 RAG 请求继续依赖后端 `userId` 隔离。
+  - 移动端不直连 Qdrant，不在本地保存向量或 embedding。
+
+### M8.4 验收标准
+
+- `pnpm --filter @my-notion-go/mobile typecheck` 通过。
+- `pnpm --filter @my-notion-go/mobile lint` 通过。
+- Expo Web / Expo Go 可完成登录后进入 AI 会话列表。
+- 可创建会话、发送普通 AI 消息，并看到助手回复。
+- 如果 streaming 可用，助手回复能增量展示；如果不可用，降级路径明确且 UI 无阻塞。
+- RAG 问答能展示引用来源，并可从引用跳转到文档详情。
+- 401 后仍能通过移动端 refresh token 静默恢复并重试一次。
+- 网络错误、LLM 未配置、RAG 未启用时有明确弱提示。
+- 退出登录后 AI 会话和消息缓存被清理，不泄露上一个用户数据。
+
+### M8.4 当前不做
+
+- 不实现完整 Agent + Tool 编排 UI。
+- 不在移动端直连 LLM、Qdrant、PostgreSQL 或 Worker。
+- 不在第一版实现语音输入、图片输入、文件上传或推送通知。
+- 不实现离线 AI 队列；网络不可用时只做弱提示和重试入口。
+- 不重做 Web AI 页面，除非 API 契约调整必须同步。
+
+### M8.4 当前状态
+
+- 已完成 M8.4 首批基础落地：
+  - 首页底部 `BottomActionBar` 的 AI 入口已改为打开底部弹层，不再新开独立路由。
+  - 新增 `AIChatSheet`，复用 `BottomSheet`，以约 70% 高度承载会话列表和聊天历史。
+  - 新增 `features/ai` 基础模块，包含 query keys、会话列表查询、消息查询和新建会话 mutation。
+  - 新增 `mobileAIApi`，复用 `packages/api-client` 的会话和消息 API，并预留普通 AI / RAG SSE streaming adapter。
+  - 新增移动端 SSE parser，保持与 Web 端 AI Chat SSE 事件契约一致。
+  - AI 弹层内已支持会话列表、新建会话、切换到历史消息展示，发送消息与 streaming UI 留到下一批。
+- 已通过：
+  - `pnpm --filter @my-notion-go/mobile typecheck`
+  - `pnpm --filter @my-notion-go/mobile lint`
+- 下一批建议：
+  - 在 Expo Web / Expo Go 中手动验证首页底部 AI 弹层、会话列表、新建会话和历史消息读取。
+  - 开始 M8.4.3，补齐底部输入区、普通 AI 发送、streaming 增量展示、取消生成和错误重试。
+  - 单独验证 Native 运行时 `fetch` streaming 能力；如果不稳定，再补非流式或轮询降级接口。
 
 ## M8.5 Mobile Polish
 

@@ -111,7 +111,12 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 已新增 `/search` 移动端搜索入口，复用 `GET /api/v1/documents/search` 并支持结果跳转详情页。
 - 已新增 `/trash` 移动端回收站基础查看，复用 `GET /api/v1/documents/trash` 展示归档文档列表。
 - 已新增 `/public/[publicId]` 公开页面预留路由，复用公开文档 API 并支持后续 `mynotiongo://public/:publicId` deep link 映射。
-- 下一步进入 M8.3 Mobile Editor MVP 前，可补充回收站恢复/永久删除动作和更完整的公开链接分享入口。
+- 已补齐移动端回收站恢复和永久删除动作，复用 `POST /api/v1/documents/:id/restore` 与 `DELETE /api/v1/documents/:id`，成功后刷新回收站、文档树、搜索和详情缓存。
+- 已在移动端文档详情页为已发布文档补充公开链接复制和打开公开页入口；复制链接依赖 `EXPO_PUBLIC_WEB_BASE_URL`，本地默认从 API 地址推导到 Web `5273`。
+- 已通过：
+  - `pnpm --filter @my-notion-go/mobile typecheck`
+  - `pnpm --filter @my-notion-go/mobile lint`
+- M8.2 文档阅读路径已完成推荐收口，下一步可进入 M8.3 Mobile Editor MVP 方案确认。
 
 ## M8.3 Mobile Editor MVP
 
@@ -119,6 +124,24 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 正文编辑先做轻编辑能力，避免一次性实现完整 BlockNote 兼容。
 - 保存正文仍走 `PUT /api/v1/documents/:id/content`，并保留 `content_hash` / `version` 冲突检测扩展点。
 - 若采用 WebView editor，必须明确边界：只承载编辑器内核，不把整个 App 退化成 WebView。
+
+## M8.3 具体实现方案
+
+- 页面入口：继续复用 `/documents/[documentId]`，在只读详情页头部和正文之间新增 `DocumentMetadataEditor` 卡片。
+- 编辑范围：第一版只编辑文档元信息，包括 `title`、`icon`、`isStarred` 和 `isPublished`；正文仍由 `ReadonlyDocumentContent` 只读渲染。
+- 请求链路：
+  - 标题和 icon 走 `PATCH /api/v1/documents/:id`，请求体使用 `UpdateDocumentRequest`。
+  - 收藏切换走同一个 `PATCH /api/v1/documents/:id`，只提交 `isStarred`。
+  - 发布切换走 `POST /api/v1/documents/:id/publish` 和 `DELETE /api/v1/documents/:id/publish`。
+- 鉴权边界：所有受保护请求继续通过移动端 `runWithAuth` 执行，保留 access token 注入、401 静默 refresh 和单次重试。
+- 缓存同步：新增 `useMobileDocumentActions`，成功后同步当前详情缓存，并 invalidate 文档树、搜索结果和公开页详情缓存。
+- UI 结构：
+  - `CardEyebrow` 展示 M8.3 阶段标签。
+  - `Input` 编辑标题和 icon。
+  - 主按钮保存标题/icon。
+  - 两个次级按钮分别切换收藏和发布状态。
+  - 页面内 `InfoCard` 展示保存、收藏、发布的成功或失败反馈。
+- 当前不做：正文 block 编辑、WebView editor、冲突检测 UI、多人协同和离线编辑队列。
 
 ## M8.4 AI + RAG Mobile
 

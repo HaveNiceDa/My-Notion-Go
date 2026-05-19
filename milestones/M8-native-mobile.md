@@ -317,6 +317,11 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
   - `DocumentSearchScreen` 使用 `Section` + compact `DocumentRow` 展示搜索结果。
   - `TrashScreen` 使用 `Section` + 紧凑 row 展示回收站文档，恢复/删除按钮降权但保留危险操作强调。
   - `PublicDocumentScreen` 同步采用 Notion page 风格，公开只读页面和登录态文档详情保持一致视觉。
+- 已完成详情页信息密度调整：
+  - 标题、icon 等页面设置不再以内联大卡片占据详情页布局。
+  - 详情页仅保留轻量 `页面设置`、收藏和发布 pill action。
+  - 标题/icon 编辑移动到底部弹层式 `Modal` 中，保存成功后自动关闭。
+  - 收藏和发布动作在页面轻量入口与设置弹层内均可操作，符合原 My-Notion 的“操作入口轻量、设置内容弹出”的交互方向。
 - 已通过：
   - `pnpm --filter @my-notion-go/mobile typecheck`
   - `pnpm --filter @my-notion-go/mobile lint`

@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardEyebrow, CardTitle, InfoCard } from "@/components/ui/card";
+import { IconTile } from "@/components/ui/icon-tile";
 import { LoadingCard } from "@/components/ui/screen";
+import { Section } from "@/components/ui/section";
 import { cn } from "@/lib/cn";
 import { Text, View } from "@/tw";
 import type { Document } from "@my-notion-go/api-client";
@@ -74,35 +76,37 @@ export function TrashScreen() {
 
   return (
     <View className="gap-5">
-      <Card>
+      <Card className="gap-3">
         <CardEyebrow selectable>{t("mobileDocuments.phaseLabel")}</CardEyebrow>
         <CardTitle selectable>{t("trash.title")}</CardTitle>
         <CardDescription selectable>{t("trash.description")}</CardDescription>
       </Card>
 
       {feedback ? (
-        <InfoCard className={cn("py-3", feedback.tone === "error" && "bg-red-50")}>
-          <Text selectable className={cn("text-sm font-semibold text-notion-subtle", feedback.tone === "error" && "text-red-700")}>
+        <InfoCard className={cn("py-3", feedback.tone === "error" && "bg-notion-danger-muted")}>
+          <Text selectable className={cn("text-sm font-semibold text-notion-subtle", feedback.tone === "error" && "text-notion-danger")}>
             {feedback.message}
           </Text>
         </InfoCard>
       ) : null}
 
       {documents.length > 0 ? (
-        <View className="overflow-hidden rounded-[24px] bg-notion-surface">
-          {documents.map((document, index) => (
-            <TrashRow
-              key={document.id}
-              deleteLoading={deleteMutation.isPending && deleteMutation.variables === document.id}
-              document={document}
-              isLast={index === documents.length - 1}
-              locale={locale}
-              restoreLoading={restoreMutation.isPending && restoreMutation.variables === document.id}
-              onDelete={handleDelete}
-              onRestore={handleRestore}
-            />
-          ))}
-        </View>
+        <Section title={t("trash.title")}>
+          <View className="overflow-hidden rounded-xl border border-notion-border bg-notion-surface">
+            {documents.map((document, index) => (
+              <TrashRow
+                key={document.id}
+                deleteLoading={deleteMutation.isPending && deleteMutation.variables === document.id}
+                document={document}
+                isLast={index === documents.length - 1}
+                locale={locale}
+                restoreLoading={restoreMutation.isPending && restoreMutation.variables === document.id}
+                onDelete={handleDelete}
+                onRestore={handleRestore}
+              />
+            ))}
+          </View>
+        </Section>
       ) : (
         <InfoCard className="items-center py-8">
           <Text selectable className="text-base font-bold text-notion-text">
@@ -136,17 +140,14 @@ function TrashRow({
 }) {
   const { t } = useTranslation();
   const title = document.title || t("documents.untitled");
-  const icon = document.icon || "📄";
   const actionLoading = restoreLoading || deleteLoading;
 
   return (
-    <View className={cn("gap-3 px-4 py-3.5", !isLast && "border-b border-notion-muted")}>
-      <View className="flex-row items-center gap-3">
-        <View className="h-10 w-10 items-center justify-center rounded-2xl bg-notion-muted">
-          <Text className="text-lg">{icon}</Text>
-        </View>
+    <View className={cn("gap-3 px-3 py-3", !isLast && "border-b border-notion-border")}>
+      <View className="flex-row items-center gap-2.5">
+        <IconTile icon={document.icon || "📄"} size="sm" />
         <View className="min-w-0 flex-1 gap-1">
-          <Text selectable className="text-base font-semibold text-notion-text" numberOfLines={1}>
+          <Text selectable className="text-[15px] font-medium text-notion-subtle" numberOfLines={1}>
             {title}
           </Text>
           <Text selectable className="text-xs text-notion-faint" numberOfLines={1}>
@@ -156,20 +157,22 @@ function TrashRow({
       </View>
       <View className="flex-row gap-2">
         <Button
-          className="flex-1 bg-notion-text py-3"
+          className="flex-1"
           isLoading={restoreLoading}
           label={t("trash.restore")}
           loadingLabel={t("trash.restoring")}
           onPress={() => onRestore(document)}
           disabled={actionLoading}
+          variant="pill"
         />
         <Button
-          className="flex-1 bg-red-600 py-3"
+          className="flex-1"
           isLoading={deleteLoading}
           label={t("trash.deleteForever")}
           loadingLabel={t("trash.deleting")}
           onPress={() => onDelete(document)}
           disabled={actionLoading}
+          variant="danger"
         />
       </View>
     </View>

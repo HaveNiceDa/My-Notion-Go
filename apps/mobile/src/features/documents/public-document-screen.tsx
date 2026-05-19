@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardEyebrow, CardTitle, InfoCard } from "@/components/ui/card";
+import { IconTile } from "@/components/ui/icon-tile";
 import { LoadingCard } from "@/components/ui/screen";
+import { Section } from "@/components/ui/section";
 import { Image, Text, View } from "@/tw";
 import { useTranslation } from "react-i18next";
 import { ReadonlyDocumentContent } from "./read-only-content";
@@ -54,24 +56,29 @@ export function PublicDocumentScreen({ publicId }: { publicId: string }) {
 
   return (
     <View className="gap-5">
-      <Card>
+      <View className="gap-4">
         {document.coverImage ? (
-          <Image className="-mx-6 -mt-6 mb-2 h-36 rounded-t-[28px]" resizeMode="cover" source={{ uri: document.coverImage }} />
+          <Image className="h-36 rounded-2xl" resizeMode="cover" source={{ uri: document.coverImage }} />
         ) : (
-          <View className="-mx-6 -mt-6 mb-2 h-24 rounded-t-[28px] bg-notion-muted" />
+          <View className="h-24 rounded-2xl bg-notion-hover" />
         )}
-        <CardEyebrow selectable>{t("mobileDocuments.publicLinkLabel")}</CardEyebrow>
-        <Text className="text-4xl">{document.icon || "📄"}</Text>
-        <CardTitle selectable>{document.title || t("documents.untitled")}</CardTitle>
-        <CardDescription selectable>{t("publicDocument.lastUpdated", { time: formatDate(document.updatedAt, locale) })}</CardDescription>
-      </Card>
-
-      <View className="gap-3">
-        <Text selectable className="text-sm font-bold text-notion-text">
-          {t("mobileDocuments.readOnlyContent")}
-        </Text>
-        <ReadonlyDocumentContent blocks={blocks} />
+        <View className="gap-3 px-1">
+          <CardEyebrow selectable>{t("mobileDocuments.publicLinkLabel")}</CardEyebrow>
+          <IconTile icon={document.icon || "📄"} size="lg" />
+          <View className="gap-1.5">
+            <Text selectable className="text-[28px] font-bold leading-9 text-notion-text">
+              {document.title || t("documents.untitled")}
+            </Text>
+            <Text selectable className="text-[13px] leading-5 text-notion-faint">
+              {t("publicDocument.lastUpdated", { time: formatDate(document.updatedAt, locale) })}
+            </Text>
+          </View>
+        </View>
       </View>
+
+      <Section title={t("mobileDocuments.readOnlyContent")}>
+        <ReadonlyDocumentContent blocks={blocks} />
+      </Section>
     </View>
   );
 }

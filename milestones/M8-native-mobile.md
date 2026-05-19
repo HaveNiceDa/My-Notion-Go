@@ -310,10 +310,17 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
   - 收藏和全部文档复用 compact `DocumentRow`。
   - Quick actions 改为底部 Notion-like action bar。
   - 账号/API 信息降级为弱提示卡片，不再抢占主视觉。
+- 已完成第二批页面迁移：
+  - `DocumentDetailScreen` 从大卡片堆叠改为 Notion page 风格，cover、icon、title 成为主体视觉。
+  - `DocumentMetadataEditor` 降级为轻量 `Section` + form card，收藏/发布使用 pill action。
+  - 已发布文档的公开链接区域改为弱提示卡片，复制和打开公开页使用轻量 pill 按钮。
+  - `DocumentSearchScreen` 使用 `Section` + compact `DocumentRow` 展示搜索结果。
+  - `TrashScreen` 使用 `Section` + 紧凑 row 展示回收站文档，恢复/删除按钮降权但保留危险操作强调。
+  - `PublicDocumentScreen` 同步采用 Notion page 风格，公开只读页面和登录态文档详情保持一致视觉。
 - 已通过：
   - `pnpm --filter @my-notion-go/mobile typecheck`
   - `pnpm --filter @my-notion-go/mobile lint`
-- 下一批建议迁移文档详情页、搜索页和回收站页，继续复用 `Section`、`DocumentRow`、`IconTile` 和 `ActionPill`。
+- 下一批建议做 Expo Web/Go 手动视觉验收，并按真实预览继续微调 spacing、列表密度和底部操作栏位置。
 
 ## M8.4 AI + RAG Mobile
 

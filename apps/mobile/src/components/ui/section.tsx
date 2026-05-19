@@ -10,10 +10,10 @@ type SectionProps = ComponentProps<typeof View> & {
 
 export function Section({ action, children, className, description, title, ...props }: SectionProps) {
   return (
-    <View className={cn("gap-2.5", className)} {...props}>
-      <View className="flex-row items-end justify-between gap-3 px-1">
+    <View className={cn("gap-1.5", className)} {...props}>
+      <View className="flex-row items-end justify-between gap-3 px-1 py-1">
         <View className="min-w-0 flex-1">
-          <Text selectable className="text-[13px] font-semibold uppercase tracking-[0.08em] text-notion-faint">
+          <Text selectable className="text-[14px] font-semibold text-notion-faint">
             {title}
           </Text>
           {description ? (

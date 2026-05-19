@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardEyebrow, CardTitle, InfoCard } from "@/components/ui/card";
+import { InfoCard } from "@/components/ui/card";
 import { IconTile } from "@/components/ui/icon-tile";
 import { LoadingCard } from "@/components/ui/screen";
 import { Section } from "@/components/ui/section";
@@ -63,24 +63,30 @@ export function TrashScreen() {
 
   if (trashQuery.isError) {
     return (
-      <Card>
-        <CardEyebrow selectable>{t("mobileDocuments.phaseLabel")}</CardEyebrow>
-        <CardTitle selectable>{t("mobileDocuments.trashErrorTitle")}</CardTitle>
-        <CardDescription selectable>{t("mobileDocuments.trashErrorDescription")}</CardDescription>
-        <Button label={t("mobileDocuments.retry")} onPress={() => trashQuery.refetch()} />
-      </Card>
+      <InfoCard>
+        <Text selectable className="text-base font-semibold text-notion-text">
+          {t("mobileDocuments.trashErrorTitle")}
+        </Text>
+        <Text selectable className="text-sm leading-5 text-notion-faint">
+          {t("mobileDocuments.trashErrorDescription")}
+        </Text>
+        <Button label={t("mobileDocuments.retry")} onPress={() => trashQuery.refetch()} variant="secondary" />
+      </InfoCard>
     );
   }
 
   const documents = trashQuery.data ?? [];
 
   return (
-    <View className="gap-5">
-      <Card className="gap-3">
-        <CardEyebrow selectable>{t("mobileDocuments.phaseLabel")}</CardEyebrow>
-        <CardTitle selectable>{t("trash.title")}</CardTitle>
-        <CardDescription selectable>{t("trash.description")}</CardDescription>
-      </Card>
+    <View className="gap-4">
+      <View className="gap-1 px-1">
+        <Text selectable className="text-2xl font-bold leading-8 text-notion-text">
+          {t("trash.title")}
+        </Text>
+        <Text selectable className="text-sm leading-5 text-notion-faint">
+          {t("trash.description")}
+        </Text>
+      </View>
 
       {feedback ? (
         <InfoCard className={cn("py-3", feedback.tone === "error" && "bg-notion-danger-muted")}>
@@ -92,7 +98,7 @@ export function TrashScreen() {
 
       {documents.length > 0 ? (
         <Section title={t("trash.title")}>
-          <View className="overflow-hidden rounded-xl border border-notion-border bg-notion-surface">
+          <View className="gap-1">
             {documents.map((document, index) => (
               <TrashRow
                 key={document.id}
@@ -143,7 +149,7 @@ function TrashRow({
   const actionLoading = restoreLoading || deleteLoading;
 
   return (
-    <View className={cn("gap-3 px-3 py-3", !isLast && "border-b border-notion-border")}>
+    <View className={cn("gap-2.5 rounded-lg px-2 py-2", isLast && "mb-1")}>
       <View className="flex-row items-center gap-2.5">
         <IconTile icon={document.icon || "📄"} size="sm" />
         <View className="min-w-0 flex-1 gap-1">

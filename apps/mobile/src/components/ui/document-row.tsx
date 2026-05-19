@@ -25,7 +25,7 @@ export function DocumentRow({
   return (
     <Pressable
       accessibilityRole="button"
-      className={cn("min-h-11 flex-row items-center gap-2.5 px-2.5 py-2", !isLast && "border-b border-notion-border", className)}
+      className={cn("min-h-10 flex-row items-center gap-2 rounded-lg px-2 py-1.5", className)}
       style={{ paddingLeft: 10 + depth * 14 }}
       {...props}
     >

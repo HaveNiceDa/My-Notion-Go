@@ -322,6 +322,14 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
   - 详情页仅保留轻量 `页面设置`、收藏和发布 pill action。
   - 标题/icon 编辑移动到底部弹层式 `Modal` 中，保存成功后自动关闭。
   - 收藏和发布动作在页面轻量入口与设置弹层内均可操作，符合原 My-Notion 的“操作入口轻量、设置内容弹出”的交互方向。
+- 已完成第三批“去卡片化”调整：
+  - 对齐原 My-Notion 的 `HomeHeader`、`WorkspacePageRow`、`HomeBottomBar` 结构，主页面不再以卡片堆叠为核心。
+  - `Section` 改为 plain section，标题不再使用重 uppercase 风格。
+  - `DocumentRow` 改为无边框紧凑 row，不再默认用边框分割列表项。
+  - `DocumentListScreen` 的收藏/全部文档列表移除圆角边框容器，账号和 API 信息降级为底部弱文本。
+  - `DocumentSearchScreen` 移除头部大卡片和搜索结果边框容器，搜索框直接融入页面。
+  - `TrashScreen` 移除头部大卡片和列表边框容器，保留危险操作按钮的明确视觉。
+  - 设计原则更新为：除 recent cards、底部 action bar、空/错误态外，常规内容优先使用 plain page + section + row，不再堆叠卡片。
 - 已通过：
   - `pnpm --filter @my-notion-go/mobile typecheck`
   - `pnpm --filter @my-notion-go/mobile lint`

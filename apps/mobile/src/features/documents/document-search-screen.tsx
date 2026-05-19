@@ -1,4 +1,4 @@
-import { Card, CardDescription, CardEyebrow, CardTitle, InfoCard } from "@/components/ui/card";
+import { InfoCard } from "@/components/ui/card";
 import { DocumentRow } from "@/components/ui/document-row";
 import { Input } from "@/components/ui/input";
 import { Section } from "@/components/ui/section";
@@ -16,21 +16,25 @@ export function DocumentSearchScreen() {
   const normalizedQuery = query.trim();
 
   return (
-    <View className="gap-5">
-      <Card className="gap-4">
-        <CardEyebrow selectable>{t("mobileDocuments.phaseLabel")}</CardEyebrow>
-        <CardTitle selectable>{t("search.title")}</CardTitle>
-        <CardDescription selectable>{t("search.description")}</CardDescription>
+    <View className="gap-4">
+      <View className="gap-3 px-1">
+        <View className="gap-1">
+          <Text selectable className="text-2xl font-bold leading-8 text-notion-text">
+            {t("search.title")}
+          </Text>
+          <Text selectable className="text-sm leading-5 text-notion-faint">
+            {t("search.description")}
+          </Text>
+        </View>
         <Input
           accessibilityLabel={t("search.inputLabel")}
           autoCapitalize="none"
-          className="mt-2"
           onChangeText={setQuery}
           placeholder={t("search.placeholder")}
           returnKeyType="search"
           value={query}
         />
-      </Card>
+      </View>
 
       {normalizedQuery.length === 0 ? (
         <HintCard label={t("search.start")} />
@@ -52,7 +56,7 @@ function SearchResults({ results }: { results: DocumentSearchResult[] }) {
 
   return (
     <Section title={t("search.title")}>
-      <View className="overflow-hidden rounded-xl border border-notion-border bg-notion-surface">
+      <View className="gap-0.5">
         {results.map((result, index) => (
           <SearchResultRow key={result.document.id} isLast={index === results.length - 1} result={result} />
         ))}

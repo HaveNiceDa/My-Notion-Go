@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { BottomAction, BottomActionBar } from "@/components/ui/bottom-action-bar";
-import { Card, CardDescription, CardEyebrow, CardTitle, InfoCard } from "@/components/ui/card";
+import { InfoCard } from "@/components/ui/card";
 import { DocumentRow as UIDocumentRow } from "@/components/ui/document-row";
 import { IconTile } from "@/components/ui/icon-tile";
 import { LoadingCard } from "@/components/ui/screen";
@@ -52,12 +52,15 @@ export function DocumentListScreen() {
 
   if (documentsQuery.isError) {
     return (
-      <Card>
-        <CardEyebrow selectable>{t("mobileDocuments.phaseLabel")}</CardEyebrow>
-        <CardTitle selectable>{t("mobileDocuments.errorTitle")}</CardTitle>
-        <CardDescription selectable>{t("mobileDocuments.errorDescription")}</CardDescription>
-        <Button label={t("mobileDocuments.retry")} onPress={() => documentsQuery.refetch()} />
-      </Card>
+      <InfoCard>
+        <Text selectable className="text-base font-semibold text-notion-text">
+          {t("mobileDocuments.errorTitle")}
+        </Text>
+        <Text selectable className="text-sm leading-5 text-notion-faint">
+          {t("mobileDocuments.errorDescription")}
+        </Text>
+        <Button label={t("mobileDocuments.retry")} onPress={() => documentsQuery.refetch()} variant="secondary" />
+      </InfoCard>
     );
   }
 
@@ -86,7 +89,7 @@ export function DocumentListScreen() {
 
       <Section title={t("mobileDocuments.allDocuments")}>
         {activeDocuments.length > 0 ? (
-          <View className="overflow-hidden rounded-xl border border-notion-border bg-notion-surface">
+          <View className="gap-0.5">
             {activeDocuments.map((document, index) => (
               <DocumentRow
                 key={document.id}
@@ -102,27 +105,23 @@ export function DocumentListScreen() {
         )}
       </Section>
 
-      <InfoCard className="gap-1.5">
-        <CardEyebrow selectable>{t("auth.email")}</CardEyebrow>
-        <Text selectable className="text-[14px] text-notion-subtle">
+      <View className="gap-1 px-1">
+        <Text selectable className="text-[13px] text-notion-faint" numberOfLines={1}>
           {user?.email}
         </Text>
-        <CardEyebrow selectable className="mt-1">
-          {t("App.apiLabel")}
-        </CardEyebrow>
-        <Text selectable className="text-[13px] text-notion-faint tabular-nums">
+        <Text selectable className="text-[12px] text-notion-faint tabular-nums" numberOfLines={1}>
           {mobileApiBaseUrl}
         </Text>
         <Button
           accessibilityLabel={isLoggingOut ? t("workspace.loggingOut") : t("workspace.logout")}
-          className="mt-2"
+          className="mt-1 self-start"
           isLoading={isLoggingOut}
           label={t("workspace.logout")}
           loadingLabel={t("workspace.loggingOut")}
           onPress={handleLogout}
           variant="secondary"
         />
-      </InfoCard>
+      </View>
 
       <BottomActionBar>
         <BottomAction label={t("workspace.search")} onPress={() => router.push("/search")} />
@@ -235,12 +234,9 @@ function DocumentSection({
   title: string;
 }) {
   return (
-    <View className="gap-3">
-      <Text selectable className="text-sm font-bold text-notion-text">
-        {title}
-      </Text>
+    <Section title={title}>
       {nodes.length > 0 ? (
-        <View className="overflow-hidden rounded-xl border border-notion-border bg-notion-surface">
+        <View className="gap-0.5">
           {nodes.map((document, index) => (
             <DocumentRow key={document.id} document={document} isLast={index === nodes.length - 1} locale={locale} />
           ))}
@@ -252,7 +248,7 @@ function DocumentSection({
           </Text>
         </InfoCard>
       )}
-    </View>
+    </Section>
   );
 }
 

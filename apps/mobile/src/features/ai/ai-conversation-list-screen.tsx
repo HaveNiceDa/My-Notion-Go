@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { InfoCard } from "@/components/ui/card";
 import { DocumentRow } from "@/components/ui/document-row";
-import { IconTile } from "@/components/ui/icon-tile";
 import { LoadingCard } from "@/components/ui/screen";
 import { Section } from "@/components/ui/section";
 import { Text, View } from "@/tw";
@@ -54,19 +53,7 @@ export function AIConversationListScreen({ onSelectConversation }: AIConversatio
   }
 
   return (
-    <View className="gap-5">
-      <View className="flex-row items-center gap-3">
-        <IconTile icon="✨" size="lg" />
-        <View className="min-w-0 flex-1">
-          <Text selectable className="text-xl font-bold leading-7 text-notion-text" numberOfLines={1}>
-            {t("aiChat.title")}
-          </Text>
-          <Text selectable className="text-[13px] leading-5 text-notion-faint" numberOfLines={2}>
-            {t("aiChat.subtitle")}
-          </Text>
-        </View>
-      </View>
-
+    <View className="gap-4">
       <Button
         isLoading={createConversation.isPending}
         label={t("aiChat.newConversation")}

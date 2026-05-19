@@ -8,11 +8,10 @@ export function useMobileDocumentActions(documentId: string) {
   const runWithAuth = useAuthStore((state) => state.runWithAuth);
 
   function syncDocumentCaches(document: Document) {
-    // 元信息编辑会影响详情、列表、搜索和公开页入口，这里集中同步跨页面缓存。
+    // 元信息编辑会影响详情、列表和搜索入口，这里集中同步跨页面缓存。
     queryClient.setQueryData(mobileDocumentsQueryKeys.detail(document.id), document);
     void queryClient.invalidateQueries({ queryKey: mobileDocumentsQueryKeys.tree });
     void queryClient.invalidateQueries({ queryKey: ["mobile", "documents", "search"] });
-    void queryClient.invalidateQueries({ queryKey: mobileDocumentsQueryKeys.publicDetail(document.publicId) });
   }
 
   const updateMetadataMutation = useMutation({

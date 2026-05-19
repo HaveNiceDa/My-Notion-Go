@@ -5,12 +5,9 @@ import { IconTile } from "@/components/ui/icon-tile";
 import { Input } from "@/components/ui/input";
 import { LoadingCard } from "@/components/ui/screen";
 import { Section } from "@/components/ui/section";
-import { mobileWebBaseUrl } from "@/lib/api-config";
 import { Image, Text, View } from "@/tw";
 import type { Document } from "@my-notion-go/api-client";
-import * as Clipboard from "expo-clipboard";
-import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ReadonlyDocumentContent } from "./read-only-content";
 import { useMobileDocumentActions } from "./use-mobile-document-actions";
@@ -256,17 +253,8 @@ function DocumentMetadataEditor({ document }: { document: Document }) {
 
 function DocumentHeader({ document, locale }: { document: Document; locale: string }) {
   const { t } = useTranslation();
-  const router = useRouter();
-  const [copied, setCopied] = useState(false);
   const title = document.title || t("documents.untitled");
   const icon = document.icon || "📄";
-  const publicUrl = useMemo(() => `${mobileWebBaseUrl}/p/${document.publicId}`, [document.publicId]);
-
-  async function copyPublicUrl() {
-    await Clipboard.setStringAsync(publicUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1600);
-  }
 
   return (
     <View className="gap-4">
@@ -291,32 +279,6 @@ function DocumentHeader({ document, locale }: { document: Document; locale: stri
           {document.isInKnowledgeBase ? <StatusPill label={t("documents.knowledgeBase")} /> : null}
         </View>
       </View>
-      {document.isPublished ? (
-        <InfoCard className="gap-2">
-          <Text selectable className="text-xs font-semibold uppercase tracking-[0.16em] text-notion-faint">
-            {t("publish.publicLink")}
-          </Text>
-          <Text selectable className="text-xs leading-5 text-notion-subtle">
-            {publicUrl}
-          </Text>
-          <View className="flex-row gap-2">
-            <Button
-              className="flex-1"
-              label={copied ? t("publish.copied") : t("publish.copy")}
-              onPress={() => {
-                void copyPublicUrl();
-              }}
-              variant="pill"
-            />
-            <Button
-              className="flex-1"
-              label={t("mobileDocuments.openPublicPage")}
-              onPress={() => router.push({ pathname: "/public/[publicId]", params: { publicId: document.publicId } })}
-              variant="pill"
-            />
-          </View>
-        </InfoCard>
-      ) : null}
     </View>
   );
 }

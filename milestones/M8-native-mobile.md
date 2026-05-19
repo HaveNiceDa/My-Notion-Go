@@ -97,7 +97,7 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 实现文档详情只读页，支持标题、icon、cover、更新时间和正文渲染。
 - 实现搜索入口，复用 `GET /api/v1/documents/search`。
 - 实现回收站基础查看、恢复和永久删除确认。
-- 实现公开链接打开和 deep link 预留。
+- 移动端不承载公开文档打开、公开链接复制和 public deep link；公开页面保留 Web 端能力。
 
 ## M8.2 当前状态
 
@@ -110,9 +110,9 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 已实现 BlockNote JSON 的移动端只读降级渲染，支持段落、标题、列表、引用、代码块和子块缩进；未知 block 显示安全占位文案。
 - 已新增 `/search` 移动端搜索入口，复用 `GET /api/v1/documents/search` 并支持结果跳转详情页。
 - 已新增 `/trash` 移动端回收站基础查看，复用 `GET /api/v1/documents/trash` 展示归档文档列表。
-- 已新增 `/public/[publicId]` 公开页面预留路由，复用公开文档 API 并支持后续 `mynotiongo://public/:publicId` deep link 映射。
+- 已移除移动端公开页面路由；移动端仅保留发布状态展示与切换，不提供公开链接打开能力。
 - 已补齐移动端回收站恢复和永久删除动作，复用 `POST /api/v1/documents/:id/restore` 与 `DELETE /api/v1/documents/:id`，成功后刷新回收站、文档树、搜索和详情缓存。
-- 已在移动端文档详情页为已发布文档补充公开链接复制和打开公开页入口；复制链接依赖 `EXPO_PUBLIC_WEB_BASE_URL`，本地默认从 API 地址推导到 Web `5273`。
+- 已移除移动端文档详情页的公开链接复制和打开公开页入口，避免移动端承担 Web 分享路径。
 - 已通过：
   - `pnpm --filter @my-notion-go/mobile typecheck`
   - `pnpm --filter @my-notion-go/mobile lint`
@@ -262,11 +262,10 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 第三批：文档详情
   - Header 从大卡片改成 cover + icon + title 的 Notion 页面结构。
   - `DocumentMetadataEditor` 从大卡片改成轻量设置 section 或 form sheet 预留。
-  - 公开链接、收藏、发布状态改为 action pill。
-- 第四批：搜索 / 回收站 / 公开页
+  - 收藏、发布状态改为 action pill。
+- 第四批：搜索 / 回收站
   - 搜索结果统一用 `DocumentRow`。
   - 回收站 row 使用 swipe/action pill 风格预留；第一版可保留按钮但视觉降权。
-  - 公开页用更接近只读 Notion page 的排版。
 
 ### 验收标准
 
@@ -313,10 +312,8 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 已完成第二批页面迁移：
   - `DocumentDetailScreen` 从大卡片堆叠改为 Notion page 风格，cover、icon、title 成为主体视觉。
   - `DocumentMetadataEditor` 降级为轻量 `Section` + form card，收藏/发布使用 pill action。
-  - 已发布文档的公开链接区域改为弱提示卡片，复制和打开公开页使用轻量 pill 按钮。
   - `DocumentSearchScreen` 使用 `Section` + compact `DocumentRow` 展示搜索结果。
   - `TrashScreen` 使用 `Section` + 紧凑 row 展示回收站文档，恢复/删除按钮降权但保留危险操作强调。
-  - `PublicDocumentScreen` 同步采用 Notion page 风格，公开只读页面和登录态文档详情保持一致视觉。
 - 已完成详情页信息密度调整：
   - 标题、icon 等页面设置不再以内联大卡片占据详情页布局。
   - 详情页仅保留轻量 `页面设置`、收藏和发布 pill action。
@@ -338,12 +335,12 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 - 已完成底部弹层组件化：
   - 新增 `components/ui/bottom-sheet.tsx`，统一遮罩、grabber、标题区、安全区和底部 sheet 视觉。
   - `DocumentDetailScreen` 不再直接手写 `react-native` `Modal` 结构，页面设置弹层统一走 `BottomSheet`。
-  - 当前项目未引入专门 bottom-sheet 三方库；后续如要替换为 `@gorhom/bottom-sheet` 或 Expo Router `formSheet`，只需要改 UI primitive 或路由层。
+  - 已切换为原 My-Notion 同款 Tamagui `Sheet` 方案，避免自写 Modal 和 `@gorhom/bottom-sheet` 在 Expo Web 下出现不贴底、滚动手势冲突和输入框不显示问题。
 - 已通过：
   - `pnpm --filter @my-notion-go/mobile typecheck`
   - `pnpm --filter @my-notion-go/mobile lint`
 - 已完成 Expo Web / Expo Go 真实视觉验收：
-  - 登录、文档列表、详情、搜索、回收站、发布状态、公开链接和底部弹层链路已完成手动检查。
+  - 登录、文档列表、详情、搜索、回收站、发布状态和底部弹层链路已完成手动检查。
   - 当前视觉重构无阻塞问题，M8.3.5 可收口。
 - 下一批进入 M8.4 AI + RAG Mobile，优先验证移动端 SSE / streaming 能力，再落地完整 AI 页面。
 
@@ -445,6 +442,10 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
   - 新增 `mobileAIApi`，复用 `packages/api-client` 的会话和消息 API，并预留普通 AI / RAG SSE streaming adapter。
   - 新增移动端 SSE parser，保持与 Web 端 AI Chat SSE 事件契约一致。
   - AI 弹层内已支持会话列表、新建会话、切换到历史消息展示，发送消息与 streaming UI 留到下一批。
+  - 已按原 My-Notion `ChatModal` 调整弹层布局：通用 sheet 只保留 handle，AI 内部自管 header、滚动消息区和底部输入栏，避免新页面感和重复标题。
+  - 已接入 `tamagui`、`@tamagui/config`、`@tamagui/animations-react-native`，根布局增加 `TamaguiProvider` 和 `Theme`。
+  - 已移除 `@gorhom/bottom-sheet`，AI 弹层回到原 My-Notion 的 Tamagui `Sheet` 结构，滚动区和底部输入框由 sheet frame 内部稳定布局承载。
+  - 已移除移动端公开文档能力：删除公开页路由、公开文档 screen/hook、详情页复制公开链接和打开公开页入口。
 - 已通过：
   - `pnpm --filter @my-notion-go/mobile typecheck`
   - `pnpm --filter @my-notion-go/mobile lint`
@@ -456,8 +457,8 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
 ## M8.5 Mobile Polish
 
 - 支持离线弱提示和网络恢复后的 query invalidation。
-- 支持系统分享、复制公开链接和打开公开页。
-- 支持基础 deep link。
+- 移动端暂不支持系统分享、复制公开链接和打开公开页。
+- 基础 deep link 仅保留非公开文档路径的后续评估。
 - 评估 push notification，用于任务完成、共享邀请或未来协作通知。
 - 补充 EAS build / iOS / Android 构建说明。
 

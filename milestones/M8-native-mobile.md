@@ -335,6 +335,10 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
   - 会话恢复从 `app/index.tsx` 上移到 `app/_layout.tsx`，刷新任意路由都能先恢复 session。
   - `auth-storage` 在 Web 环境下使用 `localStorage` 作为 Expo Web 预览 fallback，解决浏览器刷新后 refreshToken 仅存在内存导致回到登录页的问题。
   - Native 端仍优先使用 `expo-secure-store` 存储 refreshToken，保持移动端安全约束。
+- 已完成底部弹层组件化：
+  - 新增 `components/ui/bottom-sheet.tsx`，统一遮罩、grabber、标题区、安全区和底部 sheet 视觉。
+  - `DocumentDetailScreen` 不再直接手写 `react-native` `Modal` 结构，页面设置弹层统一走 `BottomSheet`。
+  - 当前项目未引入专门 bottom-sheet 三方库；后续如要替换为 `@gorhom/bottom-sheet` 或 Expo Router `formSheet`，只需要改 UI primitive 或路由层。
 - 已通过：
   - `pnpm --filter @my-notion-go/mobile typecheck`
   - `pnpm --filter @my-notion-go/mobile lint`

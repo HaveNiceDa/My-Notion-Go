@@ -1,3 +1,4 @@
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardEyebrow, CardTitle, InfoCard } from "@/components/ui/card";
 import { IconTile } from "@/components/ui/icon-tile";
@@ -10,7 +11,6 @@ import type { Document } from "@my-notion-go/api-client";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Modal } from "react-native";
 import { useTranslation } from "react-i18next";
 import { ReadonlyDocumentContent } from "./read-only-content";
 import { useMobileDocumentActions } from "./use-mobile-document-actions";
@@ -139,6 +139,12 @@ function DocumentMetadataEditor({ document }: { document: Document }) {
     }
   }
 
+  function closeEditor() {
+    setTitle(document.title);
+    setIcon(document.icon);
+    setOpen(false);
+  }
+
   return (
     <View className="gap-2 px-1">
       <View className="flex-row flex-wrap gap-2">
@@ -171,84 +177,79 @@ function DocumentMetadataEditor({ document }: { document: Document }) {
         </InfoCard>
       ) : null}
 
-      <Modal animationType="slide" onRequestClose={() => setOpen(false)} transparent visible={open}>
-        <View className="flex-1 justify-end bg-black/25 px-4 pb-8">
-          <Card className="gap-4 rounded-[24px]">
-            <View className="flex-row items-start justify-between gap-3">
-              <View className="min-w-0 flex-1">
-                <CardEyebrow selectable>{t("mobileEditor.phaseLabel")}</CardEyebrow>
-                <CardTitle selectable className="mt-1 text-xl leading-7">
-                  {t("mobileEditor.title")}
-                </CardTitle>
-                <CardDescription selectable className="mt-1 text-sm leading-5">
-                  {t("mobileEditor.description")}
-                </CardDescription>
-              </View>
-              <Button label={t("common.cancel")} onPress={() => setOpen(false)} variant="ghost" />
-            </View>
-
-            <View className="gap-2">
-              <Text selectable className="text-sm font-semibold text-notion-subtle">
-                {t("documents.titleInput")}
-              </Text>
-              <Input
-                accessibilityLabel={t("documents.titleInput")}
-                editable={!actionLoading}
-                onChangeText={setTitle}
-                placeholder={t("documents.renamePlaceholder")}
-                value={title}
-              />
-            </View>
-
-            <View className="gap-2">
-              <Text selectable className="text-sm font-semibold text-notion-subtle">
-                {t("mobileEditor.iconLabel")}
-              </Text>
-              <Input
-                accessibilityLabel={t("mobileEditor.iconLabel")}
-                editable={!actionLoading}
-                maxLength={8}
-                onChangeText={setIcon}
-                placeholder={t("mobileEditor.iconPlaceholder")}
-                value={icon}
-              />
-            </View>
-
-            <Button
-              disabled={!hasMetadataChanges || actionLoading}
-              isLoading={updateMetadataMutation.isPending}
-              label={t("mobileEditor.saveMetadata")}
-              loadingLabel={t("editor.saving")}
-              onPress={() => {
-                void saveMetadata();
-              }}
-            />
-
-            <View className="flex-row gap-2">
-              <Button
-                className="flex-1"
-                disabled={actionLoading}
-                isLoading={toggleStarMutation.isPending}
-                label={document.isStarred ? t("documents.unstarPage") : t("documents.starPage")}
-                onPress={() => {
-                  void toggleStar();
-                }}
-                variant="pill"
-              />
-              <Button
-                className="flex-1"
-                disabled={actionLoading}
-                isLoading={togglePublishMutation.isPending}
-                label={document.isPublished ? t("publish.unpublish") : t("publish.publish")}
-                onPress={() => {
-                  void togglePublish();
-                }}
-                variant="pill"
-              />
-            </View>
-          </Card>
+      <BottomSheet
+        closeLabel={t("common.cancel")}
+        description={t("mobileEditor.description")}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            closeEditor();
+            return;
+          }
+          setOpen(true);
+        }}
+        open={open}
+        title={t("mobileEditor.title")}
+      >
+        <View className="gap-2">
+          <Text selectable className="text-sm font-semibold text-notion-subtle">
+            {t("documents.titleInput")}
+          </Text>
+          <Input
+            accessibilityLabel={t("documents.titleInput")}
+            editable={!actionLoading}
+            onChangeText={setTitle}
+            placeholder={t("documents.renamePlaceholder")}
+            value={title}
+          />
         </View>
-      </Modal>
+
+        <View className="gap-2">
+          <Text selectable className="text-sm font-semibold text-notion-subtle">
+            {t("mobileEditor.iconLabel")}
+          </Text>
+          <Input
+            accessibilityLabel={t("mobileEditor.iconLabel")}
+            editable={!actionLoading}
+            maxLength={8}
+            onChangeText={setIcon}
+            placeholder={t("mobileEditor.iconPlaceholder")}
+            value={icon}
+          />
+        </View>
+
+        <Button
+          disabled={!hasMetadataChanges || actionLoading}
+          isLoading={updateMetadataMutation.isPending}
+          label={t("mobileEditor.saveMetadata")}
+          loadingLabel={t("editor.saving")}
+          onPress={() => {
+            void saveMetadata();
+          }}
+        />
+
+        <View className="flex-row gap-2">
+          <Button
+            className="flex-1"
+            disabled={actionLoading}
+            isLoading={toggleStarMutation.isPending}
+            label={document.isStarred ? t("documents.unstarPage") : t("documents.starPage")}
+            onPress={() => {
+              void toggleStar();
+            }}
+            variant="pill"
+          />
+          <Button
+            className="flex-1"
+            disabled={actionLoading}
+            isLoading={togglePublishMutation.isPending}
+            label={document.isPublished ? t("publish.unpublish") : t("publish.publish")}
+            onPress={() => {
+              void togglePublish();
+            }}
+            variant="pill"
+          />
+        </View>
+      </BottomSheet>
     </View>
   );
 }

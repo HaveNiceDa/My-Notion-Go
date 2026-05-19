@@ -9,7 +9,7 @@ export function ScreenScrollView({ className, contentContainerClassName, ...prop
   return (
     <ScrollView
       className={cn("flex-1 bg-notion-bg", className)}
-      contentContainerClassName={cn("gap-5 p-5", contentContainerClassName)}
+      contentContainerClassName={cn("gap-4 px-4 pb-28 pt-3", contentContainerClassName)}
       contentInsetAdjustmentBehavior="automatic"
       {...props}
     />
@@ -17,5 +17,5 @@ export function ScreenScrollView({ className, contentContainerClassName, ...prop
 }
 
 export function LoadingCard({ className, ...props }: LoadingCardProps) {
-  return <View className={cn("min-h-60 items-center justify-center rounded-[28px] bg-notion-surface p-6", className)} {...props} />;
+  return <View className={cn("min-h-52 items-center justify-center rounded-2xl bg-notion-hover p-4", className)} {...props} />;
 }

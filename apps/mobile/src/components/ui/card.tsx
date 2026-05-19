@@ -6,11 +6,11 @@ type CardProps = ComponentProps<typeof View>;
 type TextProps = ComponentProps<typeof Text>;
 
 export function Card({ className, ...props }: CardProps) {
-  return <View className={cn("gap-3 rounded-[28px] bg-notion-surface p-6 shadow-sm", className)} {...props} />;
+  return <View className={cn("gap-3 rounded-2xl border border-notion-border bg-notion-surface p-4", className)} {...props} />;
 }
 
 export function InfoCard({ className, ...props }: CardProps) {
-  return <View className={cn("gap-2 rounded-2xl bg-notion-muted p-4", className)} {...props} />;
+  return <View className={cn("gap-2 rounded-xl bg-notion-hover p-3.5", className)} {...props} />;
 }
 
 export function CardEyebrow({ className, ...props }: TextProps) {
@@ -18,9 +18,9 @@ export function CardEyebrow({ className, ...props }: TextProps) {
 }
 
 export function CardTitle({ className, ...props }: TextProps) {
-  return <Text className={cn("text-3xl font-bold leading-9 text-notion-text", className)} {...props} />;
+  return <Text className={cn("text-2xl font-bold leading-8 text-notion-text", className)} {...props} />;
 }
 
 export function CardDescription({ className, ...props }: TextProps) {
-  return <Text className={cn("text-base leading-6 text-notion-subtle", className)} {...props} />;
+  return <Text className={cn("text-[15px] leading-6 text-notion-subtle", className)} {...props} />;
 }

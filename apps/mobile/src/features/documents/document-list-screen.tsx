@@ -1,10 +1,13 @@
 import { Button } from "@/components/ui/button";
+import { BottomAction, BottomActionBar } from "@/components/ui/bottom-action-bar";
 import { Card, CardDescription, CardEyebrow, CardTitle, InfoCard } from "@/components/ui/card";
+import { DocumentRow as UIDocumentRow } from "@/components/ui/document-row";
+import { IconTile } from "@/components/ui/icon-tile";
 import { LoadingCard } from "@/components/ui/screen";
-import { cn } from "@/lib/cn";
+import { Section } from "@/components/ui/section";
 import { mobileApiBaseUrl } from "@/lib/api-config";
 import { useAuthStore } from "@/stores/auth-store";
-import { Pressable, Text, View } from "@/tw";
+import { Pressable, ScrollView, Text, View } from "@/tw";
 import type { DocumentTreeNode } from "@my-notion-go/api-client";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -60,23 +63,14 @@ export function DocumentListScreen() {
 
   return (
     <View className="gap-5">
-      <Card>
-        <CardEyebrow selectable>{t("mobileDocuments.phaseLabel")}</CardEyebrow>
-        <CardTitle selectable>{t("mobileDocuments.title")}</CardTitle>
-        <CardDescription selectable>{t("mobileDocuments.subtitle")}</CardDescription>
-        <View className="mt-1 flex-row gap-2">
-          <MetricPill label={t("mobileDocuments.totalCount", { count: activeDocuments.length })} />
-          <MetricPill label={t("mobileDocuments.favoriteCount", { count: favoriteDocuments.length })} />
-        </View>
-      </Card>
+      <WorkspaceHeader
+        email={user?.email}
+        favoriteCount={favoriteDocuments.length}
+        totalCount={activeDocuments.length}
+        userName={user?.name}
+      />
 
-      <View className="flex-row gap-2">
-        <QuickAction label={t("workspace.search")} onPress={() => router.push("/search")} />
-        <QuickAction label={t("workspace.favorites")} />
-        <QuickAction label={t("workspace.trash")} onPress={() => router.push("/trash")} />
-      </View>
-
-      <DocumentSection
+      <RecentSection
         emptyLabel={t("mobileDocuments.noRecent")}
         locale={locale}
         nodes={recentDocuments}
@@ -90,12 +84,9 @@ export function DocumentListScreen() {
         title={t("workspace.favorites")}
       />
 
-      <View className="gap-3">
-        <Text selectable className="text-sm font-bold text-notion-text">
-          {t("mobileDocuments.allDocuments")}
-        </Text>
+      <Section title={t("mobileDocuments.allDocuments")}>
         {activeDocuments.length > 0 ? (
-          <View className="overflow-hidden rounded-[24px] bg-notion-surface">
+          <View className="overflow-hidden rounded-xl border border-notion-border bg-notion-surface">
             {activeDocuments.map((document, index) => (
               <DocumentRow
                 key={document.id}
@@ -109,17 +100,17 @@ export function DocumentListScreen() {
         ) : (
           <EmptyState />
         )}
-      </View>
+      </Section>
 
-      <InfoCard>
+      <InfoCard className="gap-1.5">
         <CardEyebrow selectable>{t("auth.email")}</CardEyebrow>
-        <Text selectable className="text-[15px] text-stone-800">
+        <Text selectable className="text-[14px] text-notion-subtle">
           {user?.email}
         </Text>
-        <CardEyebrow selectable className="mt-2">
+        <CardEyebrow selectable className="mt-1">
           {t("App.apiLabel")}
         </CardEyebrow>
-        <Text selectable className="text-[15px] text-stone-800 tabular-nums">
+        <Text selectable className="text-[13px] text-notion-faint tabular-nums">
           {mobileApiBaseUrl}
         </Text>
         <Button
@@ -129,9 +120,106 @@ export function DocumentListScreen() {
           label={t("workspace.logout")}
           loadingLabel={t("workspace.loggingOut")}
           onPress={handleLogout}
+          variant="secondary"
         />
       </InfoCard>
+
+      <BottomActionBar>
+        <BottomAction label={t("workspace.search")} onPress={() => router.push("/search")} />
+        <BottomAction label={t("aiChat.open")} />
+        <BottomAction label={t("workspace.trash")} onPress={() => router.push("/trash")} primary />
+      </BottomActionBar>
     </View>
+  );
+}
+
+function WorkspaceHeader({
+  email,
+  favoriteCount,
+  totalCount,
+  userName,
+}: {
+  email?: string;
+  favoriteCount: number;
+  totalCount: number;
+  userName?: string;
+}) {
+  const { t } = useTranslation();
+  const displayName = userName || email || t("common.brand");
+
+  return (
+    <View className="gap-3">
+      <View className="flex-row items-center gap-3">
+        <IconTile icon="📚" size="lg" />
+        <View className="min-w-0 flex-1">
+          <Text selectable className="text-xl font-bold leading-7 text-notion-text" numberOfLines={1}>
+            {displayName}
+          </Text>
+          <Text selectable className="text-[13px] leading-5 text-notion-faint" numberOfLines={1}>
+            {t("mobileDocuments.phaseLabel")}
+          </Text>
+        </View>
+      </View>
+      <View className="flex-row gap-2">
+        <MetricPill label={t("mobileDocuments.totalCount", { count: totalCount })} />
+        <MetricPill label={t("mobileDocuments.favoriteCount", { count: favoriteCount })} />
+      </View>
+    </View>
+  );
+}
+
+function RecentSection({
+  emptyLabel,
+  locale,
+  nodes,
+  title,
+}: {
+  emptyLabel: string;
+  locale: string;
+  nodes: FlatDocumentNode[];
+  title: string;
+}) {
+  return (
+    <Section title={title}>
+      {nodes.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3 pr-4">
+          {nodes.map((document) => (
+            <RecentCard key={document.id} document={document} locale={locale} />
+          ))}
+        </ScrollView>
+      ) : (
+        <InfoCard>
+          <Text selectable className="text-sm leading-5 text-notion-faint">
+            {emptyLabel}
+          </Text>
+        </InfoCard>
+      )}
+    </Section>
+  );
+}
+
+function RecentCard({ document, locale }: { document: FlatDocumentNode; locale: string }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const title = document.title || t("documents.untitled");
+
+  return (
+    <Pressable
+      accessibilityLabel={t("mobileDocuments.openDocument", { title })}
+      accessibilityRole="button"
+      className="w-36 gap-3 rounded-2xl border border-notion-border bg-notion-surface p-3"
+      onPress={() => router.push({ pathname: "/documents/[documentId]", params: { documentId: document.id } })}
+    >
+      <IconTile icon={document.icon || "📄"} />
+      <View className="gap-1">
+        <Text selectable className="text-sm font-semibold leading-5 text-notion-subtle" numberOfLines={2}>
+          {title}
+        </Text>
+        <Text selectable className="text-xs text-notion-faint" numberOfLines={1}>
+          {formatDate(document.updatedAt, locale)}
+        </Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -152,7 +240,7 @@ function DocumentSection({
         {title}
       </Text>
       {nodes.length > 0 ? (
-        <View className="overflow-hidden rounded-[24px] bg-notion-surface">
+        <View className="overflow-hidden rounded-xl border border-notion-border bg-notion-surface">
           {nodes.map((document, index) => (
             <DocumentRow key={document.id} document={document} isLast={index === nodes.length - 1} locale={locale} />
           ))}
@@ -182,66 +270,37 @@ function DocumentRow({
   const { t } = useTranslation();
   const router = useRouter();
   const title = document.title || t("documents.untitled");
-  const icon = document.icon || "📄";
 
   return (
-    <Pressable
+    <UIDocumentRow
       accessibilityLabel={t("mobileDocuments.openDocument", { title })}
-      accessibilityRole="button"
-      className={cn("flex-row items-center gap-3 px-4 py-3.5", !isLast && "border-b border-notion-muted")}
+      depth={showDepth ? document.depth : 0}
+      icon={document.icon || "📄"}
+      isLast={isLast}
       onPress={() => router.push({ pathname: "/documents/[documentId]", params: { documentId: document.id } })}
-      style={showDepth ? { paddingLeft: 16 + document.depth * 14 } : undefined}
-    >
-      <View className="h-10 w-10 items-center justify-center rounded-2xl bg-notion-muted">
-        <Text className="text-lg">{icon}</Text>
-      </View>
-      <View className="min-w-0 flex-1 gap-1">
-        <View className="flex-row items-center gap-1.5">
-          <Text selectable className="shrink text-base font-semibold text-notion-text" numberOfLines={1}>
-            {title}
-          </Text>
+      rightAccessory={
+        <View className="flex-row items-center gap-2">
           {document.isStarred ? <Text className="text-xs text-notion-faint">★</Text> : null}
+          {document.children.length > 0 ? (
+            <Text className="text-xs font-semibold text-notion-faint">
+              {t("mobileDocuments.childCount", { count: document.children.length })}
+            </Text>
+          ) : null}
         </View>
-        <Text selectable className="text-xs text-notion-faint" numberOfLines={1}>
-          {t("mobileDocuments.updatedAt", { time: formatDate(document.updatedAt, locale) })}
-        </Text>
-      </View>
-      {document.children.length > 0 ? (
-        <Text className="text-xs font-semibold text-notion-faint">
-          {t("mobileDocuments.childCount", { count: document.children.length })}
-        </Text>
-      ) : null}
-    </Pressable>
+      }
+      subtitle={t("mobileDocuments.updatedAt", { time: formatDate(document.updatedAt, locale) })}
+      title={title}
+    />
   );
 }
 
 function MetricPill({ label }: { label: string }) {
   return (
-    <View className="rounded-full bg-notion-muted px-3 py-1.5">
+    <View className="rounded-full bg-notion-hover px-3 py-1.5">
       <Text selectable className="text-xs font-semibold text-notion-faint">
         {label}
       </Text>
     </View>
-  );
-}
-
-function QuickAction({ label, onPress }: { label: string; onPress?: () => void }) {
-  if (!onPress) {
-    return (
-      <View className="flex-1 items-center rounded-2xl bg-notion-surface px-3 py-3">
-        <Text selectable className="text-sm font-semibold text-notion-text">
-          {label}
-        </Text>
-      </View>
-    );
-  }
-
-  return (
-    <Pressable accessibilityLabel={label} accessibilityRole="button" className="flex-1 items-center rounded-2xl bg-notion-surface px-3 py-3" onPress={onPress}>
-      <Text selectable className="text-sm font-semibold text-notion-text">
-        {label}
-      </Text>
-    </Pressable>
   );
 }
 

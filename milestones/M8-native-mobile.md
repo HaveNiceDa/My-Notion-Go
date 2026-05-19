@@ -143,6 +143,178 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
   - 页面内 `InfoCard` 展示保存、收藏、发布的成功或失败反馈。
 - 当前不做：正文 block 编辑、WebView editor、冲突检测 UI、多人协同和离线编辑队列。
 
+## M8.3.5 Mobile Visual Refactor
+
+### 背景
+
+- 当前 `apps/mobile` 已具备 M8.2 文档阅读路径和 M8.3 元信息编辑能力，但视觉表现仍偏“工程 demo”：
+  - 大面积卡片堆叠，缺少 Notion 移动端的页面层级和信息密度。
+  - 颜色偏暖偏重，和 `my-notion-go` Web 端以及原 My-Notion 移动端的低对比 Notion-like 风格不一致。
+  - 列表 row、section header、icon tile、bottom action、empty/error/loading 组件缺少统一设计语言。
+  - 页面标题、卡片标题、按钮权重过重，导致文档工具型产品的“安静感”不足。
+- M8.4 AI + RAG Mobile 会新增更复杂页面，如果不先重构视觉系统，后续 AI 页面会继续放大样式债务。
+
+### 参考来源
+
+- 原 My-Notion 移动端：
+  - `apps/mobile/src/features/home/components/home-screen.tsx`
+  - `apps/mobile/src/features/home/components/home-header.tsx`
+  - `apps/mobile/src/features/home/components/recent-section.tsx`
+  - `apps/mobile/src/features/home/components/workspace-page-row.tsx`
+  - `apps/mobile/src/features/home/components/home-bottom-bar.tsx`
+- `my-notion-go` Web 端：
+  - `apps/web/src/styles/global.css`
+  - `apps/web/src/features/documents/*`
+- Notion 原生移动端：
+  - 只能参考公开可观察的布局、信息密度和交互习惯。
+  - 不复制不可获得的私有设计 token；本项目沉淀自己的 Notion-like token。
+
+### 视觉目标
+
+- 整体气质：更像 Notion 工具 App，而不是营销页或 demo 页。
+- 背景：以 `#ffffff` / `#f7f7f5` 为主，避免过重的米色背景。
+- 边框：使用 `#e5e5e2` / `#ededeb` 低对比边界，减少强卡片感。
+- 字体层级：
+  - 页面标题 20-24px，尽量交给原生 Stack title 或轻量 header。
+  - section 标题 13-14px，semibold，颜色弱化。
+  - row 主标题 15-16px，正文感，不要全页面大标题化。
+  - 辅助文字 12-13px，使用 `notion-muted-foreground`。
+- 圆角：
+  - 文档 row 8-12px。
+  - 横向 recent card 14-16px。
+  - 底部操作栏 24-28px。
+  - 避免所有容器默认 24-28px 大圆角。
+- 阴影：
+  - 默认不用强阴影。
+  - 只在 bottom bar、floating action 或 modal 使用极弱阴影。
+- 图标：
+  - 优先使用页面 emoji。
+  - 无 emoji 时用统一 `PageIcon` / `IconTile`，大小 28-32，背景弱灰。
+  - 后续可评估 `expo-image` SF Symbols，但不在本阶段强依赖。
+
+### Token 方案
+
+- 调整 `apps/mobile/src/global.css` 的 Notion token：
+  - `notion-bg`: `#ffffff`
+  - `notion-canvas`: `#f7f7f5`
+  - `notion-surface`: `#ffffff`
+  - `notion-hover`: `#f1f1ef`
+  - `notion-muted`: `#ededeb`
+  - `notion-border`: `#e5e5e2`
+  - `notion-text`: `#0a0a0a`
+  - `notion-subtle`: `#37352f`
+  - `notion-faint`: `#787774`
+  - `notion-danger`: `#dc2626`
+  - `notion-danger-muted`: `#fef2f2`
+- 保留现有 `notion-*` 命名，减少业务 className 改动。
+- 新增 spacing 约定：
+  - screen horizontal padding: `16`
+  - section gap: `8-12`
+  - row height: `40-48`
+  - compact row padding: `8-10`
+  - card padding: `12-16`
+
+### 组件重构清单
+
+- `ScreenScrollView`
+  - 默认白底或浅灰 canvas。
+  - 统一 `contentContainerStyle` / className 的顶部、底部和横向 padding。
+  - 为底部浮动操作栏预留 padding。
+- `MobileHeader`
+  - 对齐原 My-Notion `HomeHeader`。
+  - 左侧 workspace/document context，右侧 search/trash/settings 或文档动作。
+  - 减少业务页内重复大标题卡片。
+- `Section`
+  - 统一 section title、description、右侧 action。
+  - 用于 Recent、Favorites、Private、Trash、Editor settings。
+- `DocumentRow`
+  - 统一文档树、搜索结果、回收站、收藏列表 row。
+  - 支持 depth indentation、icon、title、subtitle、right accessory。
+  - Pressed 态使用弱灰背景，不使用强边框卡片。
+- `RecentCard`
+  - 横向滚动卡片，宽度约 136，低边框、弱背景。
+  - 对齐原 My-Notion `RecentSection`。
+- `IconTile`
+  - 统一 emoji / file / folder / database 的视觉容器。
+- `BottomActionBar`
+  - 对齐原 My-Notion `HomeBottomBar`。
+  - 首页提供 search、AI、新建页面。
+  - 文档详情可提供 AI、收藏、发布、编辑入口。
+- `ActionPill`
+  - 用于收藏、发布、知识库状态。
+  - 替代当前过重的 full-width button 组合。
+- `InlineFeedback`
+  - 替代大块 `InfoCard` 成功提示。
+  - 成功提示短暂、弱色；错误提示使用 danger muted。
+
+### 页面迁移顺序
+
+- 第一批：UI 基础层
+  - `global.css` token 调整。
+  - `components/ui/card.tsx` 降低默认圆角、padding、阴影。
+  - `components/ui/button.tsx` 支持 `variant`：`primary`、`secondary`、`ghost`、`danger`、`pill`。
+  - `components/ui/input.tsx` 降低边框权重和高度。
+  - 新增 `section.tsx`、`document-row.tsx`、`icon-tile.tsx`、`bottom-action-bar.tsx`。
+- 第二批：首页 / 文档列表
+  - `document-list-screen.tsx` 改成 header + recent 横向卡片 + section tree。
+  - Quick actions 从三块卡片改成底部或顶部轻量入口。
+  - 文档树 row 改为 compact row，支持 depth 和 pressed 态。
+- 第三批：文档详情
+  - Header 从大卡片改成 cover + icon + title 的 Notion 页面结构。
+  - `DocumentMetadataEditor` 从大卡片改成轻量设置 section 或 form sheet 预留。
+  - 公开链接、收藏、发布状态改为 action pill。
+- 第四批：搜索 / 回收站 / 公开页
+  - 搜索结果统一用 `DocumentRow`。
+  - 回收站 row 使用 swipe/action pill 风格预留；第一版可保留按钮但视觉降权。
+  - 公开页用更接近只读 Notion page 的排版。
+
+### 验收标准
+
+- 首页看起来更接近原 My-Notion 移动端：
+  - 顶部 workspace header。
+  - recent 横向卡片。
+  - favorites/private/knowledge section。
+  - 底部操作栏。
+- 文档列表和搜索结果不再像大卡片 demo，而是像 Notion sidebar/list。
+- 文档详情具备 Notion page 感：
+  - cover 可选。
+  - icon + title 是核心视觉。
+  - 元信息编辑入口降权，不抢正文阅读。
+- 颜色与 `my-notion-go` Web 端 Notion-like token 对齐。
+- `pnpm --filter @my-notion-go/mobile typecheck` 通过。
+- `pnpm --filter @my-notion-go/mobile lint` 通过。
+- Expo Go / Web 8081 能启动并完成登录、文档列表、详情、搜索、回收站和发布链路手动验收。
+
+### 当前不做
+
+- 不引入完整设计系统库替换 NativeWind。
+- 不把整个 App 改成 WebView。
+- 不在本阶段实现正文 block 编辑器。
+- 不追求 1:1 复刻 Notion 私有视觉 token。
+- 不新增复杂动画，先保证静态视觉和布局正确。
+
+### M8.3.5 当前状态
+
+- 已完成第一批 UI 基础层：
+  - 调整 `apps/mobile/src/global.css` 的 Notion-like token，背景、弱灰、边框、正文、危险色更贴近 Web 端和 Notion 工具型视觉。
+  - 降低 `Card`、`InfoCard`、`Button`、`Input`、`ScreenScrollView` 的默认圆角、padding、阴影和视觉权重。
+  - `Button` 新增 `primary`、`secondary`、`ghost`、`danger`、`pill` variants，便于后续统一 action 视觉。
+- 已新增移动端复用组件：
+  - `Section`
+  - `IconTile`
+  - `DocumentRow`
+  - `BottomActionBar` / `BottomAction`
+- 已完成 `DocumentListScreen` 首轮视觉迁移：
+  - 顶部从 M8 阶段大卡片改为轻量 workspace header。
+  - 最近文档从普通列表改为横向 recent cards。
+  - 收藏和全部文档复用 compact `DocumentRow`。
+  - Quick actions 改为底部 Notion-like action bar。
+  - 账号/API 信息降级为弱提示卡片，不再抢占主视觉。
+- 已通过：
+  - `pnpm --filter @my-notion-go/mobile typecheck`
+  - `pnpm --filter @my-notion-go/mobile lint`
+- 下一批建议迁移文档详情页、搜索页和回收站页，继续复用 `Section`、`DocumentRow`、`IconTile` 和 `ActionPill`。
+
 ## M8.4 AI + RAG Mobile
 
 - 实现 AI Chat 移动端入口和会话列表。

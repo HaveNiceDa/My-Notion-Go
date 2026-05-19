@@ -7,7 +7,7 @@ type InputProps = ComponentProps<typeof TextInput>;
 export function Input({ className, placeholderTextColor = "#78716C", ...props }: InputProps) {
   return (
     <TextInput
-      className={cn("rounded-2xl border border-notion-border px-3.5 py-3 text-base text-notion-text", className)}
+      className={cn("rounded-xl border border-notion-border bg-notion-surface px-3 py-2.5 text-[15px] text-notion-text", className)}
       placeholderTextColor={placeholderTextColor}
       {...props}
     />

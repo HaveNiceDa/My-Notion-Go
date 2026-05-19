@@ -7,13 +7,16 @@
 
 @layer theme {
   @theme {
-    --color-notion-bg: #f7f5f2;
+    --color-notion-bg: #ffffff;
+    --color-notion-canvas: #f7f7f5;
     --color-notion-surface: #ffffff;
-    --color-notion-muted: #ede9e3;
-    --color-notion-border: #d6d3d1;
-    --color-notion-text: #1c1917;
-    --color-notion-subtle: #57534e;
-    --color-notion-faint: #78716c;
-    --color-notion-danger: #b91c1c;
+    --color-notion-hover: #f1f1ef;
+    --color-notion-muted: #ededeb;
+    --color-notion-border: #e5e5e2;
+    --color-notion-text: #0a0a0a;
+    --color-notion-subtle: #37352f;
+    --color-notion-faint: #787774;
+    --color-notion-danger: #dc2626;
+    --color-notion-danger-muted: #fef2f2;
   }
 }

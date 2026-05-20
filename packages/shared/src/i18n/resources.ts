@@ -240,6 +240,9 @@ export const resources = {
         notFoundTitle: "页面不可访问",
         notFoundDescription: "这个公开页面不存在、尚未发布，或已经被取消发布。",
       },
+      network: {
+        offline: "网络不可用，部分内容可能不是最新",
+      },
       aiChat: {
         open: "AI 助手",
         close: "关闭 AI 助手",
@@ -543,6 +546,9 @@ export const resources = {
         lastUpdated: "Last updated {{time}}",
         notFoundTitle: "Page unavailable",
         notFoundDescription: "This public page does not exist, is not published, or has been unpublished.",
+      },
+      network: {
+        offline: "You're offline. Some content may be outdated.",
       },
       aiChat: {
         open: "AI Assistant",

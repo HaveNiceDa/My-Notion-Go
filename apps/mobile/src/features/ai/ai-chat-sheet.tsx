@@ -1,11 +1,13 @@
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 import { Pressable, ScrollView, Text, TextInput, View } from "@/tw";
-import { useState } from "react";
-import { StyleSheet } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { StyleSheet, type ScrollView as NativeScrollView } from "react-native";
 import { useTranslation } from "react-i18next";
 import { AIConversationDetailScreen } from "./ai-conversation-detail-screen";
 import { AIConversationListScreen } from "./ai-conversation-list-screen";
+import { useMobileAIChat } from "./use-mobile-ai-chat";
 
 type AIChatSheetProps = {
   onOpenChange: (open: boolean) => void;
@@ -14,15 +16,53 @@ type AIChatSheetProps = {
 
 export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
   const { t } = useTranslation();
+  const scrollViewRef = useRef<NativeScrollView | null>(null);
   const [draft, setDraft] = useState("");
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const {
+    cancelStreaming,
+    messages,
+    messagesError,
+    messagesLoading,
+    selectConversation,
+    selectedConversationId,
+    sendMessage,
+    sending,
+    streamError,
+  } = useMobileAIChat();
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
-      setSelectedConversationId(null);
+      selectConversation(null);
+      setDraft("");
     }
     onOpenChange(nextOpen);
   }
+
+  async function handleSend() {
+    const content = draft.trim();
+    if (!content || sending) {
+      return;
+    }
+    const sent = await sendMessage(content);
+    if (sent) {
+      setDraft("");
+    }
+  }
+
+  const sendDisabled = !draft.trim() || sending;
+  const lastMessageContent = messages.at(-1)?.content;
+
+  function scrollToChatEnd(animated = true) {
+    requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollToEnd({ animated });
+    });
+  }
+
+  useEffect(() => {
+    if (open && selectedConversationId) {
+      scrollToChatEnd(false);
+    }
+  }, [lastMessageContent, messages.length, open, selectedConversationId, sending]);
 
   return (
     <BottomSheet
@@ -40,12 +80,29 @@ export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
               style={styles.input}
               value={draft}
             />
+            {sending ? (
+              <Pressable
+                accessibilityLabel={t("aiChat.stop")}
+                accessibilityRole="button"
+                className="h-9 w-9 items-center justify-center rounded-full bg-notion-faint"
+                onPress={cancelStreaming}
+              >
+                <Text className="text-sm font-semibold leading-5 text-white">■</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               accessibilityLabel={t("aiChat.send")}
               accessibilityRole="button"
-              className="h-9 w-9 items-center justify-center rounded-full bg-notion-text"
+              className={cn(
+                "h-9 w-9 items-center justify-center rounded-full",
+                sendDisabled ? "bg-notion-muted" : "bg-notion-text",
+              )}
+              disabled={sendDisabled}
+              onPress={handleSend}
             >
-              <Text className="text-lg font-semibold leading-6 text-white">↑</Text>
+              <Text className={cn("text-lg font-semibold leading-6", sendDisabled ? "text-notion-faint" : "text-white")}>
+                ↑
+              </Text>
             </Pressable>
           </View>
         ) : null
@@ -72,7 +129,7 @@ export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
                 className="px-2 py-1.5"
                 label={t("aiChat.conversations")}
                 labelClassName="text-sm text-notion-faint"
-                onPress={() => setSelectedConversationId(null)}
+                onPress={() => selectConversation(null)}
                 variant="ghost"
               />
             ) : null}
@@ -88,12 +145,23 @@ export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
 
         <ScrollView
           contentContainerStyle={selectedConversationId ? styles.chatScrollContent : styles.scrollContent}
+          onContentSizeChange={() => {
+            if (selectedConversationId) {
+              scrollToChatEnd();
+            }
+          }}
+          ref={scrollViewRef}
           style={styles.scrollView}
         >
           {selectedConversationId ? (
-            <AIConversationDetailScreen conversationId={selectedConversationId} />
+            <AIConversationDetailScreen
+              isError={messagesError}
+              isLoading={messagesLoading}
+              messages={messages}
+              streamError={streamError}
+            />
           ) : (
-            <AIConversationListScreen onSelectConversation={setSelectedConversationId} />
+            <AIConversationListScreen onSelectConversation={selectConversation} />
           )}
         </ScrollView>
       </View>

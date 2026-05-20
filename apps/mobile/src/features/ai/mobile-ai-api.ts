@@ -7,6 +7,7 @@ import {
   type AIMessage,
   type StreamAIChatRequest,
 } from "@my-notion-go/api-client";
+import { fetch } from "expo/fetch";
 import { createMobileSSEParser } from "./sse";
 import type { MobileAIChatMode, MobileAIStreamEvent, MobileRAGCitation } from "./types";
 
@@ -37,7 +38,7 @@ async function streamChat({ accessToken, input, mode, onEvent, signal }: StreamM
     signal,
   });
 
-  if (!response.ok || !response.body) {
+  if (!response.ok) {
     const errorMessage = await readErrorMessage(response);
     if (response.status === 401) {
       notifyUnauthorized({
@@ -49,12 +50,20 @@ async function streamChat({ accessToken, input, mode, onEvent, signal }: StreamM
     throw new ApiError(errorMessage, response.status);
   }
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
   const parser = createMobileSSEParser();
 
   // Streaming responses cannot use the shared JSON envelope request helper.
   // We keep the ReadableStream open and normalize SSE frames for the mobile chat screen.
+  if (!response.body || !("getReader" in response.body)) {
+    const text = await response.text();
+    parser.feed(text).forEach((event) => onEvent(normalizeStreamEvent(event.event, event.data)));
+    parser.flush().forEach((event) => onEvent(normalizeStreamEvent(event.event, event.data)));
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) {

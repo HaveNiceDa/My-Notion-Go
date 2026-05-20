@@ -34,7 +34,6 @@ cp .env.example .env
 | `CORS_ALLOWED_ORIGINS` | 是 | Web 访问 API 的 origin 白名单，多个值用逗号分隔 |
 | `VITE_API_BASE_URL` | 是 | Web 构建时写入的 API 地址 |
 | `EXPO_PUBLIC_API_BASE_URL` | 移动端阶段必填 | Mobile 构建时写入的 API 地址，只能放公开 API 地址 |
-| `EXPO_PUBLIC_WEB_BASE_URL` | 移动端阶段建议配置 | Mobile 用于复制公开页面链接的 Web 地址，只能放公开站点地址 |
 | `QDRANT_URL` | 否 | Qdrant 地址；缺失时 RAG 能力不可用 |
 | `QDRANT_COLLECTION` | 否 | Qdrant collection 名称 |
 | `LLM_API_KEY` / `DASHSCOPE_API_KEY` | 否 | AI Chat、Embedding、RAG 需要 |
@@ -43,7 +42,7 @@ cp .env.example .env
 
 - 生产环境禁止使用 `.env.example` 中的默认 JWT secret。
 - `DATABASE_URL`、JWT secret、LLM API key 不应提交到 Git。
-- `VITE_API_BASE_URL`、`EXPO_PUBLIC_API_BASE_URL` 和 `EXPO_PUBLIC_WEB_BASE_URL` 会进入客户端产物，只能放公开地址，不能放密钥。
+- `VITE_API_BASE_URL` 和 `EXPO_PUBLIC_API_BASE_URL` 会进入客户端产物，只能放公开地址，不能放密钥。
 
 ## 本地开发
 

@@ -5,6 +5,8 @@
 @source "../app/**/*.{ts,tsx}";
 @source "./**/*.{ts,tsx}";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer theme {
   @theme {
     --color-notion-bg: #ffffff;
@@ -19,4 +21,18 @@
     --color-notion-danger: #dc2626;
     --color-notion-danger-muted: #fef2f2;
   }
+}
+
+.dark {
+  --color-notion-bg: #191919;
+  --color-notion-canvas: #202020;
+  --color-notion-surface: #252525;
+  --color-notion-hover: #2f2f2f;
+  --color-notion-muted: #373737;
+  --color-notion-border: #3a3a3a;
+  --color-notion-text: #e8e8e8;
+  --color-notion-subtle: #d4d4d4;
+  --color-notion-faint: #9b9b9b;
+  --color-notion-danger: #f87171;
+  --color-notion-danger-muted: #3b1c1c;
 }

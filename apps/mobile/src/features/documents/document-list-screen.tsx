@@ -5,6 +5,7 @@ import { DocumentRow as UIDocumentRow } from "@/components/ui/document-row";
 import { IconTile } from "@/components/ui/icon-tile";
 import { LoadingCard } from "@/components/ui/screen";
 import { Section } from "@/components/ui/section";
+import { SettingsSheet } from "@/components/ui/settings-sheet";
 import { AIChatSheet } from "@/features/ai/ai-chat-sheet";
 import { mobileApiBaseUrl } from "@/lib/api-config";
 import { useAuthStore } from "@/stores/auth-store";
@@ -26,6 +27,7 @@ export function DocumentListScreen() {
   const logout = useAuthStore((state) => state.logout);
   const documentsQuery = useMobileDocumentTree();
   const [aiSheetOpen, setAiSheetOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const flatDocuments = useMemo(() => flattenDocumentTree(documentsQuery.data ?? []), [documentsQuery.data]);
   const activeDocuments = flatDocuments.filter((document) => !document.isArchived);
@@ -71,6 +73,7 @@ export function DocumentListScreen() {
       <WorkspaceHeader
         email={user?.email}
         favoriteCount={favoriteDocuments.length}
+        onSettingsPress={() => setSettingsOpen(true)}
         totalCount={activeDocuments.length}
         userName={user?.name}
       />
@@ -132,6 +135,7 @@ export function DocumentListScreen() {
       </BottomActionBar>
 
       <AIChatSheet initialMode="chat" onOpenChange={setAiSheetOpen} open={aiSheetOpen} />
+      <SettingsSheet onOpenChange={setSettingsOpen} open={settingsOpen} />
     </View>
   );
 }
@@ -139,11 +143,13 @@ export function DocumentListScreen() {
 function WorkspaceHeader({
   email,
   favoriteCount,
+  onSettingsPress,
   totalCount,
   userName,
 }: {
   email?: string;
   favoriteCount: number;
+  onSettingsPress: () => void;
   totalCount: number;
   userName?: string;
 }) {
@@ -162,6 +168,14 @@ function WorkspaceHeader({
             {t("mobileDocuments.phaseLabel")}
           </Text>
         </View>
+        <Pressable
+          accessibilityLabel={t("workspace.settings")}
+          accessibilityRole="button"
+          className="rounded-full bg-notion-hover px-2.5 py-1.5"
+          onPress={onSettingsPress}
+        >
+          <Text className="text-sm text-notion-faint">⚙</Text>
+        </Pressable>
       </View>
       <View className="flex-row gap-2">
         <MetricPill label={t("mobileDocuments.totalCount", { count: totalCount })} />

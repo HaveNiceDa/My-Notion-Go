@@ -243,6 +243,9 @@ export const resources = {
       network: {
         offline: "网络不可用，部分内容可能不是最新",
       },
+      settings: {
+        title: "设置",
+      },
       aiChat: {
         open: "AI 助手",
         close: "关闭 AI 助手",
@@ -549,6 +552,9 @@ export const resources = {
       },
       network: {
         offline: "You're offline. Some content may be outdated.",
+      },
+      settings: {
+        title: "Settings",
       },
       aiChat: {
         open: "AI Assistant",

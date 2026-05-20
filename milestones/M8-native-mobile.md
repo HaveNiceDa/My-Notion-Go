@@ -452,13 +452,20 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
   - 已接入 `tamagui`、`@tamagui/config`、`@tamagui/animations-react-native`，根布局增加 `TamaguiProvider` 和 `Theme`。
   - 已移除 `@gorhom/bottom-sheet`，AI 弹层回到原 My-Notion 的 Tamagui `Sheet` 结构，滚动区和底部输入框由 sheet frame 内部稳定布局承载。
   - 已移除移动端公开文档能力：删除公开页路由、公开文档 screen/hook、详情页复制公开链接和打开公开页入口。
+- 已完成 M8.4.4 RAG Sources 引用展示：
+  - `useMobileAIChat` 的 `mode` 从静态选项改为响应式状态，支持 UI 运行时切换普通对话 ↔ 知识库模式。
+  - `AIChatSheet` 接受 `initialMode` prop，输入区上方新增知识库模式切换 pill，对齐 Web 端 `toggleKnowledgeMode` 交互。
+  - 文档详情页 `DocumentMetadataEditor` 新增「基于文档提问」pill 按钮，点击后打开 AI Sheet 并自动进入 RAG 模式。
+  - `AIConversationDetailScreen` 的 `MessageBubble` 新增 `CitationsCard`：助手消息气泡下方展示引用来源卡片，包含来源标题、匹配片段预览和相似度弱提示。
+  - `CitationRow` 支持点击引用来源跳转 `/documents/[documentId]`，传递 `citationChunkId` 和 `citationPosition` 参数。
+  - `getRAGCitations` / `isRAGMetadata` 从 `message.metadata.rag` 提取引用数据，与 Web 端 `getRAGCitations` 逻辑对齐。
+  - i18n 新增 `aiChat.askDocument`（zh: "基于文档提问" / en: "Ask about this doc"）。
 - 已通过：
   - `pnpm --filter @my-notion-go/mobile typecheck`
   - `pnpm --filter @my-notion-go/mobile lint`
 - 下一批建议：
-  - 在 Expo Web / Expo Go 中手动验证首页底部 AI 弹层、会话列表、新建会话、历史消息读取、普通消息发送、取消生成、键盘避让和自动滚底。
-  - 单独验证 Native 运行时 `expo/fetch` streaming 能力；如果只能走 `response.text()` 降级，再评估是否需要后端补非流式或轮询接口。
-  - 开始 M8.4.4，补齐 RAG 问答入口、引用来源展示和引用跳转文档详情。
+  - 在 Expo Web / Expo Go 中手动验证：首页 AI 弹层模式切换、文档详情页「基于文档提问」入口、RAG 模式下发送消息后引用来源卡片展示、点击引用跳转文档详情。
+  - 开始 M8.5 Mobile Polish。
 
 ## M8.5 Mobile Polish
 

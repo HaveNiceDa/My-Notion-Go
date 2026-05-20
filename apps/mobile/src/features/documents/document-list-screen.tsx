@@ -131,7 +131,7 @@ export function DocumentListScreen() {
         <BottomAction label={t("workspace.trash")} onPress={() => router.push("/trash")} primary />
       </BottomActionBar>
 
-      <AIChatSheet onOpenChange={setAiSheetOpen} open={aiSheetOpen} />
+      <AIChatSheet initialMode="chat" onOpenChange={setAiSheetOpen} open={aiSheetOpen} />
     </View>
   );
 }

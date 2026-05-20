@@ -5,6 +5,7 @@ import { IconTile } from "@/components/ui/icon-tile";
 import { Input } from "@/components/ui/input";
 import { LoadingCard } from "@/components/ui/screen";
 import { Section } from "@/components/ui/section";
+import { AIChatSheet } from "@/features/ai/ai-chat-sheet";
 import { Image, Text, View } from "@/tw";
 import type { Document } from "@my-notion-go/api-client";
 import { useEffect, useState } from "react";
@@ -23,6 +24,7 @@ export function DocumentDetailScreen({ documentId }: { documentId: string }) {
   const documentQuery = useMobileDocumentDetail(documentId);
   const contentQuery = useMobileDocumentContent(documentId);
   const locale = i18n.language === "en" ? "en-US" : "zh-CN";
+  const [aiSheetOpen, setAiSheetOpen] = useState(false);
 
   if (documentQuery.isLoading || contentQuery.isLoading) {
     return (
@@ -70,15 +72,16 @@ export function DocumentDetailScreen({ documentId }: { documentId: string }) {
   return (
     <View className="gap-5">
       <DocumentHeader document={document} locale={locale} />
-      <DocumentMetadataEditor document={document} />
+      <DocumentMetadataEditor document={document} onAskDocument={() => setAiSheetOpen(true)} />
       <Section title={t("mobileDocuments.readOnlyContent")}>
         <ReadonlyDocumentContent blocks={blocks} />
       </Section>
+      <AIChatSheet initialMode="rag" onOpenChange={setAiSheetOpen} open={aiSheetOpen} />
     </View>
   );
 }
 
-function DocumentMetadataEditor({ document }: { document: Document }) {
+function DocumentMetadataEditor({ document, onAskDocument }: { document: Document; onAskDocument: () => void }) {
   const { t } = useTranslation();
   const { togglePublishMutation, toggleStarMutation, updateMetadataMutation } = useMobileDocumentActions(document.id);
   const [open, setOpen] = useState(false);
@@ -146,6 +149,11 @@ function DocumentMetadataEditor({ document }: { document: Document }) {
     <View className="gap-2 px-1">
       <View className="flex-row flex-wrap gap-2">
         <Button label={t("mobileEditor.title")} onPress={() => setOpen(true)} variant="pill" />
+        <Button
+          label={t("aiChat.askDocument")}
+          onPress={onAskDocument}
+          variant="pill"
+        />
         <Button
           disabled={actionLoading}
           isLoading={toggleStarMutation.isPending}

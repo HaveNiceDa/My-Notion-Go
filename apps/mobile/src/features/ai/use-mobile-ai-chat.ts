@@ -8,11 +8,11 @@ import type { MobileAIChatMode, MobileAIMessage, MobileAIStreamEvent, MobileRAGC
 import { useMobileAIMessages } from "./use-mobile-ai-messages";
 
 type UseMobileAIChatOptions = {
-  mode?: MobileAIChatMode;
+  initialMode?: MobileAIChatMode;
   model?: string;
 };
 
-export function useMobileAIChat({ mode = "chat", model }: UseMobileAIChatOptions = {}) {
+export function useMobileAIChat({ initialMode = "chat", model }: UseMobileAIChatOptions = {}) {
   const queryClient = useQueryClient();
   const runWithAuth = useAuthStore((state) => state.runWithAuth);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -21,6 +21,7 @@ export function useMobileAIChat({ mode = "chat", model }: UseMobileAIChatOptions
   const [messages, setMessages] = useState<MobileAIMessage[]>([]);
   const [sending, setSending] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
+  const [mode, setMode] = useState<MobileAIChatMode>(initialMode);
   const messagesQuery = useMobileAIMessages(selectedConversationId ?? "");
 
   useEffect(() => {
@@ -118,11 +119,13 @@ export function useMobileAIChat({ mode = "chat", model }: UseMobileAIChatOptions
     messages,
     messagesError: messagesQuery.isError,
     messagesLoading: messagesQuery.isLoading,
+    mode,
     refetchMessages: messagesQuery.refetch,
     selectConversation,
     selectedConversationId,
     sendMessage,
     sending,
+    setMode,
     streamError,
   };
 }

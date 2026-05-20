@@ -7,14 +7,16 @@ import { Keyboard, StyleSheet, type ScrollView as NativeScrollView, type TextInp
 import { useTranslation } from "react-i18next";
 import { AIConversationDetailScreen } from "./ai-conversation-detail-screen";
 import { AIConversationListScreen } from "./ai-conversation-list-screen";
+import type { MobileAIChatMode } from "./types";
 import { useMobileAIChat } from "./use-mobile-ai-chat";
 
 type AIChatSheetProps = {
+  initialMode?: MobileAIChatMode;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
 
-export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
+export function AIChatSheet({ initialMode = "chat", onOpenChange, open }: AIChatSheetProps) {
   const { t } = useTranslation();
   const scrollViewRef = useRef<NativeScrollView | null>(null);
   const inputRef = useRef<NativeTextInput | null>(null);
@@ -24,12 +26,14 @@ export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
     messages,
     messagesError,
     messagesLoading,
+    mode,
     selectConversation,
     selectedConversationId,
     sendMessage,
     sending,
+    setMode,
     streamError,
-  } = useMobileAIChat();
+  } = useMobileAIChat({ initialMode });
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
@@ -47,6 +51,10 @@ export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
     setDraft("");
     inputRef.current?.focus();
     await sendMessage(content);
+  }
+
+  function toggleMode() {
+    setMode(mode === "rag" ? "chat" : "rag");
   }
 
   const sendDisabled = !draft.trim() || sending;
@@ -92,43 +100,66 @@ export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
       contentClassName="flex-1"
       footer={
         selectedConversationId ? (
-          <View className="flex-row items-end gap-2 rounded-2xl bg-notion-hover px-3 py-2">
-            <TextInput
-              accessibilityLabel={t("aiChat.inputLabel")}
-              multiline
-              onFocus={() => scrollToChatEnd()}
-              onChangeText={setDraft}
-              placeholder={t("aiChat.placeholder")}
-              placeholderTextColor="#787774"
-              ref={inputRef}
-              returnKeyType="default"
-              style={styles.input}
-              value={draft}
-            />
-            {sending ? (
+          <View className="gap-2">
+            <View className="flex-row items-center gap-1.5">
               <Pressable
-                accessibilityLabel={t("aiChat.stop")}
+                accessibilityLabel={t(mode === "rag" ? "aiChat.knowledgeModeDisable" : "aiChat.knowledgeModeEnable")}
                 accessibilityRole="button"
-                className="h-9 w-9 items-center justify-center rounded-full bg-notion-faint"
-                onPress={cancelStreaming}
+                className={cn(
+                  "rounded-full border px-2.5 py-1",
+                  mode === "rag"
+                    ? "border-notion-text/20 bg-notion-hover"
+                    : "border-notion-border bg-notion-surface",
+                )}
+                disabled={sending}
+                onPress={toggleMode}
               >
-                <Text className="text-sm font-semibold leading-5 text-white">■</Text>
+                <Text className={cn("text-xs font-semibold", mode === "rag" ? "text-notion-subtle" : "text-notion-faint")}>
+                  {t("aiChat.knowledgeMode")}
+                </Text>
               </Pressable>
-            ) : null}
-            <Pressable
-              accessibilityLabel={t("aiChat.send")}
-              accessibilityRole="button"
-              className={cn(
-                "h-9 w-9 items-center justify-center rounded-full",
-                sendDisabled ? "bg-notion-muted" : "bg-notion-text",
-              )}
-              disabled={sendDisabled}
-              onPress={handleSend}
-            >
-              <Text className={cn("text-lg font-semibold leading-6", sendDisabled ? "text-notion-faint" : "text-white")}>
-                ↑
+              <Text className="text-[11px] leading-4 text-notion-faint">
+                {t(`aiChat.modeDescriptions.${mode}`)}
               </Text>
-            </Pressable>
+            </View>
+            <View className="flex-row items-end gap-2 rounded-2xl bg-notion-hover px-3 py-2">
+              <TextInput
+                accessibilityLabel={t("aiChat.inputLabel")}
+                multiline
+                onFocus={() => scrollToChatEnd()}
+                onChangeText={setDraft}
+                placeholder={t("aiChat.placeholder")}
+                placeholderTextColor="#787774"
+                ref={inputRef}
+                returnKeyType="default"
+                style={styles.input}
+                value={draft}
+              />
+              {sending ? (
+                <Pressable
+                  accessibilityLabel={t("aiChat.stop")}
+                  accessibilityRole="button"
+                  className="h-9 w-9 items-center justify-center rounded-full bg-notion-faint"
+                  onPress={cancelStreaming}
+                >
+                  <Text className="text-sm font-semibold leading-5 text-white">■</Text>
+                </Pressable>
+              ) : null}
+              <Pressable
+                accessibilityLabel={t("aiChat.send")}
+                accessibilityRole="button"
+                className={cn(
+                  "h-9 w-9 items-center justify-center rounded-full",
+                  sendDisabled ? "bg-notion-muted" : "bg-notion-text",
+                )}
+                disabled={sendDisabled}
+                onPress={handleSend}
+              >
+                <Text className={cn("text-lg font-semibold leading-6", sendDisabled ? "text-notion-faint" : "text-white")}>
+                  ↑
+                </Text>
+              </Pressable>
+            </View>
           </View>
         ) : null
       }
@@ -145,7 +176,7 @@ export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
               {selectedConversationId ? t("aiChat.newConversationTitle") : t("aiChat.title")}
             </Text>
             <Text selectable className="mt-0.5 text-xs leading-4 text-notion-faint" numberOfLines={1}>
-              {selectedConversationId ? t("aiChat.modeDescriptions.chat") : t("aiChat.subtitle")}
+              {selectedConversationId ? t(`aiChat.modeDescriptions.${mode}`) : t("aiChat.subtitle")}
             </Text>
           </View>
           <View className="flex-row items-center gap-1">

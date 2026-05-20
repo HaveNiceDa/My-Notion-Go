@@ -1,11 +1,12 @@
 import { InfoCard } from "@/components/ui/card";
 import { LoadingCard } from "@/components/ui/screen";
 import { cn } from "@/lib/cn";
-import { Text, View } from "@/tw";
+import { Pressable, Text, View } from "@/tw";
 import { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
-import type { MobileAIMessage } from "./types";
+import { useRouter } from "expo-router";
+import type { MobileAIMessage, MobileRAGCitation } from "./types";
 
 type AIConversationDetailScreenProps = {
   isError: boolean;
@@ -76,6 +77,7 @@ export function AIConversationDetailScreen({
 function MessageBubble({ message }: { message: MobileAIMessage }) {
   const { t } = useTranslation();
   const isUser = message.role === "user";
+  const citations = getRAGCitations(message);
 
   return (
     <View className={cn("gap-1", isUser ? "items-end" : "items-start")}>
@@ -91,8 +93,91 @@ function MessageBubble({ message }: { message: MobileAIMessage }) {
           </Text>
         )}
       </View>
+      {citations.length > 0 ? <CitationsCard citations={citations} /> : null}
     </View>
   );
+}
+
+function CitationsCard({ citations }: { citations: MobileRAGCitation[] }) {
+  const { t } = useTranslation();
+
+  return (
+    <View className="max-w-[86%] gap-1.5 rounded-xl border border-notion-border bg-notion-surface px-2.5 py-2">
+      <Text selectable className="text-xs font-semibold text-notion-subtle">
+        {t("aiChat.citationsTitle", { count: citations.length })}
+      </Text>
+      {citations.slice(0, 3).map((citation, index) => (
+        <CitationRow citation={citation} index={index} key={citation.chunkId} />
+      ))}
+    </View>
+  );
+}
+
+function CitationRow({ citation, index }: { citation: MobileRAGCitation; index: number }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+
+  function handlePress() {
+    router.push({
+      pathname: "/documents/[documentId]",
+      params: {
+        documentId: citation.documentId,
+        citationChunkId: citation.chunkId,
+        citationPosition: String(citation.position),
+      },
+    });
+  }
+
+  return (
+    <Pressable
+      accessibilityLabel={t("aiChat.openCitationDocument")}
+      accessibilityRole="button"
+      className="flex-row items-start gap-2 rounded-lg px-1 py-1.5 active:bg-notion-hover"
+      onPress={handlePress}
+    >
+      <View className="mt-0.5 h-5 w-5 flex-none items-center justify-center rounded-full bg-notion-hover">
+        <Text className="text-[10px] font-semibold text-notion-subtle">{index + 1}</Text>
+      </View>
+      <View className="min-w-0 flex-1">
+        <View className="flex-row items-center gap-1.5">
+          <Text selectable className="flex-1 text-xs font-semibold text-notion-subtle" numberOfLines={1}>
+            {citation.documentTitle || t("aiChat.citationUntitledDocument")}
+          </Text>
+          <View className="rounded-full bg-notion-hover px-1.5 py-0.5">
+            <Text className="text-[10px] font-medium text-notion-faint">
+              {t("aiChat.citationScore", { score: formatCitationScore(citation.score) })}
+            </Text>
+          </View>
+        </View>
+        <Text selectable className="text-[11px] leading-4 text-notion-faint" numberOfLines={2}>
+          {citation.preview}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function getRAGCitations(message: MobileAIMessage): MobileRAGCitation[] {
+  const rag = message.metadata?.rag;
+  if (!isRAGMetadata(rag)) {
+    return [];
+  }
+  return rag.citations;
+}
+
+function isRAGMetadata(value: unknown): value is { citations: MobileRAGCitation[]; enabled: boolean } {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const citations = (value as { citations?: unknown }).citations;
+  return Array.isArray(citations);
+}
+
+function formatCitationScore(score: number) {
+  if (!Number.isFinite(score)) {
+    return "0%";
+  }
+  return `${Math.round(score * 100)}%`;
 }
 
 function ThinkingDots({ label }: { label: string }) {

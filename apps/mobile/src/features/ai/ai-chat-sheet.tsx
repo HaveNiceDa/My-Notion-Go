@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { Pressable, ScrollView, Text, TextInput, View } from "@/tw";
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet, type ScrollView as NativeScrollView } from "react-native";
+import { Keyboard, StyleSheet, type ScrollView as NativeScrollView, type TextInput as NativeTextInput } from "react-native";
 import { useTranslation } from "react-i18next";
 import { AIConversationDetailScreen } from "./ai-conversation-detail-screen";
 import { AIConversationListScreen } from "./ai-conversation-list-screen";
@@ -17,6 +17,7 @@ type AIChatSheetProps = {
 export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
   const { t } = useTranslation();
   const scrollViewRef = useRef<NativeScrollView | null>(null);
+  const inputRef = useRef<NativeTextInput | null>(null);
   const [draft, setDraft] = useState("");
   const {
     cancelStreaming,
@@ -43,10 +44,9 @@ export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
     if (!content || sending) {
       return;
     }
-    const sent = await sendMessage(content);
-    if (sent) {
-      setDraft("");
-    }
+    setDraft("");
+    inputRef.current?.focus();
+    await sendMessage(content);
   }
 
   const sendDisabled = !draft.trim() || sending;
@@ -55,6 +55,9 @@ export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
   function scrollToChatEnd(animated = true) {
     requestAnimationFrame(() => {
       scrollViewRef.current?.scrollToEnd({ animated });
+      requestAnimationFrame(() => {
+        scrollViewRef.current?.scrollToEnd({ animated });
+      });
     });
   }
 
@@ -63,6 +66,25 @@ export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
       scrollToChatEnd(false);
     }
   }, [lastMessageContent, messages.length, open, selectedConversationId, sending]);
+
+  useEffect(() => {
+    const subscriptions = [
+      Keyboard.addListener("keyboardDidShow", () => {
+        if (selectedConversationId) {
+          scrollToChatEnd();
+        }
+      }),
+      Keyboard.addListener("keyboardDidHide", () => {
+        if (selectedConversationId) {
+          scrollToChatEnd(false);
+        }
+      }),
+    ];
+
+    return () => {
+      subscriptions.forEach((subscription) => subscription.remove());
+    };
+  }, [selectedConversationId]);
 
   return (
     <BottomSheet
@@ -74,9 +96,12 @@ export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
             <TextInput
               accessibilityLabel={t("aiChat.inputLabel")}
               multiline
+              onFocus={() => scrollToChatEnd()}
               onChangeText={setDraft}
               placeholder={t("aiChat.placeholder")}
               placeholderTextColor="#787774"
+              ref={inputRef}
+              returnKeyType="default"
               style={styles.input}
               value={draft}
             />
@@ -151,6 +176,7 @@ export function AIChatSheet({ onOpenChange, open }: AIChatSheetProps) {
             }
           }}
           ref={scrollViewRef}
+          showsVerticalScrollIndicator={false}
           style={styles.scrollView}
         >
           {selectedConversationId ? (
@@ -179,7 +205,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     lineHeight: 20,
+    maxHeight: 108,
     minHeight: 40,
+    outlineWidth: 0,
     paddingVertical: 8,
   },
   scrollContent: {

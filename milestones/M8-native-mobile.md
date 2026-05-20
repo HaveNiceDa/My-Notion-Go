@@ -446,6 +446,8 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
   - 已新增移动端 AI streaming 状态 hook，负责选中会话、消息临时态、AbortController 取消、React Query 会话/消息缓存同步和错误提示。
   - `mobileAIApi.streamChat` 优先使用 Expo 的 fetch 能力读取 ReadableStream；当运行时不支持 `response.body.getReader()` 时，降级为 `response.text()` 完整解析 SSE 帧。
   - 已补齐非真流式场景下的即时体感：发送后立刻插入本地用户消息和 AI 思考中气泡，避免 Native 等待完整响应期间界面无反馈。
+  - 已完成 M8.4.3 AI 体验补强：思考态改为气泡内 dots 动画，移除重复文字提示；打开历史会话、消息追加、键盘弹起/收起和输入框聚焦时自动滚动到底部。
+  - 已补齐输入区体验：发送成功后保持输入焦点，多行输入限制最大高度，取消生成会清理未落库的 pending 用户消息和临时 assistant 气泡。
   - 已按原 My-Notion `ChatModal` 调整弹层布局：通用 sheet 只保留 handle，AI 内部自管 header、滚动消息区和底部输入栏，避免新页面感和重复标题。
   - 已接入 `tamagui`、`@tamagui/config`、`@tamagui/animations-react-native`，根布局增加 `TamaguiProvider` 和 `Theme`。
   - 已移除 `@gorhom/bottom-sheet`，AI 弹层回到原 My-Notion 的 Tamagui `Sheet` 结构，滚动区和底部输入框由 sheet frame 内部稳定布局承载。
@@ -454,7 +456,7 @@ M8 用于在 Web MVP、实时事件、部署和测试闭环稳定后，新增 `m
   - `pnpm --filter @my-notion-go/mobile typecheck`
   - `pnpm --filter @my-notion-go/mobile lint`
 - 下一批建议：
-  - 在 Expo Web / Expo Go 中手动验证首页底部 AI 弹层、会话列表、新建会话、历史消息读取、普通消息发送、取消生成和错误提示。
+  - 在 Expo Web / Expo Go 中手动验证首页底部 AI 弹层、会话列表、新建会话、历史消息读取、普通消息发送、取消生成、键盘避让和自动滚底。
   - 单独验证 Native 运行时 `expo/fetch` streaming 能力；如果只能走 `response.text()` 降级，再评估是否需要后端补非流式或轮询接口。
   - 开始 M8.4.4，补齐 RAG 问答入口、引用来源展示和引用跳转文档详情。
 

@@ -1,7 +1,7 @@
 import { useAuthStore } from "@/stores/auth-store";
 import type { AIConversation, AIMessage } from "@my-notion-go/api-client";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
 import { mobileAIApi } from "./mobile-ai-api";
 import { mobileAIQueryKeys } from "./query-keys";
 import type { MobileAIChatMode, MobileAIMessage, MobileAIStreamEvent, MobileRAGCitation } from "./types";
@@ -89,6 +89,7 @@ export function useMobileAIChat({ mode = "chat", model }: UseMobileAIChatOptions
         return true;
       } catch (error) {
         if (isAbortError(error)) {
+          setMessages((currentMessages) => removePendingExchange(currentMessages));
           return false;
         }
         setMessages((currentMessages) => removeStreamingAssistantMessage(currentMessages));
@@ -109,7 +110,7 @@ export function useMobileAIChat({ mode = "chat", model }: UseMobileAIChatOptions
     abortControllerRef.current = null;
     currentCitationsRef.current = [];
     setSending(false);
-    setMessages((currentMessages) => removeStreamingAssistantMessage(currentMessages));
+    setMessages((currentMessages) => removePendingExchange(currentMessages));
   }, []);
 
   return {
@@ -127,7 +128,7 @@ export function useMobileAIChat({ mode = "chat", model }: UseMobileAIChatOptions
 }
 
 type StreamEventHandlers = {
-  currentCitationsRef: MutableRefObject<MobileRAGCitation[]>;
+  currentCitationsRef: RefObject<MobileRAGCitation[]>;
   queryClient: ReturnType<typeof useQueryClient>;
   setMessages: Dispatch<SetStateAction<MobileAIMessage[]>>;
   setSelectedConversationId: (conversationId: string) => void;
@@ -282,6 +283,10 @@ function replaceStreamingAssistantMessage(messages: MobileAIMessage[], message: 
 
 function removeStreamingAssistantMessage(messages: MobileAIMessage[]): MobileAIMessage[] {
   return messages.filter((message) => !message.streaming);
+}
+
+function removePendingExchange(messages: MobileAIMessage[]): MobileAIMessage[] {
+  return messages.filter((message) => !message.streaming && message.id !== "mobile-pending-user-message");
 }
 
 function isAbortError(error: unknown) {

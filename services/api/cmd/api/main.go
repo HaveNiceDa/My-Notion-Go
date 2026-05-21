@@ -12,6 +12,7 @@ import (
 	"github.com/bytel/my-notion-go/services/api/internal/config"
 	"github.com/bytel/my-notion-go/services/api/internal/database"
 	"github.com/bytel/my-notion-go/services/api/internal/documents"
+	"github.com/bytel/my-notion-go/services/api/internal/editorai"
 	"github.com/bytel/my-notion-go/services/api/internal/jobs"
 	"github.com/bytel/my-notion-go/services/api/internal/middleware"
 	"github.com/bytel/my-notion-go/services/api/internal/rag"
@@ -144,6 +145,8 @@ func main() {
 	initializeQdrant(qdrantClient, cfg.QdrantCollection, ai.DefaultEmbeddingDimension)
 	chatService := chat.NewService(chatRepo, aiClient)
 	chatHandler := chat.NewHandler(chatService)
+	editorAIService := editorai.NewService(documentRepo, aiClient)
+	editorAIHandler := editorai.NewHandler(editorAIService)
 	ragRepo := rag.NewRepository(db)
 	jobRepo := jobs.NewRepository(db)
 	ragService := rag.NewService(ragRepo, documentRepo, chatService, embeddingClient, qdrantClient, cfg.QdrantCollection)
@@ -199,6 +202,7 @@ func main() {
 	aiRoutes.POST("/conversations", chatHandler.CreateConversation)
 	aiRoutes.GET("/conversations/:id/messages", chatHandler.ListMessages)
 	aiRoutes.POST("/chat/stream", chatHandler.StreamChat)
+	aiRoutes.POST("/editor/stream", editorAIHandler.StreamEditorAI)
 
 	if err := router.Run(cfg.HTTPAddr); err != nil {
 		panic(err)

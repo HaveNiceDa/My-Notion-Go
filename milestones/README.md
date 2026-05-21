@@ -17,7 +17,8 @@
 7. `M6-search-workspace-polish.md`：全局搜索、Command Palette、回收站、收藏和发布页面规划。
 8. `M7-realtime-deployment-testing.md`：实时事件、部署准备、健康检查和测试补强。
 9. `M8-native-mobile.md`：原生移动端 App，覆盖登录、文档、搜索、AI、轻编辑和分发规划。
-10. `engineering-ui-rules.md`：shadcn/ui、Tailwind、i18n、ahooks、Trae rules、代码生成规范。
+10. `M9-blocknote-editor-native-ai.md`：Web BlockNote 编辑器原生 AI，覆盖 `@blocknote/xl-ai`、编辑器内 AI 菜单、Go 后端 stream 协议和自定义命令规划。
+11. `engineering-ui-rules.md`：shadcn/ui、Tailwind、i18n、ahooks、Trae rules、代码生成规范。
 
 ## 当前总状态
 
@@ -27,6 +28,7 @@
 - M6 已完成：全局搜索、Command Palette、回收站、收藏排序和公开页面发布均已落地。
 - M7 已开启并完成核心骨架：SSE 实时事件、Docker Compose 部署演示、部署文档和 README 更新已落地，后续优先收口测试补强。
 - M8 已加入后续路线：在 Web/Go API 稳定后新增 `apps/mobile` 原生移动端，使用 React Native / Expo，复用 Go API、共享 client 和 shared types。
+- 当前优先级已从移动端切回 Web：M8 暂停继续推进，下一阶段聚焦 M9 BlockNote 编辑器原生 AI，把 AI 直接嵌入正文编辑体验。
 - 后续 AI 方向已调整为 Agent + Tool 架构：RAG 将作为 `knowledge_base.search` tool，而不是长期独立问答章节；暂不做人工作 query intent 前置规则。
 - 规则与工程约束已迁移到项目内 `.trae/rules/`，后续应优先读取项目 rules，而不是依赖全局 memory。
 
@@ -41,6 +43,8 @@ go test ./services/api/...
 pnpm smoke:api:documents
 pnpm smoke:api:ai-chat
 pnpm smoke:api:rag
+# M9 实施后新增
+pnpm smoke:api:editor-ai
 ```
 
 ## 原始日志映射
